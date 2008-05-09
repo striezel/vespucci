@@ -2,6 +2,9 @@ unit Units;
 
 interface
 
+uses
+  Nation;
+
 type
   TUnitType = (utCriminal, utColonist,
                utFarmer, utFisher, utFurHunter, utSilverMiner, utWoodcutter,
@@ -34,7 +37,7 @@ type
     private
       PosX, PosY: Integer;
       UnitType: TUnitType;
-      //Nation: PNation;
+      Nation: PNation;
       //AI_Task: TAI_Task;
   end;//class TUnit
   PUnit = ^TUnit;

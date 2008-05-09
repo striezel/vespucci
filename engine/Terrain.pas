@@ -5,6 +5,12 @@ interface
 uses
   Goods;
 
+const
+  TERRAIN_RIVER_BIT = 1;
+  TERRAIN_ROAD_BIT = 2;
+  TERRAIN_SPECIAL_BIT = 4;
+  TERRAIN_PLOUGHED_BIT = 8;
+
 type
   TTerrainType = (//open terrain types
                   ttArctic, ttSea, ttOpenSea, ttPlains, ttGrassland, ttPrairie,
