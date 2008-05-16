@@ -17,7 +17,8 @@ type
 
                utScout, utPioneer, utMissionary,
 
-               utRegular, utDragoon,
+               utRegular, utDragoon, utArtillery,
+               utConvoy,
                utCaravel, utTradingShip, utGalleon, utPrivateer, utFrigate,
                utMan_o_War,
 
@@ -34,6 +35,8 @@ type
       function GetPosY: Integer;
       function IsShip: Boolean;
       function MovesPerRound: Integer;
+      function AttackStrength: Integer;
+      function FreightCapacity: Integer;
     private
       PosX, PosY: Integer;
       UnitType: TUnitType;
@@ -50,11 +53,12 @@ begin
   PosX:= X;
   PosY:= Y;
   MovesLeft:= MovesPerRound;
+  Nation:= nil;
 end;//construc
 
 destructor TUnit.Destroy;
 begin
-
+  inherited Destroy;
 end;//destruc
 
 function TUnit.Move(const direction: TDirection): Boolean;
@@ -110,15 +114,42 @@ function TUnit.MovesPerRound: Integer;
 begin
   case UnitType of
     utScout, utDragoon: Result:= 4;
-    utMissionary: Result:= 2;
+    utMissionary, utConvoy: Result:= 2;
     utCaravel: Result:= 4;
     utTradingShip: Result:= 5;
-    utGalleaon: Result:= 6;
+    utGalleon: Result:= 6;
     utPrivateer: Result:= 8;
     utFrigate: Result:= 6;
     utMan_o_War: Result:= 5;
     utBraveOnHorse: Result:= 4;
   else Result:= 1;
+  end;//case
+end;//func
+
+function TUnit.AttackStrength: Integer;
+begin
+  case UnitType of
+    utRegular: Result:= 2;
+    utDragoon: Result:= 3;
+    utCaravel: Result:= 2;
+    utTradingShip: Result:= 6;
+    utGalleon: Result:= 10;
+    utPrivateer: Result:= 8;
+    utFrigate: Result:= 16;
+    utMan_o_War: Result:= 24;
+    //utBrave: Result:= 1;
+    utBraveOnHorse: Result:= 2;
+  else Result:= 1;
+  end;//case
+end;//func
+
+function TUnit.FreightCapacity: Integer;
+begin
+  case UnitType of
+    utConvoy, utCaravel, utPrivateer: Result:= 2;
+    utTradingShip, utFrigate: Result:= 4;
+    utGalleon, utMan_o_War: Result:= 6;
+  else Result:= 0;
   end;//case
 end;//func
 

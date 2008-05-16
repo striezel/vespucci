@@ -67,6 +67,8 @@ type
       function IsWater: Boolean;
 
       function GetGoodProduction(const AGood: TGoodType): Byte;
+      //defense bonus for terrain, in percent. Maximum is 150, so Byte will do.
+      function GetDefenceBonus: Byte;
 
       //change terrain state
       procedure ClearForest;
@@ -166,7 +168,7 @@ function TTerrain.GetGoodProduction(const AGood: TGoodType): Byte;
 begin
   Result:= 0;
   case m_Type of
-    ttArctic: Result:= 0;
+    //ttArctic: Result:= 0;
     ttSea, ttOpenSea: if AGood= gtFood then
                       begin
                         Result:= 4;
@@ -300,8 +302,271 @@ begin
                 if m_River then Result:= Result+1;
                 if m_Special {Minerals} then Result:= Result+3;
               end;
+    ttBoreal: if AGood = gtFood then
+              begin
+                Result:= 2;
+                if m_River then Result:= Result+1;
+                //if m_Ploughed then Result:= Result+1; //forest cannot be ploughed
+                if m_Special {deer} then Result:= Result+2;
+              end
+              else if AGood = gtFur then
+              begin
+                Result:= 3;
+                if m_River then Result:= Result+1;
+                if m_Road then Result:= Result+1;
+                if m_Special {deer} then Result:= Result+2;
+              end
+              else if AGood = gtWood then
+              begin
+                Result:= 4;
+                if m_River then Result:= Result+1;
+                if m_Road then Result:= Result+1;
+              end
+              else if AGood = gtOre then
+              begin
+                Result:= 1;
+                if m_River then Result:= Result+1;
+                if m_Road then Result:= Result+1;
+              end;
+    //"Feuchtwald"
+    ttWetland: if AGood = gtFood then
+               begin
+                 Result:= 2;
+                 if m_River then Result:= Result+1;
+                 //if m_Ploughed then Result:= Result+1; //forest cannot be ploughed
+               end
+               else if AGood = gtTobacco then
+               begin
+                 Result:= 1;
+                 if m_River then Result:= Result+1;
+                 //if m_Ploughed then Result:= Result+1; //forest cannot be ploughed
+               end
+               else if AGood = gtFur then
+               begin
+                 Result:= 2;
+                 if m_River then Result:= Result+2;//yes, it's two instead of one
+                 if m_Road then Result:= Result+2;
+               end
+               else if AGood = gtWood then
+               begin
+                 Result:= 4;
+                 if m_River then Result:= Result+2;//yes, it's two instead of one
+                 if m_Road then Result:= Result+2;
+               end
+               else if AGood = gtOre then
+               begin
+                 Result:= 1;
+                 if m_River then Result:= Result+1;
+                 if m_Road then Result:= Result+1;
+                 if m_Special {Minerals} then Result:= Result+3;
+               end;
+    ttScrubForest: if AGood = gtFood then
+                   begin
+                     Result:= 2;
+                     if m_River then Result:= Result+1;
+                     //if m_Ploughed then Result:= Result+1; //forest cannot be ploughed
+                     if m_Special {Oasis} then Result:= Result+2;
+                   end
+                   else if AGood = gtCotton then
+                   begin
+                     Result:= 1;
+                     if m_River then Result:= Result+1;
+                     //if m_Ploughed then Result:= Result+1; //forest cannot be ploughed
+                   end
+                   else if AGood = gtFur then
+                   begin
+                     Result:= 2;
+                     if m_River then Result:= Result+2;//yes, that's two
+                     if m_Road then Result:= Result+2;
+                   end
+                   else if AGood = gtWood then
+                   begin
+                     Result:= 2;
+                     if m_River then Result:= Result+2;//yes, that's two
+                     if m_Road then Result:= Result+2;
+                   end
+                   else if AGood = gtOre then
+                   begin
+                     Result:= 1;
+                     if m_River then Result:= Result+1;
+                     if m_Road then Result:= Result+1;
+                   end;
+    ttBroadleaf: if AGood = gtFood then
+                 begin
+                   Result:= 2;
+                   if m_River then Result:= Result+1;
+                   //if m_Ploughed then Result:= Result+1; //forest cannot be ploughed
+                   if m_Special {deer} then Result:= Result+2;
+                 end
+                 else if AGood = gtCotton then
+                 begin
+                   Result:= 1;
+                   if m_River then Result:= Result+1;
+                   //if m_Ploughed then Result:= Result+1; //forest cannot be ploughed
+                 end
+                 else if AGood = gtFur then
+                 begin
+                   Result:= 2;
+                   if m_River then Result:= Result+2;//yes, it's two, not one
+                   if m_Road then Result:= Result+2;
+                   if m_Special {deer} then Result:= Result+2;
+                 end
+                 else if AGood = gtWood then
+                 begin
+                   Result:= 4;
+                   if m_River then Result:= Result+2;//yes, it's two, not one
+                   if m_Road then Result:= Result+2;
+                 end;
+    ttMixedForest: if AGood = gtFood then
+                   begin
+                     Result:= 3;
+                     if m_River then Result:= Result+1;
+                     //if m_Ploughed then Result:= Result+1; //forest cannot be ploughed
+                   end
+                   else if AGood = gtCotton then
+                   begin
+                     Result:= 1;
+                     if m_River then Result:= Result+1;
+                     //if m_Ploughed then Result:= Result+1; //forest cannot be ploughed
+                   end
+                   else if AGood = gtFur then
+                   begin
+                     Result:= 3;
+                     if m_River then Result:= Result+2;//yes, two :)
+                     if m_Road then Result:= Result+2;
+                     if m_Special {beaver} then Result:= Result +3;
+                   end
+                   else if AGood = gtWood then
+                   begin
+                     Result:= 6;
+                     if m_River then Result:= Result+2;//yes, two :)
+                     if m_Road then Result:= Result+2;
+                   end;//if
+    ttConiferForest: if AGood = gtFood then
+                     begin
+                       Result:= 2;
+                       if m_River then Result:= Result+1;
+                       //if m_Ploughed then Result:= Result+1; //forest cannot be ploughed
+                     end
+                     else if AGood = gtTobacco then
+                     begin
+                       Result:= 1;
+                       if m_River then Result:= Result+1;
+                       //if m_Ploughed then Result:= Result+1; //forest cannot be ploughed
+                     end
+                     else if AGood = gtFur then
+                     begin
+                       Result:= 2;
+                       if m_River then Result:= Result+2; //yes, it's a +2
+                       if m_Road then Result:= Result+2;
+                     end
+                     else if AGood = gtWood then
+                     begin
+                       Result:= 6;
+                       if m_River then Result:= Result+2; //yes, it's a +2
+                       if m_Road then Result:= Result+2;
+                       if m_Special {best wood} then Result:= Result+4;
+                     end;
+    ttRainForest: if AGood = gtFood then
+                  begin
+                    Result:= 2;
+                    if m_River then Result:= Result+1;
+                    //if m_Ploughed then Result:= Result+1; //forest cannot be ploughed
+                  end
+                  else if AGood = gtSugar then
+                  begin
+                    Result:= 1;
+                    if m_River then Result:= Result+1;
+                    //if m_Ploughed then Result:= Result+1; //forest cannot be ploughed
+                  end
+                  else if AGood = gtFur then
+                  begin
+                    Result:= 1;
+                    if m_River then Result:= Result+2;//a two here
+                    if m_Road then Result:= Result+2;
+                  end
+                  else if AGood = gtWood then
+                  begin
+                    Result:= 4;
+                    if m_River then Result:= Result+2;//a two here
+                    if m_Road then Result:= Result+2;
+                  end
+                  else if AGood = gtOre then
+                  begin
+                    Result:= 1;
+                    if m_River then Result:= Result+1;
+                    if m_Road then Result:= Result+1;
+                    if m_Special {Minerals} then Result:= Result+3;
+                  end;
+    ttTropicalForest: if AGood = gtFood then
+                      begin
+                        Result:= 3;
+                        if m_River then Result:= Result+1;
+                        //if m_Ploughed then Result:= Result+1; //forest cannot be ploughed
+                      end
+                      else if AGood = gtSugar then
+                      begin
+                        Result:= 1;
+                        if m_River then Result:= Result+1;
+                        //if m_Ploughed then Result:= Result+1; //forest cannot be ploughed
+                      end
+                      else if AGood = gtFur then
+                      begin
+                        Result:= 2;
+                        if m_River then Result:= Result+2;//yes, it's two
+                        if m_Road then Result:= Result+2;
+                      end
+                      else if AGood = gtWood then
+                      begin
+                        Result:= 4;
+                        if m_River then Result:= Result+2;//yes, it's two
+                        if m_Road then Result:= Result+2;
+                        if m_Special {best wood} then Result:= Result+4;
+                      end;
+    ttHills: if AGood = gtFood then
+             begin
+               Result:= 2;
+               if m_River then Result:= Result+1;
+               //if m_Ploughed then Result:= Result+1; //hills cannot be ploughed
+             end
+             else if AGood = gtOre then
+             begin
+               Result:= 4;
+               if m_River then Result:= Result+1;
+               if m_Road then Result:= Result+1;
+               if m_Special {Ore} then Result:= Result+2;
+             end;
+    ttMountains: if AGood = gtOre then
+                 begin
+                   Result:= 4;
+                   if m_River then Result:= Result+1;
+                   if m_Road then Result:= Result+1;
+                 end
+                 else if AGood = gtSilver then
+                 begin
+                   Result:= 1;
+                   if m_River then Result:= Result+1;
+                   if m_Road then Result:= Result+1;
+                   if m_Special {Silver} then Result:= Result+4;
+                 end;
   end;//case
 end;//func
+
+//defense bonus for terrain in %. Maximum is 150%.
+function TTerrain.GetDefenceBonus: Byte;
+begin
+  case m_Type of
+    ttMarsh, ttSwamp: Result:= 25;
+    ttBoreal, ttWetland, ttScrubForest, ttBroadleaf, ttMixedForest, ttConiferForest: Result:= 50;
+    ttRainForest: Result:= 75;
+    ttTropicalForest: Result:= 50;
+    ttHills: Result:= 100;
+    ttMountains: Result:= 150;
+  else Result:= 0;
+  end;//case
+end;//func
+
+//**** Terrain alteration functions ****
 
 procedure TTerrain.ClearForest;
 begin
@@ -315,7 +580,10 @@ end;
 
 procedure TTerrain.Plough;
 begin
-  m_Ploughed:= True;
+  //can't plough in forest, has to deforest first
+  if HasForest then ClearForest
+  //can't plough in hills or mountains
+  else if (not (m_Type in [ttHills, ttMountains])) then m_Ploughed:= True;
 end;
 
 end.
