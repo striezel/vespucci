@@ -38,6 +38,7 @@ type
       destructor Destroy;
       function IsIndian: Boolean; virtual; abstract;
       function IsEuropean: Boolean; virtual; abstract;
+      function GetCount: Integer;
       function GetName: string;
   end;//class
   PNation = ^TNation;
@@ -102,6 +103,11 @@ end;//destructor
 function TNation.GetName: string;
 begin
   Result:= m_NameStr;
+end;//func
+
+function TNation.GetCount: Integer;
+begin
+  Result:= m_count;
 end;//func
 
 
