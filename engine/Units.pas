@@ -6,7 +6,7 @@ uses
   Nation;
 
 type
-  TUnitType = (utCriminal, utColonist,
+  TUnitType = (utCriminal, utServant, utColonist,
                utFarmer, utFisher, utFurHunter, utSilverMiner, utWoodcutter,
                utOreMiner, utSugarplanter, utCottonplanter, utTobaccoplanter,
 
@@ -33,6 +33,9 @@ type
       function Move(const direction: TDirection): Boolean;
       function GetPosX: Integer;
       function GetPosY: Integer;
+      function GetNation: PNation;
+      function GetType: TUnitType;
+      procedure ChangeType(const newType: TUnitType);
       function IsShip: Boolean;
       function MovesPerRound: Integer;
       function AttackStrength: Integer;
@@ -103,6 +106,23 @@ function TUnit.GetPosY: Integer;
 begin
   Result:= PosY;
 end;
+
+function TUnit.GetNation: PNation;
+begin
+  Result:= Nation;
+end;//func
+
+function TUnit.GetType: TUnitType;
+begin
+  Result:= UnitType;
+end;//func
+
+procedure TUnit.ChangeType(const newType: TUnitType);
+begin
+  //we don't wanna change ships' type or convoy
+  if ((not IsShip) and (UnitType<>utConvoy)) then
+    UnitType:= newType;
+end;//proc
 
 function TUnit.IsShip: Boolean;
 begin
