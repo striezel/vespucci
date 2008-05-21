@@ -5,7 +5,7 @@ interface
 type
  TGoodType = (gtFood, gtSugar, gtTobacco, gtCotton, gtFur, gtWood, gtOre,
               gtSilver, gtHorses, gtRum, gtCigar, gtCloth, gtCoat, gtTradegoods,
-              gtTool, gtMusket, gtHammer, gtLibertyBell);
+              gtTool, gtMusket, gtHammer, gtLibertyBell, gtCross);
 
 const
   cGoodPrices: array [TGoodType] of record
@@ -30,7 +30,8 @@ const
              (diff: 1; start_min: 2; start_max: 2; min: 2; max: 9),//gtTool
              (diff: 1; start_min: 3; start_max: 3; min: 2; max: 20),//gtMusket
              (diff: 0; start_min: 0; start_max: 0; min: 0; max: 0),//gtHammer
-             (diff: 0; start_min: 0; start_max: 0; min: 0; max: 0)//gtLibertyBell
+             (diff: 0; start_min: 0; start_max: 0; min: 0; max: 0),//gtLibertyBell
+             (diff: 0; start_min: 0; start_max: 0; min: 0; max: 0)//gtCross
            );
 
 implementation
