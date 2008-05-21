@@ -24,8 +24,9 @@ implementation
 
 constructor TSettlement.Create(const X, Y: Integer; const ANation: PNation);
 begin
-  if X>=0 then PosX:= X else PosX:= 0;
-  if Y>=0 then PosY:= Y else PosY:= 0;
+  //no settlements outside of range or at border row/column (index: 0) allowed
+  if X>0 then PosX:= X else PosX:= 1;
+  if Y>0 then PosY:= Y else PosY:= 1;
   Nation:= ANation;
 end;
 
