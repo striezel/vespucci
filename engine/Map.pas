@@ -129,7 +129,7 @@ var fs: TFileStream;
 begin
   fs:= nil;
   try
-    fs:= TFileStream.Create(fmCreate or fmShareDenyNone);
+    fs:= TFileStream.Create(FileName, fmCreate or fmShareDenyNone);
   except
     Result:= False;
     if fs<>nil then
