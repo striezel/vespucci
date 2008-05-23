@@ -47,10 +47,6 @@ const
 
   //Keys
   KEY_ESCAPE = 27;
-  KEY_LEFT = 37;
-  KEY_UP = 38;
-  KEY_RIGHT = 39;
-  KEY_DOWN = 40;
 
   //maybe starts with 97, maybe with 49, try it
   KEY_NUMPAD1 = 49;
@@ -116,10 +112,10 @@ begin
          end;
   end;
   case Key of
-    KEY_LEFT, KEY_NUMPAD4: if (OffsetX>0) then OffsetX:= OffsetX-1;{Move left}
-    KEY_RIGHT, KEY_NUMPAD6: if (OffsetX<cMap_X-x_Fields) then OffsetX:= OffsetX+1;{Move right}
-    KEY_DOWN, KEY_NUMPAD2: if (OffsetY<cMap_y-y_Fields) then OffsetY:= OffsetY+1; {Move down}
-    KEY_UP, KEY_NUMPAD8: if (OffsetY>0) then OffsetY:= OffsetY-1;
+    GLUT_KEY_LEFT, KEY_NUMPAD4: if (OffsetX>0) then OffsetX:= OffsetX-1;{Move left}
+    GLUT_KEY_RIGHT, KEY_NUMPAD6: if (OffsetX<cMap_X-x_Fields) then OffsetX:= OffsetX+1;{Move right}
+    GLUT_KEY_DOWN, KEY_NUMPAD2: if (OffsetY<cMap_y-y_Fields) then OffsetY:= OffsetY+1; {Move down}
+    GLUT_KEY_UP, KEY_NUMPAD8: if (OffsetY>0) then OffsetY:= OffsetY-1;
 
     KEY_ESCAPE: halt; {exit}
   end;

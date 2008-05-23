@@ -16,6 +16,24 @@ begin
   TheGUI.KeyFunc(Key, x,y);
 end;
 
+procedure SpecialWrapper(Key: Longint; x, y: Longint); cdecl;
+begin
+  WriteLn('Special key: ', Key);
+  TheGUI.KeyFunc(Key, x, y);
+end;
+
+procedure MouseWrapper(button, state, x, y: Longint); cdecl;
+begin
+  case button of
+    GLUT_LEFT_BUTTON: Write('LeftMouse');
+    GLUT_RIGHT_BUTTON: Write('RightMouse');
+    GLUT_MIDDLE_BUTTON: Write('MiddleMouse');
+  else Write('UnknownMouse(', button, ')');
+  end;//case
+  if state=GLUT_UP then Write(' up') else Write(' down');
+  WriteLn(' x: ',x, '; y: ', y);
+end;//proc
+
 procedure ResizeWrapper(Width, Height: Longint); cdecl;
 begin
   TheGUI.Resize(Width, Height);
@@ -36,22 +54,24 @@ begin
   WriteLn('glutInitDisplayMode...');
   glutInitDisplayMode(GLUT_RGB or GLUT_DOUBLE or GLUT_DEPTH);
   
-  WriteLn('glutInitWindowPosition');
+  WriteLn('glutInitWindowPosition...');
   glutInitWindowPosition(0,0);
-  WriteLn('glutInitWindowSize');
+  WriteLn('glutInitWindowSize...');
   glutInitWindowSize(32*x_Fields+BarWidth, 32*y_Fields+16+16);
 
-  WriteLn('glutCreateWindow');
+  WriteLn('glutCreateWindow...');
   if (glutCreateWindow(cWindowCaption)<=0) then
   begin
     WriteLn('ERROR: Could not create window.');
     Exit;
   end;
   //functions
-  WriteLn('glutFuncs (callback)');
+  WriteLn('glutFuncs (callback)...');
   glutDisplayFunc(@DrawWrapper);
   glutReshapeFunc(@ResizeWrapper);
   glutKeyboardFunc(@KeyWrapper);
+  glutSpecialFunc(@SpecialWrapper);
+  glutMouseFunc(@MouseWrapper);
   glutIdleFunc(@IdleWrapper);
   
   WriteLn('Starting GUI...');
