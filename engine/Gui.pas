@@ -44,6 +44,9 @@ const
       );
 
   cWindowCaption = 'Vespucci v0.01';
+  
+  cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
+  cMenuHighColour : array [0..2] of Byte = (255, 20, 20);
 
   //Keys
   KEY_ESCAPE = 27;
@@ -60,22 +63,27 @@ const
   KEY_NUMPAD9 = 57;
 
 type
-
+  TMenuCategory = (mcNone, mcGame, mcView, mcOrders, mcReports, mcTrade);
   TGui = class
     private
       WindowHeight, WindowWidth: Integer;
+      menu_cat: TMenuCategory;
       procedure InitGLUT;
+      procedure DrawMenuBar;
     public
       m_Map: TMap;
       OffsetX, OffsetY: Integer;
       MiniMapOffset_Y: Integer;
       constructor Create;
       destructor Destroy;
-      procedure KeyFunc(Key: Byte; x, y: Longint); cdecl;
-      procedure Resize(Width, Height: Longint); cdecl;
+      procedure KeyFunc(Key: Byte; x, y: Longint; Special: Boolean = False);
+      procedure Resize(Width, Height: Longint);
       procedure Start;
-      procedure Draw; cdecl;
+      procedure Draw;
       procedure CenterOn(const x, y: Integer);
+      procedure WriteText(const msg: string; const x, y: Single);
+      
+      function InMenu: Boolean;
   end;//class TGui
   PGui = ^TGui;
 
@@ -91,6 +99,7 @@ begin
   MiniMapOffset_Y:= 0;
   m_Map:= TMap.Create;
   m_Map.Generate(0.7);
+  menu_cat:= mcNone;
 
   ptrGui:= @self;
 end;//constructor
@@ -101,7 +110,7 @@ begin
   inherited Destroy;
 end;//destructor
 
-procedure TGui.KeyFunc(Key: Byte; x, y: LongInt); cdecl;
+procedure TGui.KeyFunc(Key: Byte; x, y: LongInt; Special: Boolean = False);
 begin
   case UpCase(char(Key)) of
     'F': ;//fortify
@@ -133,7 +142,6 @@ begin
   WriteLn('glEnable-like stuff');
    // Enable backface culling
   glEnable(GL_CULL_FACE);
-
   // Set up depth buffer
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LESS);
@@ -231,7 +239,8 @@ begin
                    y_Fields-BorderWidth - (j-MinimapOffset_Y)*2*PixelWidth, 0.1);
       end;//for
   glEnd;//MiniMap
-
+  glColor3ubv(@cMenuTextColour[0]);
+  DrawMenuBar;
   glutSwapBuffers();
 end; //Draw
 
@@ -250,5 +259,31 @@ begin
   else if (MiniMapOffset_Y>cMap_Y-Minimap_y_fields) then
     MiniMapOffset_Y:= cMap_Y-Minimap_y_fields;
 end;//proc
+
+procedure TGui.WriteText(const msg: string; const x, y: Single);
+const cFontType = GLUT_BITMAP_8_BY_13;
+{maybe we should try GLUT_BITMAP_9_BY_15 instead.
+   other alternatives:
+   GLUT_BITMAP_HELVETICA_10, GLUT_BITMAP_HELVETICA_12, GLUT_BITMAP_HELVETICA_18
+   GLUT_BITMAP_TIMES_ROMAN_10 }
+var i: Integer;
+begin
+  glRasterPos3f(x, y, 0.2);
+  for i:= 1 to length(msg) do
+    if (Ord(msg[i]) >=32){ and (Ord(msg[i]) <=127)} then
+    begin
+      glutBitmapCharacter(cFontType, Ord(msg[i]));
+    end;
+end;//proc
+
+procedure TGui.DrawMenuBar;
+begin
+  WriteText('Spiel  Ansicht  Befehle  Berichte  Handel', 0.1, 12.0+5.0*PixelWidth);
+end;//proc
+
+function TGui.InMenu: Boolean;
+begin
+  Result:= menu_cat<>mcNone;
+end;//func
 
 end.

@@ -13,13 +13,13 @@ end;
 procedure KeyWrapper(Key: Byte; x, y: Longint); cdecl;
 begin
   WriteLn('Key: ', Key);
-  TheGUI.KeyFunc(Key, x,y);
+  TheGUI.KeyFunc(Key, x,y, False);
 end;
 
 procedure SpecialWrapper(Key: Longint; x, y: Longint); cdecl;
 begin
   WriteLn('Special key: ', Key);
-  TheGUI.KeyFunc(Key, x, y);
+  TheGUI.KeyFunc(Key, x, y, True);
 end;
 
 procedure MouseWrapper(button, state, x, y: Longint); cdecl;
@@ -47,13 +47,11 @@ end;
 begin
   WriteLn(Gui.cWindowCaption);
   WriteLn;
-  WriteLn('Creating GUI...');
-  TheGUI:= TGui.Create;
   WriteLn('glutInit...');
   glutInit(@argc, argv);
   WriteLn('glutInitDisplayMode...');
   glutInitDisplayMode(GLUT_RGB or GLUT_DOUBLE or GLUT_DEPTH);
-  
+
   WriteLn('glutInitWindowPosition...');
   glutInitWindowPosition(0,0);
   WriteLn('glutInitWindowSize...');
@@ -65,6 +63,8 @@ begin
     WriteLn('ERROR: Could not create window.');
     Exit;
   end;
+  WriteLn('Creating GUI...');
+  TheGUI:= TGui.Create;
   //functions
   WriteLn('glutFuncs (callback)...');
   glutDisplayFunc(@DrawWrapper);
@@ -73,7 +73,7 @@ begin
   glutSpecialFunc(@SpecialWrapper);
   glutMouseFunc(@MouseWrapper);
   glutIdleFunc(@IdleWrapper);
-  
+
   WriteLn('Starting GUI...');
   TheGui.Start;//starts GUI ang GLUT's main loop
 end.
