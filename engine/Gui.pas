@@ -3,7 +3,7 @@ unit Gui;
 interface
 
 uses
-  Map, GL, GLU, GLUT, Terrain;
+  Map, GL, GLU, GLUT, Terrain, language;
 
 const
   x_Fields = 15;
@@ -63,11 +63,11 @@ const
   KEY_NUMPAD9 = 57;
 
 type
-  TMenuCategory = (mcNone, mcGame, mcView, mcOrders, mcReports, mcTrade);
   TGui = class
     private
       WindowHeight, WindowWidth: Integer;
       menu_cat: TMenuCategory;
+      lang: TLanguage;
       procedure InitGLUT;
       procedure DrawMenuBar;
     public
@@ -100,13 +100,14 @@ begin
   m_Map:= TMap.Create;
   m_Map.Generate(0.7);
   menu_cat:= mcNone;
-
+  lang:= TLanguage.Create;
   ptrGui:= @self;
 end;//constructor
 
 destructor TGui.Destroy;
 begin
   m_Map.Destroy;
+  lang.Destroy;
   inherited Destroy;
 end;//destructor
 
@@ -130,7 +131,7 @@ begin
   end;
 end;//proc
 
-procedure TGui.Resize(Width, Height: Longint); cdecl;
+procedure TGui.Resize(Width, Height: Longint);
 begin
   WindowWidth:= Width;
   WindowHeight:= Height;
@@ -155,7 +156,7 @@ begin
   InitGLUT;
 end;//proc Start
 
-procedure TGui.Draw; cdecl;
+procedure TGui.Draw;
 var i, j: Integer;
 begin
   glLoadIdentity;
@@ -261,7 +262,7 @@ begin
 end;//proc
 
 procedure TGui.WriteText(const msg: string; const x, y: Single);
-const cFontType = GLUT_BITMAP_8_BY_13;
+//const cFontType = GLUT_BITMAP_8_BY_13;
 {maybe we should try GLUT_BITMAP_9_BY_15 instead.
    other alternatives:
    GLUT_BITMAP_HELVETICA_10, GLUT_BITMAP_HELVETICA_12, GLUT_BITMAP_HELVETICA_18
@@ -272,13 +273,18 @@ begin
   for i:= 1 to length(msg) do
     if (Ord(msg[i]) >=32){ and (Ord(msg[i]) <=127)} then
     begin
-      glutBitmapCharacter(cFontType, Ord(msg[i]));
+      glutBitmapCharacter(GLUT_BITMAP_8_BY_13, Ord(msg[i]));
     end;
 end;//proc
 
 procedure TGui.DrawMenuBar;
+var s: string;
+    i: Integer;
 begin
-  WriteText('Spiel  Ansicht  Befehle  Berichte  Handel', 0.1, 12.0+5.0*PixelWidth);
+  s:= lang.GetMenuLabel(mcGame);
+  for i:= Ord(Succ(mcGame)) to Ord(High(TMenuCategory)) do
+    s:= s+'  '+lang.GetMenuLabel(TMenuCategory(i));
+  WriteText(s, 0.1, 12.0+5.0*PixelWidth);
 end;//proc
 
 function TGui.InMenu: Boolean;
