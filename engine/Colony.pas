@@ -3,7 +3,7 @@ unit Colony;
 interface
 
 uses
-  Nation, Settlement, Goods, Units;
+  Nation, Settlement, Goods, Units, Map, Terrain;
 
 type
   TBuildingType = (btFort, //Einpfählung, Fort, Festung
@@ -31,13 +31,17 @@ type
       function GetMaxLevel(const bt: TBuildingType): Byte;
       procedure ConstructNextLevel(const bt: TBuildingType);
       function GetProduction(const bt: TBuildingType; const ut: TUnitType): Integer;
-      procedure NewRound;
+      procedure NewRound(const AMap: TMap);
 
     private
       m_Name: string;
       Store: array[TGoodType] of Word; //max. is 300, a word should do it;
       Buildings: array[TBuildingType] of Byte;
       UnitsInBuilding: array [btArmory..btBlacksmith] of array [0..2] of PUnit;
+      UnitsInFields: array[-1..1] of array [-1..1] of record
+                                                        u: PUnit;
+                                                        GoesFor: TGoodType;
+                                                      end;//rec
   end;//class
   PColony = ^TColony;
 
@@ -46,8 +50,9 @@ implementation
 // **** TColony functions ****
 
 constructor TColony.Create(const X, Y: Integer; const ANation: PNation; const AName: string);
-var gt: TGoodType;
-    bt: TBuildingType;
+var bt: TBuildingType;
+    gt: TGoodType;
+    i,j: Integer;
 begin
   //sets position and nation
   inherited Create(X, Y, ANation);
@@ -84,6 +89,13 @@ begin
   Buildings[btWeaver]:= 1;
   Buildings[btDistiller]:= 1;
   Buildings[btFurTrader]:= 1;
+  //units in fields
+  for i:= -1 to 1 do
+    for j:= -1 to 1 do
+    begin
+      UnitsInFiels[i,j].u:= nil;
+      UnitsInFiels[i,j].GoesFor:= gtFood;
+    end;//for
 end;//create
 
 destructor TColony.Destroy;
@@ -141,9 +153,19 @@ end;//func
 
 //only calculates the good changes due to production in buildings;
 // (production in fields (i.e. by farmers) not included yet)
-procedure TColony.NewRound;
-var i, prod: Integer;
+procedure TColony.NewRound(const AMap: TMap);
+var i,j, prod: Integer;
 begin
+  //calculate production of units in surrounding fields
+  if AMap<>nil then
+  begin
+    for i:= -1 to 1 do
+      for j:= -1 to 1 do
+        if (UnitsInFields[i,j].u<>nil) then
+          if ((PosX+i>=0) and (PosX+i<cMap_X) and (PosY+j>=0) and (PosY+j<cMap_Y)) then
+            Store[UnitsInFields[i,j].GoesFor]:= Store[UnitsInFields[i,j].GoesFor] +
+             AMap.tiles[PosX+i, PosY+j].GetGoodProduction(UnitsInFields[i,j].GoesFor);
+  end;//if
   //calculate production of all buildings
   //church first
   prod:= 0;
