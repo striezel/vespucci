@@ -29,6 +29,7 @@ type
       constructor Create(const X, Y: Integer; const ANation: PNation; const AName: string);
       destructor Destroy;
       function GetName: string;
+      function GetStore(const AGood: TGoodType): Word;
       function GetMaxLevel(const bt: TBuildingType): Byte;
       procedure ConstructNextLevel(const bt: TBuildingType);
       function GetProduction(const bt: TBuildingType; const ut: TUnitType): Integer;
@@ -108,6 +109,11 @@ end;//destruc
 function TColony.GetName: string;
 begin
   Result:= m_Name;
+end;//func
+
+function TColony.GetStore(const AGood: TGoodType): Word;
+begin
+  Result:= Store[AGood];
 end;//func
 
 function TColony.GetMaxLevel(const bt: TBuildingType): Byte;
