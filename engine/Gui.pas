@@ -3,7 +3,7 @@ unit Gui;
 interface
 
 uses
-  Map, GL, GLU, GLUT, Terrain, Language, Colony, Nation;
+  Map, GL, GLU, GLUT, Terrain, Language, Colony, Nation, Goods;
 
 const
   x_Fields = 15;
@@ -68,6 +68,7 @@ type
       WindowHeight, WindowWidth: Integer;
       menu_cat: TMenuCategory;
       cur_colony: PColony;
+      europe: PEuropeanNation;
       lang: TLanguage;
       procedure InitGLUT;
       procedure DrawMenuBar;
@@ -85,9 +86,11 @@ type
       procedure Draw;
       procedure CenterOn(const x, y: Integer);
       procedure WriteText(const msg: string; const x, y: Single);
+      procedure WriteHelvetica12(const msg: string; const x, y: Single);
 
       function InMenu: Boolean;
       function InColony: Boolean;
+      function InEurope: Boolean;
   end;//class TGui
   PGui = ^TGui;
 
@@ -115,6 +118,7 @@ begin
   m_Map.Generate(0.7);
   menu_cat:= mcNone;
   cur_colony:= nil;
+  europe:= nil;
   lang:= TLanguage.Create;
   ptrGui:= @self;
 end;//constructor
@@ -292,6 +296,17 @@ begin
     end;
 end;//proc
 
+procedure TGui.WriteHelvetica12(const msg: string; const x, y: Single);
+var i: Integer;
+begin
+  glRasterPos3f(x, y, 0.2);
+  for i:= 1 to length(msg) do
+    if (Ord(msg[i]) >=32){ and (Ord(msg[i]) <=127)} then
+    begin
+      glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, Ord(msg[i]));
+    end;
+end;//proc
+
 procedure TGui.DrawMenuBar;
 var s: string;
     i: Integer;
@@ -334,6 +349,26 @@ begin
   glColor3f(1.0, 0.0, 0.0);
   glRasterPos2f((38*16.0+5)*PixelWidth, 0.0);
   glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, Ord('E'));
+  //colony
+  if cur_colony<>nil then
+  begin
+    glColor3ub(0,0,0);
+    for i:= Ord(gtFood) to Ord(gtMusket) do
+    begin
+      WriteText(IntToStr(cur_colony^.GetStore(TGoodType(i))), (5+i*38)*PixelWidth, 4*PixelWidth -0.5);
+    end;//for
+  end//if
+  //european port view
+  else if europe<>nil then
+  begin
+    glColor3ub(0,0,0);
+    for i:= Ord(gtFood) to Ord(gtMusket) do
+    begin
+      WriteHelvetica12(IntToStr(europe^.GetPrice(TGoodType(i), True))+'/'
+               +IntToStr(europe^.GetPrice(TGoodType(i), False)),
+               (2+i*38)*PixelWidth, 4*PixelWidth -0.5);
+    end;//for
+  end//else if
 end;//proc
 
 procedure TGui.DrawColonyTitleBar;
@@ -358,6 +393,11 @@ end;//func
 function TGui.InColony: Boolean;
 begin
   Result:= cur_colony<>nil;
+end;//func
+
+function TGui.InEurope: Boolean;
+begin
+  Result:= europe<>nil;
 end;//func
 
 end.
