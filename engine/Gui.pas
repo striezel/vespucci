@@ -3,7 +3,7 @@ unit Gui;
 interface
 
 uses
-  Map, GL, GLU, GLUT, Terrain, language, Colony, Nation;
+  Map, GL, GLU, GLUT, Terrain, Language, Colony, Nation;
 
 const
   x_Fields = 15;
