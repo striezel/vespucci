@@ -3,7 +3,7 @@ unit language;
 interface
 
 uses
-  Goods, Units;
+  Goods, Units, Terrain, Nation;
 
 type
   TMenuCategory = (mcNone, mcGame, mcView, mcOrders, mcReports, mcTrade);
@@ -12,6 +12,8 @@ type
       Menu: array[TMenuCategory] of string;
       MenuOptions: array [TMenuCategory] of array [1..10] of string;
       GoodNames: array[TGoodType] of string;
+      NationNames: array[cMin_Nations..cMaxIndian] of string;
+      TerrainNames: array[TTerrainType] of string;
       UnitNames: array[TUnitType] of string;
       Seasons: array[0..1] of string;
       procedure InitialValues;
@@ -20,6 +22,8 @@ type
       function GetOptionCount(const categ: TMenuCategory): Integer;
       function GetMenuLabel(const categ: TMenuCategory): string;
       function GetGoodName(const AGood: TGoodType): string;
+      function GetNationName(const NationNum: Integer): string;
+      function GetTerrainName(const ATerrain: TTerrainType): string;
       function GetUnitName(const AUnit: TUnitType): string;
       function GetSeason(const autumn: Boolean): string;
   end;//class
@@ -64,6 +68,21 @@ begin
   GoodNames[gtHammer]:= 'Hämmer';
   GoodNames[gtLibertyBell]:= 'Freiheitsglocken';
   GoodNames[gtCross]:= 'Kreuze';
+  //Nations
+  // - Europeans
+  NationNames[cNationEngland]:= 'England';
+  NationNames[cNationFrance]:= 'Frankreich';
+  NationNames[cNationSpain]:= 'Spanien';
+  NationNames[cNationHolland]:= 'Holland';
+  // - Indians
+  NationNames[cNationArawak]:= 'Arukaner';
+  NationNames[cNationAztec]:= 'Azteken';
+  NationNames[cNationInca]:= 'Inka';
+  NationNames[cNationTupi]:= 'Tupi';
+  NationNames[cNationCherokee]:= 'Cherokee';
+  NationNames[cNationIroquois]:= 'Irokesen';
+  NationNames[cNationSioux]:= 'Sioux';
+  NationNames[cNationApache]:= 'Apache';
   //units
   UnitNames[utCriminal]:= 'Kleinkriminelle';
   UnitNames[utServant]:= 'Verdingte Knechte';
@@ -101,6 +120,28 @@ begin
   UnitNames[utMan_o_War]:= 'Kriegsschiff';
   UnitNames[utBrave]:= 'Krieger';
   UnitNames[utBraveOnHorse]:= 'Berittener Krieger';
+  //terrain types
+  TerrainNames[ttArctic]:= 'Arktisch';
+  TerrainNames[ttSea]:= 'Ozean';
+  TerrainNames[ttOpenSea]:= 'Seeweg';
+  TerrainNames[ttPlains]:= 'Flachland';
+  TerrainNames[ttGrassland]:= 'Grünland';
+  TerrainNames[ttPrairie]:= 'Prärie';
+  TerrainNames[ttSavannah]:= 'Savanne';
+  TerrainNames[ttMarsh]:= 'Feuchtgebiete';
+  TerrainNames[ttSwamp]:= 'Sumpfland';
+  TerrainNames[ttDesert]:= 'Wüste';
+  TerrainNames[ttTundra]:= 'Tundra';
+  TerrainNames[ttBoreal]:= 'Borealwald';
+  TerrainNames[ttWetland]:= 'Feuchtwald';
+  TerrainNames[ttScrubForest]:= 'Gestrüppwald';
+  TerrainNames[ttBroadleaf]:= 'Laubwald';
+  TerrainNames[ttMixedForest]:= 'Mischwald';
+  TerrainNames[ttConiferForest]:= 'Nadelwald';
+  TerrainNames[ttRainForest]:= 'Regenwald';
+  TerrainNames[ttTropicalForest]:= 'Tropenwald';
+  TerrainNames[ttHills]:= 'Hügellandschaft';
+  TerrainNames[ttMountains]:= 'Berge';
   //seasons
   Seasons[0]:= 'Frühling';
   Seasons[1]:= 'Herbst';
@@ -127,10 +168,21 @@ begin
   Result:= GoodNames[AGood];
 end;//func
 
+function TLanguage.GetNationName(const NationNum: Integer): string;
+begin
+  if (NationNum<cMin_Nations) or (NationNum>cMaxIndian) then Result:= '(no nation)'
+  else Result:= NationNames[NationNum];
+end;//func
+
+function TLanguage.GetTerrainName(const ATerrain: TTerrainType): string;
+begin
+  Result:= TerrainNames[ATerrain];
+end;//func
+
 function TLanguage.GetUnitName(const AUnit: TUnitType): string;
 begin
   Result:= UnitNames[AUnit];
-end;
+end;//func
 
 function TLanguage.GetSeason(const autumn: Boolean): string;
 begin
