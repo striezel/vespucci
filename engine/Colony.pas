@@ -3,7 +3,7 @@ unit Colony;
 interface
 
 uses
-  Nation, Settlement, Goods, Units, Map, Terrain;
+  Nation, Settlement, Goods, Units, Map{, Terrain};
 
 type
   TBuildingType = (btFort, //Einpfählung, Fort, Festung
@@ -28,6 +28,7 @@ type
     public
       constructor Create(const X, Y: Integer; const ANation: PNation; const AName: string);
       destructor Destroy;
+      function GetName: string;
       function GetMaxLevel(const bt: TBuildingType): Byte;
       procedure ConstructNextLevel(const bt: TBuildingType);
       function GetProduction(const bt: TBuildingType; const ut: TUnitType): Integer;
@@ -93,8 +94,8 @@ begin
   for i:= -1 to 1 do
     for j:= -1 to 1 do
     begin
-      UnitsInFiels[i,j].u:= nil;
-      UnitsInFiels[i,j].GoesFor:= gtFood;
+      UnitsInFields[i,j].u:= nil;
+      UnitsInFields[i,j].GoesFor:= gtFood;
     end;//for
 end;//create
 
@@ -103,6 +104,11 @@ begin
   //what shall we do?
   inherited Destroy;
 end;//destruc
+
+function TColony.GetName: string;
+begin
+  Result:= m_Name;
+end;//func
 
 function TColony.GetMaxLevel(const bt: TBuildingType): Byte;
 begin
@@ -133,7 +139,7 @@ begin
   else
     Result:= 0;
 
-  //check for specialist's bonus  
+  //check for specialist's bonus
   case bt of
     btArmory: if (ut=utWeaponSmith) then Result:= Result*2;
     btTownHall: begin
@@ -162,9 +168,9 @@ begin
     for i:= -1 to 1 do
       for j:= -1 to 1 do
         if (UnitsInFields[i,j].u<>nil) then
-          if ((PosX+i>=0) and (PosX+i<cMap_X) and (PosY+j>=0) and (PosY+j<cMap_Y)) then
+          if ((self.PosX+i>=0) and (self.PosX+i<cMap_X) and (self.PosY+j>=0) and (self.PosY+j<cMap_Y)) then
             Store[UnitsInFields[i,j].GoesFor]:= Store[UnitsInFields[i,j].GoesFor] +
-             AMap.tiles[PosX+i, PosY+j].GetGoodProduction(UnitsInFields[i,j].GoesFor);
+             AMap.tiles[self.PosX+i, self.PosY+j].GetGoodProduction(UnitsInFields[i,j].GoesFor);
   end;//if
   //calculate production of all buildings
   //church first

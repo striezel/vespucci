@@ -3,7 +3,7 @@ unit Gui;
 interface
 
 uses
-  Map, GL, GLU, GLUT, Terrain, language;
+  Map, GL, GLU, GLUT, Terrain, language, Colony, Nation;
 
 const
   x_Fields = 15;
@@ -44,7 +44,7 @@ const
       );
 
   cWindowCaption = 'Vespucci v0.01';
-  
+
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
   cMenuHighColour : array [0..2] of Byte = (255, 20, 20);
 
@@ -67,9 +67,12 @@ type
     private
       WindowHeight, WindowWidth: Integer;
       menu_cat: TMenuCategory;
+      cur_colony: PColony;
       lang: TLanguage;
       procedure InitGLUT;
       procedure DrawMenuBar;
+      procedure DrawGoodsBar;
+      procedure DrawColonyTitleBar;
     public
       m_Map: TMap;
       OffsetX, OffsetY: Integer;
@@ -82,15 +85,26 @@ type
       procedure Draw;
       procedure CenterOn(const x, y: Integer);
       procedure WriteText(const msg: string; const x, y: Single);
-      
+
       function InMenu: Boolean;
+      function InColony: Boolean;
   end;//class TGui
   PGui = ^TGui;
+
+  function IntToStr(const i: Integer): string;
 
 var
   ptrGUI: PGui;
 
 implementation
+
+//helper function
+function IntToStr(const i: Integer): string;
+begin
+  Str(i, Result);
+end;//func
+
+// **** TGui functions ****
 
 constructor TGui.Create;
 begin
@@ -100,6 +114,7 @@ begin
   m_Map:= TMap.Create;
   m_Map.Generate(0.7);
   menu_cat:= mcNone;
+  cur_colony:= nil;
   lang:= TLanguage.Create;
   ptrGui:= @self;
 end;//constructor
@@ -144,8 +159,8 @@ begin
    // Enable backface culling
   glEnable(GL_CULL_FACE);
   // Set up depth buffer
-  glEnable(GL_DEPTH_TEST);
-  glDepthFunc(GL_LESS);
+  //glEnable(GL_DEPTH_TEST);
+  //glDepthFunc(GL_LESS);
   //Starting
   WriteLn('glutMainLoop');
   glutMainLoop;
@@ -287,9 +302,62 @@ begin
   WriteText(s, 0.1, 12.0+5.0*PixelWidth);
 end;//proc
 
+procedure TGui.DrawGoodsBar;
+var i: Integer;
+begin
+  //background
+  glBegin(GL_QUADS);
+    glColor3ub(76, 100, 172);
+    glVertex2f(0.0, -0.5);
+    glVertex2f(38*PixelWidth*16.0, -0.5);
+    glVertex2f(38*PixelWidth*16.0, 40*PixelWidth-0.5);
+    glVertex2f(0.0, 40*PixelWidth-0.5);
+  glEnd;
+  glLineWidth(2.0);
+  //border box
+  glBegin(GL_LINE_LOOP);
+    glColor3ub(192, 216, 240);
+    glVertex2f(0.0, -0.5);
+    glVertex2f(38*PixelWidth*16.0, -0.5);
+    glVertex2f(38*PixelWidth*16.0, 40*PixelWidth -0.5);
+    glVertex2f(0.0, 40*PixelWidth-0.5);
+  glEnd;
+  //the vertical lines
+  glBegin(GL_LINES);
+    for i:= 1 to 15 do
+    begin
+      glVertex2f(i*38*PixelWidth, -0.5);
+      glVertex2f(i*38*PixelWidth, 40*PixelWidth -0.5);
+    end;//for
+  glEnd;
+  //Draw the read E for exit
+  glColor3f(1.0, 0.0, 0.0);
+  glRasterPos2f((38*16.0+5)*PixelWidth, 0.0);
+  glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, Ord('E'));
+end;//proc
+
+procedure TGui.DrawColonyTitleBar;
+var s: string;
+begin
+  if cur_colony<>nil then
+  begin
+    //year and season still need to be adjusted dynamically
+    s:= cur_colony^.GetName +'.  '+lang.GetSeason(False)+', 1492. Gold: ';
+    if cur_colony^.GetNation^.IsEuropean then s:= s+IntToStr(TEuropeanNation(cur_colony^.GetNation^).GetGold)+'°'
+    else s:= s+' -1°';
+    glColor3ubv(@cMenuTextColour[0]);
+    WriteText(s, 0.1, 12.0+5.0*PixelWidth);
+  end;//if
+end;//proc
+
 function TGui.InMenu: Boolean;
 begin
   Result:= menu_cat<>mcNone;
+end;//func
+
+function TGui.InColony: Boolean;
+begin
+  Result:= cur_colony<>nil;
 end;//func
 
 end.

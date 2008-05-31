@@ -13,6 +13,7 @@ type
       MenuOptions: array [TMenuCategory] of array [1..10] of string;
       GoodNames: array[TGoodType] of string;
       UnitNames: array[TUnitType] of string;
+      Seasons: array[0..1] of string;
       procedure InitialValues;
     public
       constructor Create;
@@ -20,6 +21,7 @@ type
       function GetMenuLabel(const categ: TMenuCategory): string;
       function GetGoodName(const AGood: TGoodType): string;
       function GetUnitName(const AUnit: TUnitType): string;
+      function GetSeason(const autumn: Boolean): string;
   end;//class
 
 implementation
@@ -55,11 +57,11 @@ begin
   GoodNames[gtRum]:= 'Rum';
   GoodNames[gtCigar]:= 'Zigarren';
   GoodNames[gtCloth]:= 'Stoff';
-  GoodNames[gtCoat]:= 'M√§ntel';
+  GoodNames[gtCoat]:= 'M‰ntel';
   GoodNames[gtTradegoods]:= 'Handelswaren';
   GoodNames[gtTool]:= 'Werkzeuge';
   GoodNames[gtMusket]:= 'Musketen';
-  GoodNames[gtHammer]:= 'H√§mmer';
+  GoodNames[gtHammer]:= 'H‰mmer';
   GoodNames[gtLibertyBell]:= 'Freiheitsglocken';
   GoodNames[gtCross]:= 'Kreuze';
   //units
@@ -68,9 +70,9 @@ begin
   UnitNames[utColonist]:= 'Freie Siedler';
   UnitNames[utFarmer]:= 'Farmer';
   UnitNames[utFisher]:= 'Fischer';
-  UnitNames[utFurHunter]:= 'Pelzj√§ger';
+  UnitNames[utFurHunter]:= 'Pelzj‰ger';
   UnitNames[utSilverMiner]:= 'Silberbergarbeiter';
-  UnitNames[utWoodcutter]:= 'Holzf√§ller';
+  UnitNames[utWoodcutter]:= 'Holzf‰ller';
   UnitNames[utOreMiner]:= 'Erzbergarbeiter';
   UnitNames[utSugarplanter]:= 'Zuckerpflanzer';
   UnitNames[utCottonplanter]:= 'Baumwollpflanzer';
@@ -80,14 +82,14 @@ begin
   UnitNames[utCarpenter]:= 'Schreiner';
   UnitNames[utDistiller]:= 'Rumbrenner';
   UnitNames[utWeaver]:= 'Weber';
-  UnitNames[utTobacconist]:= 'Zigarrenh√§ndler';
-  UnitNames[utFurTrader]:= 'Pelzh√§ndler';
+  UnitNames[utTobacconist]:= 'Zigarrenh‰ndler';
+  UnitNames[utFurTrader]:= 'Pelzh‰ndler';
   UnitNames[utSmith]:= 'Schmied';
   UnitNames[utWeaponSmith]:= 'Waffenschmied';
-  UnitNames[utScout]:= 'Sp√§her';
+  UnitNames[utScout]:= 'Sp‰her';
   UnitNames[utPioneer]:= 'Pioniere';
   UnitNames[utMissionary]:= 'Missionar';
-  UnitNames[utRegular]:= 'Regul√§re';
+  UnitNames[utRegular]:= 'Regul‰re';
   UnitNames[utDragoon]:= 'Dragoner';
   UnitNames[utArtillery]:= 'Artillerie';
   UnitNames[utConvoy]:= 'Wagenzug';
@@ -99,6 +101,9 @@ begin
   UnitNames[utMan_o_War]:= 'Kriegsschiff';
   UnitNames[utBrave]:= 'Krieger';
   UnitNames[utBraveOnHorse]:= 'Berittener Krieger';
+  //seasons
+  Seasons[0]:= 'Fr¸hling';
+  Seasons[1]:= 'Herbst';
 end;//proc
 
 function TLanguage.GetOptionCount(const categ: TMenuCategory): Integer;
@@ -126,5 +131,11 @@ function TLanguage.GetUnitName(const AUnit: TUnitType): string;
 begin
   Result:= UnitNames[AUnit];
 end;
+
+function TLanguage.GetSeason(const autumn: Boolean): string;
+begin
+  if autumn then Result:= Seasons[1]
+  else Result:= Seasons[0];
+end;//func
 
 end.
