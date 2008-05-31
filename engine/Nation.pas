@@ -77,6 +77,7 @@ type
       procedure DoBoycott(const AGood: TGoodType);
       procedure UndoBoycott(const AGood: TGoodType);
 
+      function GetGold: Integer;
       function GetPrice(const AGood: TGoodType; low: Boolean): Byte;
       //increases price if good, if below upper limit
       procedure AdvancePrice(const AGood: TGoodType);
@@ -196,6 +197,11 @@ procedure TEuropeanNation.UndoBoycott(const AGood: TGoodType);
 begin
   m_Boycotted[AGood]:= False;
 end;//proc
+
+function TEuropeanNation.GetGold: Integer;
+begin
+  Result:= m_Gold;
+end;//func
 
 function TEuropeanNation.GetPrice(const AGood: TGoodType; low: Boolean): Byte;
 begin

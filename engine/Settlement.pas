@@ -10,9 +10,10 @@ type
     public
       constructor Create(const X, Y: Integer; const ANation: PNation);
       destructor Destroy;
+      function GetNation: PNation;
       function GetPosX: Integer;
       function GetPosY: Integer;
-    private
+    protected
       Nation: PNation;
       PosX, PosY: Integer;
   end;//class
@@ -34,6 +35,11 @@ destructor TSettlement.Destroy;
 begin
   inherited Destroy;
 end;//destruc
+
+function TSettlement.GetNation: PNation;
+begin
+  Result:= Nation;
+end;//func
 
 function TSettlement.GetPosX: Integer;
 begin
