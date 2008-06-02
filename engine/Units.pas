@@ -3,7 +3,13 @@ unit Units;
 interface
 
 uses
-  Nation;
+  Nation, Goods;
+
+const
+  UNIT_ITEM_NONE: Byte = 0;
+  UNIT_TOOL_MASK: Byte = 7;
+  UNIT_HORSE_BIT: Byte = 8;
+  UNIT_MUSKET_BIT: Byte = 16;
 
 type
   TUnitType = (utCriminal, utServant, utColonist,
@@ -25,6 +31,7 @@ type
                utBrave, utBraveOnHorse);
   TDirection = (dirSW, dirS, dirSE, dirE, dirNE, dirN, dirNW, dirW, dirNone);
 
+  PUnit = ^TUnit;
   TUnit = class
     public
       MovesLeft: Integer;
@@ -39,24 +46,50 @@ type
       function IsShip: Boolean;
       function MovesPerRound: Integer;
       function AttackStrength: Integer;
-      function FreightCapacity: Integer;
+      function FreightCapacity: Byte;
+      function FreeCapacity: Byte;
+      function LoadGood(const AGood: TGoodType; const num: Byte): Boolean;
+      function LoadUnit(AUnit: PUnit): Boolean;
+      function GetToolAmount: Byte;
+      procedure GiveTools(const amount: Byte);
+      function HasHorses: Boolean;
+      procedure GiveHorses(const has: Boolean = True);
+      function HasMuskets: Boolean;
+      procedure GiveMuskets(const has: Boolean = True);
     private
       PosX, PosY: Integer;
       UnitType: TUnitType;
       Nation: PNation;
+      //stores items like horses, muskets, tools
+      items: Byte;
+      passengers: array [0..5] of PUnit;
+      cargo_load: array [0..5] of record
+                                    amount: Byte;
+                                    which: TGoodType;
+                                  end;//rec
       //AI_Task: TAI_Task;
-  end;//class TUnit
-  PUnit = ^TUnit;
+  end;//class TUnit
 
 implementation
 
 constructor TUnit.Create(const TypeOfUnit: TUnitType; X: Integer=1; Y: Integer=1);
+var i: Integer;
 begin
   UnitType:= TypeOfUnit;
   PosX:= X;
   PosY:= Y;
   MovesLeft:= MovesPerRound;
   Nation:= nil;
+  items:= 0;
+  if TypeOfUnit = utPioneer then GiveTools(100)
+  else if (TypeOfUnit in [utRegular, utDragoon]) then GiveMuskets(True)
+  else if (TypeOfUnit in [utScout, utDragoon, utBraveOnHorse]) then GiveHorses(True);
+  for i:= 0 to 5 do
+  begin
+    passengers[i]:= nil;
+    cargo_load[i].amount:= 0;
+    cargo_load[i].which:= gtFood;
+  end;//for
 end;//construc
 
 destructor TUnit.Destroy;
@@ -163,7 +196,7 @@ begin
   end;//case
 end;//func
 
-function TUnit.FreightCapacity: Integer;
+function TUnit.FreightCapacity: Byte;
 begin
   case UnitType of
     utConvoy, utCaravel, utPrivateer: Result:= 2;
@@ -172,5 +205,83 @@ begin
   else Result:= 0;
   end;//case
 end;//func
+
+function TUnit.FreeCapacity: Byte;
+var i, occupied: Byte;
+begin
+  if FreightCapacity=0 then Result:= 0
+  else begin
+    occupied:= 0;
+    for i:= 0 to 5 do
+    begin
+      if passengers[i]<>nil then occupied:= occupied+1;
+      if cargo_load[i].amount>0 then occupied:= occupied+1;
+    end;//for
+    Result:= FreightCapacity - occupied;
+  end//else
+end;//func
+
+function TUnit.LoadGood(const AGood: TGoodType; const num: Byte): Boolean;
+var slot: Byte;
+begin
+  if ((num>100) or (FreeCapacity=0)) then Result:= False
+  else begin
+    slot:=0;
+    while ((cargo_load[slot].amount<>0) and (slot<5)) do
+      slot:= slot+1;
+    cargo_load[slot].amount:= num;
+    cargo_load[slot].which:= AGood;
+    Result:= True;
+  end;//else
+end;//func
+
+function TUnit.LoadUnit(AUnit: PUnit): Boolean;
+var slot: Byte;
+begin
+  if (FreeCapacity=0) or (AUnit=nil) then Result:= False 
+  else if (AUnit^.FreightCapacity>0) then Result:= False //no ships or convoys
+  else begin
+    slot:= 0;
+    while (passengers[slot]<>nil) and (slot<5) do
+      slot:= slot+1;
+    passengers[slot]:= AUnit;
+    Result:= True;
+  end;//else
+end;//func
+
+function TUnit.GetToolAmount: Byte;
+begin
+  Result:= (items and UNIT_TOOL_MASK)*5;
+end;//func
+
+procedure TUnit.GiveTools(const amount: Byte);
+var temp: Byte;
+begin
+  temp:= amount div 20;
+  if temp>5 then temp:=5;
+  items:= (items or temp);
+end;//proc
+
+function TUnit.HasHorses: Boolean;
+begin
+  Result:= (items and UNIT_HORSE_BIT)>0;
+end;//func
+
+procedure TUnit.GiveHorses(const has: Boolean = True);
+begin
+  if has then items:= (items or UNIT_HORSE_BIT)
+  else items:= (items and (not UNIT_HORSE_BIT));
+end;//proc
+
+function Tunit.HasMuskets: Boolean;
+begin
+  Result:= (items and UNIT_MUSKET_BIT)>0;
+end;//func
+
+procedure TUnit.GiveMuskets(const has: Boolean = True);
+begin
+  if has then items:= (items or UNIT_MUSKET_BIT)
+  else items:= (items and (not UNIT_MUSKET_BIT));
+end;//proc
 
 end.
