@@ -3,7 +3,7 @@ unit Language;
 interface
 
 uses
-  Goods, Units, Terrain, Nation;
+  Goods, Units, Terrain, Nation, SysUtils;
 
 type
   TMenuCategory = (mcNone, mcGame, mcView, mcOrders, mcReports, mcTrade);
@@ -26,6 +26,8 @@ type
       function GetTerrainName(const ATerrain: TTerrainType): string;
       function GetUnitName(const AUnit: TUnitType): string;
       function GetSeason(const autumn: Boolean): string;
+      function SaveToFile(const FileName: string): Boolean;
+      function LoadFromFile(const FileName: string): Boolean;
   end;//class
 
 implementation
@@ -188,6 +190,121 @@ function TLanguage.GetSeason(const autumn: Boolean): string;
 begin
   if autumn then Result:= Seasons[1]
   else Result:= Seasons[0];
+end;//func
+
+function TLanguage.SaveToFile(const FileName: string): Boolean;
+var dat: TextFile;
+    i: Integer;
+begin
+  Result:= False;
+  try
+    AssignFile(dat, FileName);
+    Reset(dat);
+    WriteLn(dat, '[Goods]');
+  except
+    Result:= False;
+    CloseFile(dat);
+  end;//try-xcept
+  for i:= Ord(Low(TGoodType)) to Ord(High(TGoodType)) do
+    WriteLn(dat, GoodNames[TGoodType(i)]);
+  WriteLn;
+  WriteLn(dat, '[Nations]');
+  for i:= cMin_Nations to cMaxIndian do
+    WriteLn(dat, NationNames[i]);
+  WriteLn;
+  WriteLn(dat, '[Terrain]');
+  for i:= Ord(Low(TTerrainType)) to Ord(High(TTerrainType)) do
+    WriteLn(dat, TerrainNames[TTerrainType(i)]);
+  WriteLn;
+  WriteLn(dat, '[Units]');
+  for i:= Ord(Low(TUnitType)) to Ord(High(TUnitType)) do
+    WriteLn(dat, UnitNames[TUnitType(i)]);
+  WriteLn;
+  WriteLn(dat, '[Seasons]');
+  WriteLn(dat, Seasons[0]);
+  WriteLn(dat, Seasons[1]);
+  WriteLn;
+  CloseFile(dat);
+  Result:= True;
+end;//func
+
+function TLanguage.LoadFromFile(const FileName: string): Boolean;
+var dat: TextFile;
+    str1: string;
+    i: Integer;
+begin
+  if not FileExists(FileName) then Result:= False
+  else begin
+    try
+      AssignFile(dat, FileName);
+    except
+      Result:= False;
+      CloseFile(dat);
+      Exit;
+    end;
+    
+    while not Eof(dat) do
+    begin
+      ReadLn(dat, str1);
+      if str1='[Goods]' then
+      begin
+        i:= Ord(Low(TGoodType));
+        while (i<=Ord(High(TGoodType))) and not Eof(dat) do
+        begin
+          ReadLn(dat, str1);
+          str1:= Trim(str1);
+          if str1<>'' then GoodNames[TGoodType(i)]:= str1;
+          i:= i+1;
+        end;//while
+      end//if
+      else if str1='[Nations]' then
+      begin
+        i:= cMin_Nations;
+        while (i<=cMaxIndian) and not Eof(dat) do
+        begin
+          ReadLn(dat, str1);
+          str1:= Trim(str1);
+          if str1<>'' then NationNames[i]:= str1;
+          i:= i+1;
+        end;//while
+      end//if
+      else if str1='[Terrain]' then
+      begin
+        i:= Ord(Low(TTerrainType));
+        while (i<=Ord(High(TTerrainType))) and not Eof(dat) do
+        begin
+          ReadLn(dat, str1);
+          str1:= Trim(str1);
+          if str1<>'' then TerrainNames[TTerrainType(i)]:= str1;
+          i:= i+1;
+        end;//while
+      end//if
+      else if str1='[Units]' then
+      begin
+        i:= Ord(Low(TUnitType));
+        while (i<=Ord(High(TUnitType))) and not Eof(dat) do
+        begin
+          ReadLn(dat, str1);
+          str1:= Trim(str1);
+          if str1<>'' then UnitNames[TUnitType(i)]:= str1;
+          i:= i+1;
+        end;//while
+      end//if
+      else if str1='[Seasons]' then
+      begin
+        i:= 0;
+        while (i<=1) and not Eof(dat) do
+        begin
+          ReadLn(dat, str1);
+          str1:= Trim(str1);
+          if str1<>'' then Seasons[i]:= str1;
+          i:= i+1;
+        end;//while
+      end;//if
+    end;//while
+    CloseFile(dat);
+    Result:= True;
+  end;//else
 end;//func
 
 end.
