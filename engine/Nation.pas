@@ -83,6 +83,9 @@ type
       procedure AdvancePrice(const AGood: TGoodType);
       //decrease price, if above lower limit
       procedure DropPrice(const AGood: TGoodType);
+      //functions to buy and sell goods, just does the gold-related stuff
+      function BuyGood(const AGood: TGoodType; const num: Byte): Boolean;
+      function SellGood(const AGood: TGoodType; const num: Byte): Boolean;
   end;//class
   PEuropeanNation = ^TEuropeanNation;
 
@@ -226,5 +229,27 @@ begin
     //should display a message to the player
   end;//if
 end;//proc
+
+//tries to "buy" goods, but only does the money related stuff; returns true on success
+function TEuropeanNation.BuyGood(const AGood: TGoodType; const num: Byte): Boolean;
+begin
+  if IsBoycotted(AGood) or (m_Gold<num*GetPrice(AGood, False)) then Result:= False
+  else begin
+    m_Gold:= m_Gold - GetPrice(AGood, False)*num;
+    //should display message about cost to the player -> GUI
+  end;//else
+end;//func
+
+//tries to "sell" goods, but only does the money related stuff; returns true on success
+function TEuropeanNation.SellGood(const AGood: TGoodType; const num: Byte): Boolean;
+var tax_amount: Integer;
+begin
+  if IsBoycotted(AGood) then Result:= False
+  else begin
+    tax_amount:= (GetPrice(AGood, True)*num*GetTaxRate) div 100;
+    m_Gold:= m_Gold + GetPrice(AGood, True)*num - tax_amount;
+    //should display message about gain & tax to the player -> GUI
+  end;//else
+end;//func
 
 end.
