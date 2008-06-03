@@ -46,10 +46,13 @@ type
       function IsShip: Boolean;
       function MovesPerRound: Integer;
       function AttackStrength: Integer;
+      //functions for loading/ unloading freigth or passengers and checking freigth status
       function FreightCapacity: Byte;
       function FreeCapacity: Byte;
       function LoadGood(const AGood: TGoodType; const num: Byte): Boolean;
+      function UnloadGood(const AGood: TGoodType; const num: Byte): Byte;
       function LoadUnit(AUnit: PUnit): Boolean;
+      //item functions
       function GetToolAmount: Byte;
       procedure GiveTools(const amount: Byte);
       function HasHorses: Boolean;
@@ -62,7 +65,9 @@ type
       Nation: PNation;
       //stores items like horses, muskets, tools
       items: Byte;
+      //stores passengers (on ships)
       passengers: array [0..5] of PUnit;
+      //stores cargo (on ships an convoys)
       cargo_load: array [0..5] of record
                                     amount: Byte;
                                     which: TGoodType;
@@ -217,10 +222,17 @@ begin
       if passengers[i]<>nil then occupied:= occupied+1;
       if cargo_load[i].amount>0 then occupied:= occupied+1;
     end;//for
-    Result:= FreightCapacity - occupied;
+    if FreightCapacity<occupied then Result:= 0
+    else Result:= FreightCapacity - occupied;
   end//else
 end;//func
 
+{*tries to load num units of good 'AGood'; maximum is 100
+ TO-DO: function still uses a new slot for every good, even if there already is
+ ****** an amount of the given good loaded (e.g. trying to load 20 food and
+        then again less then 80 food will occupy two slots, even though a slot
+        is able to store up to 100 units of a good.
+}
 function TUnit.LoadGood(const AGood: TGoodType; const num: Byte): Boolean;
 var slot: Byte;
 begin
@@ -235,10 +247,34 @@ begin
   end;//else
 end;//func
 
+//tries to unload 'num' units of good 'AGood' and returns number of unloaded units
+function TUnit.UnloadGood(const AGood: TGoodType; const num: Byte): Byte;
+var cap: Byte;
+    slot: Integer;//needs to be signed type, because it can get negative (-1)
+begin
+  Result:=0;
+  if FreightCapacity>0 then
+  begin
+    slot:=5;
+    while (slot>=0) and (Result<num) do
+    begin
+      if cargo_load[slot].which=AGood then
+      begin
+        if cargo_load[slot].amount<num then cap:= cargo_load[slot].amount
+        else cap:= num;
+        Result:= Result+cap;
+        cargo_load[slot].amount:= cargo_load[slot].amount - cap;
+      end;//if
+      slot:= slot-1;
+    end;//while
+  end;//if
+end;//func
+
+//tries to load unit 'AUnit' and returns True on success
 function TUnit.LoadUnit(AUnit: PUnit): Boolean;
 var slot: Byte;
 begin
-  if (FreeCapacity=0) or (AUnit=nil) then Result:= False 
+  if (FreeCapacity=0) or (AUnit=nil) or (UnitType=utConvoy) then Result:= False
   else if (AUnit^.FreightCapacity>0) then Result:= False //no ships or convoys
   else begin
     slot:= 0;
