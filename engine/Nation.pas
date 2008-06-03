@@ -237,6 +237,7 @@ begin
   else begin
     m_Gold:= m_Gold - GetPrice(AGood, False)*num;
     //should display message about cost to the player -> GUI
+    Result:= True;
   end;//else
 end;//func
 
@@ -249,6 +250,7 @@ begin
     tax_amount:= (GetPrice(AGood, True)*num*GetTaxRate) div 100;
     m_Gold:= m_Gold + GetPrice(AGood, True)*num - tax_amount;
     //should display message about gain & tax to the player -> GUI
+    Result:= True;
   end;//else
 end;//func
 
