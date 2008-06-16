@@ -3,7 +3,7 @@ unit Units;
 interface
 
 uses
-  Nation, Goods;
+  Nation, Goods, Map;
 
 const
   UNIT_ITEM_NONE: Byte = 0;
@@ -30,6 +30,8 @@ type
 
                utBrave, utBraveOnHorse);
   TDirection = (dirSW, dirS, dirSE, dirE, dirNE, dirN, dirNW, dirW, dirNone);
+  
+  TTask = class;
 
   PUnit = ^TUnit;
   TUnit = class
@@ -72,8 +74,54 @@ type
                                     amount: Byte;
                                     which: TGoodType;
                                   end;//rec
-      //AI_Task: TAI_Task;
-  end;//class TUnit
+      AI_Task: TTask;
+  end;//class TUnit
+  
+  //the AI stuff
+  TTask = class
+    protected
+      target: PUnit;
+    public
+      function Done: Boolean; virtual; abstract;
+      function Execute: Boolean; virtual; abstract;
+      constructor Create(const target_unit: PUnit);
+      destructor Destroy;
+  end;//class
+  PTask = ^TTask;
+  
+  //for the pioneers
+  TPloughTask = class(TTask)
+    private
+      m_X, m_Y: Byte;
+      ptrMap: PMap;
+      RoundsLeft: Byte;
+    public
+      constructor Create(const target_unit: PUnit; X, Y: Byte; const AMap: PMap);
+      function Done: Boolean;
+      function Execute: Boolean;
+  end;//class
+  
+  TRoadTask = class(TTask)
+    private
+      m_X, m_Y: Byte;
+      ptrMap: PMap;
+      RoundsLeft: Byte;
+    public
+      constructor Create(const target_unit: PUnit; X, Y: Byte; const AMap: PMap);
+      function Done: Boolean;
+      function Execute: Boolean;
+  end;//class
+  
+  TClearTask = class(TTask)
+    private
+      m_X, m_Y: Byte;
+      ptrMap: PMap;
+      RoundsLeft: Byte;
+    public
+      constructor Create(const target_unit: PUnit; X, Y: Byte; const AMap: PMap);
+      function Done: Boolean;
+      function Execute: Boolean;
+  end;//class
 
 implementation
 
@@ -86,6 +134,7 @@ begin
   MovesLeft:= MovesPerRound;
   Nation:= nil;
   items:= 0;
+  AI_Task:= nil;
   if TypeOfUnit = utPioneer then GiveTools(100)
   else if (TypeOfUnit in [utRegular, utDragoon]) then GiveMuskets(True)
   else if (TypeOfUnit in [utScout, utDragoon, utBraveOnHorse]) then GiveHorses(True);
@@ -319,5 +368,127 @@ begin
   if has then items:= (items or UNIT_MUSKET_BIT)
   else items:= (items and (not UNIT_MUSKET_BIT));
 end;//proc
+
+//**** AI-related functions ****
+
+constructor TTask.Create(const target_unit: PUnit);
+begin
+  inherited Create;
+  target:= target_unit;
+end;//construc
+
+destructor TTask.Destroy;
+begin
+  inherited Destroy;
+end;//destruc
+
+//**** TPloughTask methods ****
+
+constructor TPloughTask.Create(const target_unit: PUnit; X, Y: Byte; const AMap: PMap);
+begin
+  inherited Create(target_unit);
+  m_X:= X;
+  m_Y:= Y;
+  ptrMap:= AMap;
+  RoundsLeft:= 4;
+  if target<>nil then
+  begin
+    if target^.GetType = utPioneer then RoundsLeft:= 2;
+  end;
+  if AMap^.tiles[m_X, m_Y].IsPloughed then RoundsLeft:= 0;
+end;//func
+
+function TPloughTask.Done: Boolean;
+begin
+  Result:= (RoundsLeft=0);
+end;//func
+
+function TPloughTask.Execute: Boolean;
+begin
+  if RoundsLeft>0 then
+  begin
+    RoundsLeft:= RoundsLeft-1;
+    target^.MovesLeft:= 0;
+    if RoundsLeft=0 then
+    begin
+      target^.GiveTools(target^.GetToolAmount-20);
+      ptrMap^.tiles[m_X, m_Y].Plough;
+    end;
+    Result:= True;
+  end//if
+  else Result:= False;
+end;//func
+
+// **** TRoadTask methods ****
+constructor TRoadTask.Create(const target_unit: PUnit; X, Y: Byte; const AMap: PMap);
+begin
+  inherited Create(target_unit);
+  m_X:= X;
+  m_Y:= Y;
+  ptrMap:= AMap;
+  RoundsLeft:= 2;
+  if target<>nil then
+  begin
+    if target^.GetType = utPioneer then RoundsLeft:= 1;
+  end;
+  if AMap^.tiles[m_X, m_Y].HasRoad then RoundsLeft:= 0;
+end;//func
+
+function TRoadTask.Done: Boolean;
+begin
+  Result:= (RoundsLeft=0);
+end;//func
+
+function TRoadTask.Execute: Boolean;
+begin
+  if RoundsLeft>0 then
+  begin
+    RoundsLeft:= RoundsLeft-1;
+    target^.MovesLeft:= 0;
+    if RoundsLeft=0 then
+    begin
+      target^.GiveTools(target^.GetToolAmount-20);
+      ptrMap^.tiles[m_X, m_Y].CreateRoad;
+    end;
+    Result:= True;
+  end//if
+  else Result:= False;
+end;//func
+
+// **** TClearTask methods ****
+constructor TClearTask.Create(const target_unit: PUnit; X, Y: Byte; const AMap: PMap);
+begin
+  inherited Create(target_unit);
+  m_X:= X;
+  m_Y:= Y;
+  ptrMap:= AMap;
+  RoundsLeft:= 6;
+  if target<>nil then
+  begin
+    if target^.GetType = utPioneer then RoundsLeft:= 3;
+  end;
+  if not (AMap^.tiles[m_X, m_Y].HasForest) then RoundsLeft:= 0;
+end;//func
+
+function TClearTask.Done: Boolean;
+begin
+  Result:= (RoundsLeft=0);
+end;//func
+
+function TClearTask.Execute: Boolean;
+begin
+  if RoundsLeft>0 then
+  begin
+    RoundsLeft:= RoundsLeft-1;
+    target^.MovesLeft:= 0;
+    if RoundsLeft=0 then
+    begin
+      target^.GiveTools(target^.GetToolAmount-20);
+      ptrMap^.tiles[m_X, m_Y].ClearForest;
+    end;
+    Result:= True;
+  end//if
+  else Result:= False;
+end;//func
 
 end.

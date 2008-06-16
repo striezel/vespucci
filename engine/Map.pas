@@ -57,6 +57,7 @@ type
 
       procedure DiscoverSurroundingTiles(const x,y: Byte; const cNation: Byte);
   end;//class
+  PMap = ^TMap;
 
 implementation
 
