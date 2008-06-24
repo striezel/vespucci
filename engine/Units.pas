@@ -30,7 +30,7 @@ type
 
                utBrave, utBraveOnHorse);
   TDirection = (dirSW, dirS, dirSE, dirE, dirNE, dirN, dirNW, dirW, dirNone);
-  
+
   TTask = class;
 
   PUnit = ^TUnit;
@@ -39,6 +39,7 @@ type
       MovesLeft: Integer;
       constructor Create(const TypeOfUnit: TUnitType; X: Integer=1; Y: Integer=1);
       destructor Destroy;
+      procedure NewRound;
       function Move(const direction: TDirection): Boolean;
       function GetPosX: Integer;
       function GetPosY: Integer;
@@ -76,7 +77,7 @@ type
                                   end;//rec
       AI_Task: TTask;
   end;//class TUnit
-  
+
   //the AI stuff
   TTask = class
     protected
@@ -88,7 +89,7 @@ type
       destructor Destroy;
   end;//class
   PTask = ^TTask;
-  
+
   //for the pioneers
   TPloughTask = class(TTask)
     private
@@ -100,7 +101,7 @@ type
       function Done: Boolean;
       function Execute: Boolean;
   end;//class
-  
+
   TRoadTask = class(TTask)
     private
       m_X, m_Y: Byte;
@@ -111,7 +112,7 @@ type
       function Done: Boolean;
       function Execute: Boolean;
   end;//class
-  
+
   TClearTask = class(TTask)
     private
       m_X, m_Y: Byte;
@@ -150,6 +151,22 @@ destructor TUnit.Destroy;
 begin
   inherited Destroy;
 end;//destruc
+
+procedure TUnit.NewRound;
+begin
+  //regain moves
+  MovesLeft:= MovesPerRound;
+  //check for task and execute, if present
+  if AI_Task<>nil then
+  begin
+    AI_Task.Execute;
+    if AI_Task.Done then
+    begin
+      AI_Task.Destroy;
+      AI_Task:= nil;
+    end;
+  end;
+end;//proc
 
 function TUnit.Move(const direction: TDirection): Boolean;
 var newX, newY: Integer;
