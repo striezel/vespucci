@@ -55,7 +55,7 @@ type
       //determines, whether a water tile has at least one non-water neighbour
       function IsTouchingLand(const x, y: Byte): Boolean;
 
-      procedure DiscoverSurroundingTiles(const x,y: Byte; const cNation: Byte);
+      procedure DiscoverSurroundingTiles(const x,y: Byte; const cNation: Byte; const two_squares: Boolean);
   end;//class
   PMap = ^TMap;
 
@@ -252,19 +252,15 @@ begin
   // or at least react in some way...
 end;//func
 
-procedure TMap.DiscoverSurroundingTiles(const x,y: Byte; const cNation: Byte);
+procedure TMap.DiscoverSurroundingTiles(const x,y: Byte; const cNation: Byte; const two_squares: Boolean);
+var i, j: Integer;
 begin
   if ((cNation>=cMin_Nations) and (cNation<=cMax_Nations)) then
   begin
-    discovered[x,y,cNation]:= True;
-    if x>0 then discovered[x-1, y, cNation]:= True;
-    if (x>0) and (y>0) then discovered[x-1, y-1, cNation]:= True;
-    if y>0 then discovered[x, y-1, cNation]:= True;
-    if (y>0) and (x<cMap_X-1) then discovered[x+1, y-1, cNation]:= True;
-    if (x<cMap_X-1) then discovered[x+1, y, cNation]:= True;
-    if (x<cMap_X-1) and (y<cMap_Y-1) then discovered[x+1, y+1, cNation]:= True;
-    if (y<cMap_Y-1) then discovered[x,y+1, cNation]:= True;
-    if (y<cMap_Y-1) and (x>0) then discovered[x-1,y+1, cNation]:= True;
+    for i:= x-1-Ord(two_squares) to x+1+Ord(two_squares) do
+      for j:= y-1-Ord(two_squares) to y+1+Ord(two_squares) do
+        if (i>=0) and (j>=0) and (i<=cMap_X-1) and (j<=cMap_Y-1) then
+          discovered[i,j,cNation]:= True;
   end;//if
 end;//proc
 
