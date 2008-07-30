@@ -3,7 +3,7 @@ unit Gui;
 interface
 
 uses
-  Map, GL, GLU, GLUT, Terrain, Language, Colony, Nation, Goods;
+  Map, Data, GL, GLU, GLUT, Terrain, Language, Colony, Nation, Goods, SysUtils;
 
 const
   x_Fields = 15;
@@ -70,6 +70,7 @@ type
       cur_colony: PColony;
       europe: PEuropeanNation;
       lang: TLanguage;
+      dat: TData;
       procedure InitGLUT;
       procedure DrawMenuBar;
       procedure DrawGoodsBar;
@@ -115,12 +116,26 @@ begin
   OffsetX:= 0; OffsetY:= 0;
   MiniMapOffset_Y:= 0;
   m_Map:= TMap.Create;
-  m_Map.Generate(0.7);
+  if FileExists(america_map_path) then
+  begin
+    if m_Map.LoadFromFile(america_map_path) then
+      WriteLn('Map "'+america_map_path+'" successfully loaded.')
+    else begin
+      WriteLn('Couldn''t load map file "'+america_map_path+'" properly. Using generation routine instead.');
+      m_Map.Generate(0.7);
+    end;
+  end
+  else begin
+    WriteLn('Couldn''t find map file "'+america_map_path+'". Using generation routine instead.');
+    m_Map.Generate(0.7);
+  end;
+  m_Map.GenerateSpecials;
   menu_cat:= mcNone;
   cur_colony:= nil;
   europe:= nil;
   lang:= TLanguage.Create;
   ptrGui:= @self;
+  dat:= TData.Create;
 end;//constructor
 
 destructor TGui.Destroy;
@@ -377,7 +392,7 @@ begin
   if cur_colony<>nil then
   begin
     //year and season still need to be adjusted dynamically
-    s:= cur_colony^.GetName +'.  '+lang.GetSeason(False)+', 1492. Gold: ';
+    s:= cur_colony^.GetName +'.  '+lang.GetSeason(dat.IsAutumn)+', '+IntToStr(dat.GetYear)+'. Gold: ';
     if cur_colony^.GetNation^.IsEuropean then s:= s+IntToStr(TEuropeanNation(cur_colony^.GetNation^).GetGold)+'°'
     else s:= s+' -1°';
     glColor3ubv(@cMenuTextColour[0]);

@@ -47,6 +47,7 @@ type
       constructor Create;
       destructor Destroy;
       procedure Generate(const Landmass: Single);
+      procedure GenerateSpecials(const LandOnly: Boolean=True);
       function SaveToFile(const FileName: string): Boolean;
       function LoadFromFile(const FileName: string): Boolean;
 
@@ -121,6 +122,17 @@ begin
 
   //set the flag to indicate that we have data for all tiles
   filled:= True;
+end;//proc
+
+procedure TMap.GenerateSpecials(const LandOnly: Boolean=True);
+var i, j: Integer;
+begin
+  if not filled then Generate(0.7)
+  else Randomize;
+  for i:= 0 to cMap_X-1 do
+    for j:= 0 to cMap_Y-1 do
+      if ((not LandOnly) or (not tiles[i,j].IsWater)) then
+        if (random<=0.15) then tiles[i,j].CreateSpecial;
 end;//proc
 
 function TMap.SaveToFile(const FileName: string): Boolean;
@@ -214,6 +226,7 @@ begin
 
   fs.Free;
   Result:= True;
+  filled:= True;
 end;//func
 
 //used later, for GUI

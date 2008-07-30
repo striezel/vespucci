@@ -74,6 +74,8 @@ type
       procedure ClearForest;
       procedure CreateRoad;
       procedure Plough;
+      //changes that should only take place at initialization
+      procedure CreateSpecial;
   end;//class
 
 const
@@ -584,6 +586,13 @@ begin
   if HasForest then ClearForest
   //can't plough in hills or mountains
   else if (not (m_Type in [ttHills, ttMountains])) then m_Ploughed:= True;
+end;
+
+procedure TTerrain.CreateSpecial;
+begin
+  //can't have special in high sea
+  if m_Type<>ttOpenSea then
+    m_Special:= true;
 end;
 
 end.
