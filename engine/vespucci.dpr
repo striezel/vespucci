@@ -75,5 +75,5 @@ begin
   glutIdleFunc(@IdleWrapper);
 
   WriteLn('Starting GUI...');
-  TheGui.Start;//starts GUI ang GLUT's main loop
+  TheGui.Start;//starts GUI and GLUT's main loop
 end.
