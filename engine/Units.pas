@@ -37,7 +37,7 @@ type
   TUnit = class
     public
       MovesLeft: Integer;
-      constructor Create(const TypeOfUnit: TUnitType; X: Integer=1; Y: Integer=1);
+      constructor Create(const TypeOfUnit: TUnitType; const ANation: PNation; X: Integer=1; Y: Integer=1);
       destructor Destroy;
       procedure NewRound;
       function Move(const direction: TDirection): Boolean;
@@ -126,19 +126,19 @@ type
 
 implementation
 
-constructor TUnit.Create(const TypeOfUnit: TUnitType; X: Integer=1; Y: Integer=1);
+constructor TUnit.Create(const TypeOfUnit: TUnitType; const ANation: PNation; X: Integer=1; Y: Integer=1);
 var i: Integer;
 begin
   UnitType:= TypeOfUnit;
   PosX:= X;
   PosY:= Y;
   MovesLeft:= MovesPerRound;
-  Nation:= nil;
+  Nation:= ANation;
   items:= 0;
   AI_Task:= nil;
   if TypeOfUnit = utPioneer then GiveTools(100)
-  else if (TypeOfUnit in [utRegular, utDragoon]) then GiveMuskets(True)
-  else if (TypeOfUnit in [utScout, utDragoon, utBraveOnHorse]) then GiveHorses(True);
+  else if (TypeOfUnit in [utRegular, utDragoon]) then GiveMuskets(True);
+  if (TypeOfUnit in [utScout, utDragoon, utBraveOnHorse]) then GiveHorses(True);
   for i:= 0 to 5 do
   begin
     passengers[i]:= nil;
