@@ -3,7 +3,7 @@ unit Gui;
 interface
 
 uses
-  Map, Data, GL, GLU, GLUT, Terrain, Language, Colony, Nation, Goods, SysUtils;
+  Map, Data, GL, GLU, GLUT, Terrain, Language, Colony, Nation, Goods, Units, SysUtils;
 
 const
   x_Fields = 15;
@@ -135,13 +135,15 @@ begin
   europe:= nil;
   lang:= TLanguage.Create;
   ptrGui:= @self;
-  dat:= TData.Create;
+  dat:= TData.Create(lang);
+  dat.NewUnit(utCaravel, cNationEngland, 36, 13);
 end;//constructor
 
 destructor TGui.Destroy;
 begin
   m_Map.Destroy;
   lang.Destroy;
+  dat.Destroy;
   inherited Destroy;
 end;//destructor
 
