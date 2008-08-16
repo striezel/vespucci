@@ -3,7 +3,8 @@ unit Gui;
 interface
 
 uses
-  Map, Data, GL, GLU, GLUT, Terrain, Language, Colony, Nation, Goods, Units, SysUtils;
+  Map, Data, GL, GLU, GLUT, Terrain, Language, Colony, Nation, Goods, Units,
+  SysUtils, BitmapReader;
 
 const
   x_Fields = 15;
@@ -42,6 +43,30 @@ const
        (184, 160, 124), //ttHills
        (216, 204, 172)  //ttMountains
       );
+      
+  cTerrainTexNames: array [TTerrainType] of string =(
+       'arctic.bmp', //ttArctic
+       'sea.bmp', //ttSea
+       'opensea.bmp', //ttOpenSea
+       'plains.bmp', //ttPlains
+       'green.bmp', //ttGrassland
+       'prairie.bmp', //ttPrairie
+       'savannah.bmp', //ttSavannah
+       'marsh.bmp', //ttMarsh
+       'swamp.bmp', //ttSwamp
+       'desert.bmp', //ttDesert
+       'tundra.bmp', //ttTundra
+       'boreal.bmp', //ttBoreal
+       'wetland.bmp', //ttWetland
+       'scrub.bmp', //ttScrubForest
+       'broadleaf.bmp', //ttBroadleaf
+       'mixed.bmp', //ttMixedForest
+       'conifer.bmp', //ttConiferForest
+       'rain.bmp', //ttRainForest
+       'tropical.bmp', //ttTropicalForest
+       'hills.bmp', //ttHills
+       'mountain.bmp'  //ttMountains
+     );
 
   cWindowCaption = 'Vespucci v0.01';
 
@@ -71,6 +96,8 @@ type
       europe: PEuropeanNation;
       lang: TLanguage;
       dat: TData;
+      //terrain texture "names" (as in OpenGL names)
+      m_TerrainTexNames: array [TTerrainType] of TGLuint;
       procedure InitGLUT;
       procedure DrawMenuBar;
       procedure DrawGoodsBar;
@@ -111,6 +138,11 @@ end;//func
 // **** TGui functions ****
 
 constructor TGui.Create;
+var i: Integer;
+    tempTex: TArraySq32RGB;
+    bfh: TBitmapFileHeader;
+    bih: TBitmapInfoHeader;
+    err_str: string;
 begin
   inherited Create;
   OffsetX:= 0; OffsetY:= 0;
@@ -137,13 +169,34 @@ begin
   ptrGui:= @self;
   dat:= TData.Create(lang);
   dat.NewUnit(utCaravel, cNationEngland, 36, 13);
+  //set texture names to "empty" and then load them
+  glEnable(GL_TEXTURE_2D);
+  for i:= Ord(Low(TTerrainType)) to Ord(High(TTerrainType)) do
+  begin
+    m_TerrainTexNames[TTerrainType(i)]:= 0;
+    if ReadBitmapToArr32RGB(img_path+'terrain'+path_delimiter+cTerrainTexNames[TTerrainType(i)], bfh, bih, tempTex, err_str) then
+    begin
+      //change order of color components from blue, green, red (as in file) to
+      //  red, green, blue (as needed for GL)
+      SwapRGB_To_BGR(tempTex);
+      glGenTextures(1, @m_TerrainTexNames[TTerrainType(i)]);
+      glBindTexture(GL_TEXTURE_2D, m_TerrainTexNames[TTerrainType(i)]);
+      glTexImage2D(GL_TEXTURE_2D, 0, 3, 32, 32, 0, GL_RGB, GL_UNSIGNED_BYTE, @tempTex[0].r);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    end;//if
+  end;//for
 end;//constructor
 
 destructor TGui.Destroy;
+var i: Integer;
 begin
   m_Map.Destroy;
   lang.Destroy;
   dat.Destroy;
+  //free textures
+  for i:= Ord(Low(TTerrainType)) to Ord(High(TTerrainType)) do
+    if m_TerrainTexNames[TTerrainType(i)]<> 0 then glDeleteTextures(1, @m_TerrainTexNames[TTerrainType(i)]);
   inherited Destroy;
 end;//destructor
 
@@ -228,24 +281,44 @@ begin
   glEnd;//borders
 
   //draw the real map
-  glBegin(GL_QUADS);
-    for i:= OffsetX to OffSetX +x_Fields-1 do
-      for j:= OffSetY to OffsetY +y_Fields-1 do
+  for i:= OffsetX to OffSetX +x_Fields-1 do
+    for j:= OffSetY to OffsetY +y_Fields-1 do
+    begin
+      if m_TerrainTexNames[m_Map.tiles[i,j].m_Type]=0 then
       begin
-        case m_Map.tiles[i,j].m_Type of
-          ttArctic: glColor3f(1.0, 1.0, 1.0);//white
-          ttSea: glColor3f(0.0, 0.0, 1.0);//blue
-          ttOpenSea: glColor3f(0.3, 0.3, 1.0);//lighter blue
-          ttHills, ttMountains: glColor3f(0.5, 0.0, 0.0);
-        else
-          glColor3f(0.3, 1.0, 0.3);//some greenish stuff
-        end;//case
-        glVertex2f(i-OffsetX, -j+y_Fields+OffsetY);//j: f(j)=-j+y_Fields+OffsetY
-        glVertex2f(i-OffsetX, -j-1+y_Fields+OffsetY);//j+1
-        glVertex2f(i-OffsetX+1, -j-1+y_Fields+OffsetY);//j+1
-        glVertex2f(i-OffsetX+1, -j+y_Fields+OffsetY);//j
-      end;//for
-  glEnd; //map
+        glBegin(GL_QUADS);
+          case m_Map.tiles[i,j].m_Type of
+            ttArctic: glColor3f(1.0, 1.0, 1.0);//white
+            ttSea: glColor3f(0.0, 0.0, 1.0);//blue
+            ttOpenSea: glColor3f(0.3, 0.3, 1.0);//lighter blue
+            ttHills, ttMountains: glColor3f(0.5, 0.0, 0.0);
+          else
+            glColor3f(0.3, 1.0, 0.3);//some greenish stuff
+          end;//case
+          glVertex2f(i-OffsetX, -j+y_Fields+OffsetY);//j: f(j)=-j+y_Fields+OffsetY
+          glVertex2f(i-OffsetX, -j-1+y_Fields+OffsetY);//j+1
+          glVertex2f(i-OffsetX+1, -j-1+y_Fields+OffsetY);//j+1
+          glVertex2f(i-OffsetX+1, -j+y_Fields+OffsetY);//j
+        glEnd;
+      end//if-then
+      else begin
+        glEnable(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D, m_TerrainTexNames[m_Map.tiles[i,j].m_Type]);
+        glBegin(GL_QUADS);
+          glColor3f(1.0, 1.0, 1.0);
+          glTexCoord2f(0.0, 1.0);
+          glVertex2f(i-OffsetX, -j+y_Fields+OffsetY);//j: f(j)=-j+y_Fields+OffsetY
+          glTexCoord2f(0.0, 0.0);
+          glVertex2f(i-OffsetX, -j-1+y_Fields+OffsetY);//j+1
+          glTexCoord2f(1.0, 0.0);
+          glVertex2f(i-OffsetX+1, -j-1+y_Fields+OffsetY);//j+1
+          glTexCoord2f(1.0, 1.0);
+          glVertex2f(i-OffsetX+1, -j+y_Fields+OffsetY);//j
+        glEnd;
+        glDisable(GL_TEXTURE_2D);
+      end;//else branch
+    end;//for
+  //end of map
 
   //draw the MiniMap
 
