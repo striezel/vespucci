@@ -14,6 +14,7 @@ const
   path_delimiter = '/';
 {$ENDIF}
   america_map_path = data_path +'america'+path_delimiter+'america.vmd';
+  img_path = data_path+'img'+path_delimiter;
 
 type
   TData = class
@@ -50,12 +51,11 @@ begin
   Nations[cNationHolland]:= TEuropeanNation.Create(cNationHolland, aLang.GetNationName(cNationHolland), 'Michiel De Ruyter');
   for i:= cMinIndian to cMaxIndian do
       Nations[i]:= TIndianNation.Create(i, aLang.GetNationName(i));
-  
+
   //units
   Unit_length:= 0;
   SetLength(m_Units, Unit_length);
   Unit_max:= -1;
-  
 end;//construc
 
 destructor TData.Destroy;
