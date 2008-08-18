@@ -11,6 +11,12 @@ type
                                           g: Byte;
                                           b: Byte;
                                         end;
+  TArraySq32RGBA = array [0..32*32-1] of packed record
+                                           r: Byte;
+                                           g: Byte;
+                                           b: Byte;
+                                           a: Byte;
+                                         end;
   TBitmapFileHeader = packed record
     bfType: Word;
     bfSize: LongWord;
@@ -40,6 +46,7 @@ type
   procedure SwapRGB_To_BGR(var pic: TArraySq32RGB);
   procedure SwapRGB_To_RBG(var pic: TArraySq32RGB);
   procedure SwapRGB_To_GRB(var pic: TArraySq32RGB);
+  procedure GetAlphaByColor(const src: TArraySq32RGB; var dest: TArraySq32RGBA);
 
 implementation
 
@@ -312,6 +319,19 @@ begin
     temp:= pic[i].r;
     pic[i].r:= pic[i].g;
     pic[i].g:= temp;
+  end;//for
+end;//proc
+
+procedure GetAlphaByColor(const src: TArraySq32RGB; var dest: TArraySq32RGBA);
+var i: Integer;
+begin
+  for i:= 0 to 32*32-1 do
+  begin
+    dest[i].r:= src[i].r;
+    dest[i].g:= src[i].g;
+    dest[i].b:= src[i].b;
+    if ((src[i].r=255) and (src[i].g=0) and (src[i].b=255)) then dest[i].a:= 0
+    else dest[i].a:= 255;
   end;//for
 end;//proc
 
