@@ -43,7 +43,7 @@ const
        (184, 160, 124), //ttHills
        (216, 204, 172)  //ttMountains
       );
-      
+
   cTerrainTexNames: array [TTerrainType] of string =(
        'arctic.bmp', //ttArctic
        'sea.bmp', //ttSea
@@ -67,6 +67,67 @@ const
        'hills.bmp', //ttHills
        'mountain.bmp'  //ttMountains
      );
+     
+  cGoodTexNames: array [TGoodType] of string =(
+       'food.bmp', //gtFood
+       'sugar.bmp', //gtSugar
+       'tobacco.bmp', //gtTobacco
+       'cotton.bmp', //gtCotton
+       'fur.bmp', //gtFur
+       'wood.bmp', //gtWood
+       'ore.bmp', //gtOre
+       'silver.bmp', //gtSilver
+       'horses.bmp', //gtHorses
+       'rum.bmp', //gtRum
+       'cigar.bmp', //gtCigar
+       'cloth.bmp', //gtCloth
+       'coat.bmp', //gtCoat
+       'tradegoods.bmp', //gtTradegoods
+       'tool.bmp', //gtTool
+       'musket.bmp', //gtMusket
+       'hammer.bmp', //gtHammer
+       'bell.bmp', //gtLibertyBell
+       'cross.bmp'//gtCross
+    );
+
+  cUnitTexNames: array [TUnitType] of string =(
+       'criminal.bmp', //utCriminal
+       'servant.bmp', //utServant
+       'colonist.bmp', //utColonist
+       'farmer.bmp', //utFarmer
+       'fisher.bmp', //utFisher
+       'furhunter.bmp', //utFurHunter
+       'silverminer.bmp', //utSilverMiner
+       'woodcutter.bmp', //utWoodcutter
+       'oreminer.bmp', //utOreMiner
+       'sugarplanter.bmp', //utSugarplanter
+       'cottonplanter.bmp', //utCottonplanter 
+       'tobaccoplanter.bmp', //utTobaccoplanter
+       'preacher.bmp', //utPreacher
+       'statesman.bmp', //utStatesman
+       'carpenter.bmp', //utCarpenter
+       'distiller.bmp', //utDistiller
+       'weaver.bmp', //utWeaver
+       'tobacconist.bmp', //utTobacconist
+       'furtrader.bmp', //utFurTrader
+       'smith.bmp', //utSmith
+       'weaponsmith.bmp', //utWeaponSmith
+       'scout.bmp', //utScout
+       'pioneer.bmp', //utPioneer
+       'missionary.bmp', //utMissionary
+       'regular.bmp', //utRegular
+       'dragoon.bmp', //utDragoon
+       'artillery.bmp', //utArtillery
+       'convoy.bmp', //utConvoy
+       'caravel.bmp', //utCaravel
+       'tradingship.bmp', //utTradingShip
+       'galleon.bmp', //utGalleon
+       'privateer.bmp', //utPrivateer
+       'frigate.bmp', //utFrigate
+       'manowar.bmp', //utMan_o_War
+       'brave.bmp', //utBrave
+       'brave_horse.bmp'//utBraveOnHorse
+    );
 
   cWindowCaption = 'Vespucci v0.01';
 
@@ -94,14 +155,20 @@ type
       menu_cat: TMenuCategory;
       cur_colony: PColony;
       europe: PEuropeanNation;
+      focused: TUnit;
       lang: TLanguage;
       dat: TData;
       //terrain texture "names" (as in OpenGL names)
-      m_TerrainTexNames: array [TTerrainType] of TGLuint;
+      m_TerrainTexNames: array [TTerrainType] of GLuint;
+      //good texture "names" (as in OpenGL names)
+      m_GoodTexNames: array [TGoodType] of GLuint;
+      //unit texture "names" (as in OpenGL names)
+      m_UnitTexNames: array [TUnitType] of GLuint;
       procedure InitGLUT;
       procedure DrawMenuBar;
       procedure DrawGoodsBar;
       procedure DrawColonyTitleBar;
+      procedure GetSquareAtMouse(const mouse_x, mouse_y: Longint; var sq_x, sq_y: Integer);
     public
       m_Map: TMap;
       OffsetX, OffsetY: Integer;
@@ -109,6 +176,7 @@ type
       constructor Create;
       destructor Destroy;
       procedure KeyFunc(Key: Byte; x, y: Longint; Special: Boolean = False);
+      procedure MouseFunc(const button, state, x,y: Longint);
       procedure Resize(Width, Height: Longint);
       procedure Start;
       procedure Draw;
@@ -119,6 +187,7 @@ type
       function InMenu: Boolean;
       function InColony: Boolean;
       function InEurope: Boolean;
+      function GetFocusedUnit: TUnit;
   end;//class TGui
   PGui = ^TGui;
 
@@ -140,6 +209,7 @@ end;//func
 constructor TGui.Create;
 var i: Integer;
     tempTex: TArraySq32RGB;
+    AlphaTex: TArraySq32RGBA;
     bfh: TBitmapFileHeader;
     bih: TBitmapInfoHeader;
     err_str: string;
@@ -165,16 +235,18 @@ begin
   menu_cat:= mcNone;
   cur_colony:= nil;
   europe:= nil;
+  focused:= nil;
   lang:= TLanguage.Create;
   ptrGui:= @self;
   dat:= TData.Create(lang);
   dat.NewUnit(utCaravel, cNationEngland, 36, 13);
   //set texture names to "empty" and then load them
   glEnable(GL_TEXTURE_2D);
+  //terrain textures
   for i:= Ord(Low(TTerrainType)) to Ord(High(TTerrainType)) do
   begin
     m_TerrainTexNames[TTerrainType(i)]:= 0;
-    if ReadBitmapToArr32RGB(img_path+'terrain'+path_delimiter+cTerrainTexNames[TTerrainType(i)], bfh, bih, tempTex, err_str) then
+    if ReadBitmapToArr32RGB(terrain_img_path+cTerrainTexNames[TTerrainType(i)], bfh, bih, tempTex, err_str) then
     begin
       //change order of color components from blue, green, red (as in file) to
       //  red, green, blue (as needed for GL)
@@ -182,6 +254,40 @@ begin
       glGenTextures(1, @m_TerrainTexNames[TTerrainType(i)]);
       glBindTexture(GL_TEXTURE_2D, m_TerrainTexNames[TTerrainType(i)]);
       glTexImage2D(GL_TEXTURE_2D, 0, 3, 32, 32, 0, GL_RGB, GL_UNSIGNED_BYTE, @tempTex[0].r);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    end;//if
+  end;//for
+  //good textures
+  for i:= Ord(Low(TGoodType)) to Ord(High(TGoodType)) do
+  begin
+    m_GoodTexNames[TGoodType(i)]:= 0;
+    if ReadBitmapToArr32RGB(good_img_path+cGoodTexNames[TGoodType(i)], bfh, bih, tempTex, err_str) then
+    begin
+      //change order of color components from blue, green, red (as in file) to
+      //  red, green, blue (as needed for GL)
+      SwapRGB_To_BGR(tempTex);
+      GetAlphaByColor(tempTex, AlphaTex);
+      glGenTextures(1, @m_GoodTexNames[TGoodType(i)]);
+      glBindTexture(GL_TEXTURE_2D, m_GoodTexNames[TGoodType(i)]);
+      glTexImage2D(GL_TEXTURE_2D, 0, 4, 32, 32, 0, GL_RGBA, GL_UNSIGNED_BYTE, @AlphaTex[0].r);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    end;//if
+  end;//for
+  //unit textures
+  for i:= Ord(Low(TUnitType)) to Ord(High(TUnitType)) do
+  begin
+    m_UnitTexNames[TUnitType(i)]:= 0;
+    if ReadBitmapToArr32RGB(unit_img_path+cUnitTexNames[TUnitType(i)], bfh, bih, tempTex, err_str) then
+    begin
+      //change order of color components from blue, green, red (as in file) to
+      //  red, green, blue (as needed for GL)
+      SwapRGB_To_BGR(tempTex);
+      GetAlphaByColor(tempTex, AlphaTex);
+      glGenTextures(1, @m_UnitTexNames[TUnitType(i)]);
+      glBindTexture(GL_TEXTURE_2D, m_UnitTexNames[TUnitType(i)]);
+      glTexImage2D(GL_TEXTURE_2D, 0, 4, 32, 32, 0, GL_RGBA, GL_UNSIGNED_BYTE, @AlphaTex[0].r);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     end;//if
@@ -197,11 +303,16 @@ begin
   //free textures
   for i:= Ord(Low(TTerrainType)) to Ord(High(TTerrainType)) do
     if m_TerrainTexNames[TTerrainType(i)]<> 0 then glDeleteTextures(1, @m_TerrainTexNames[TTerrainType(i)]);
+  for i:= Ord(Low(TGoodType)) to Ord(High(TGoodType)) do
+    if m_GoodTexNames[TGoodType(i)]<> 0 then glDeleteTextures(1, @m_GoodTexNames[TGoodType(i)]);
+  for i:= Ord(Low(TUnitType)) to Ord(High(TUnitType)) do
+    if m_UnitTexNames[TUnitType(i)]<> 0 then glDeleteTextures(1, @m_UnitTexNames[TUnitType(i)]);
   inherited Destroy;
 end;//destructor
 
 procedure TGui.KeyFunc(Key: Byte; x, y: LongInt; Special: Boolean = False);
 begin
+  if Key=KEY_ESCAPE then halt; {exit}
   case UpCase(char(Key)) of
     'F': ;//fortify
     'S': ;//sentry
@@ -210,14 +321,51 @@ begin
            CenterOn(25, 35);//just for testing, yet
          end;
   end;
-  case Key of
-    GLUT_KEY_LEFT, KEY_NUMPAD4: if (OffsetX>0) then OffsetX:= OffsetX-1;{Move left}
-    GLUT_KEY_RIGHT, KEY_NUMPAD6: if (OffsetX<cMap_X-x_Fields) then OffsetX:= OffsetX+1;{Move right}
-    GLUT_KEY_DOWN, KEY_NUMPAD2: if (OffsetY<cMap_y-y_Fields) then OffsetY:= OffsetY+1; {Move down}
-    GLUT_KEY_UP, KEY_NUMPAD8: if (OffsetY>0) then OffsetY:= OffsetY-1;
 
-    KEY_ESCAPE: halt; {exit}
-  end;
+  if (focused=nil) then
+  begin
+    //no unit focused
+    //move map
+    case Key of
+      GLUT_KEY_LEFT, KEY_NUMPAD4: if (OffsetX>0) then OffsetX:= OffsetX-1;{Move map left}
+      GLUT_KEY_RIGHT, KEY_NUMPAD6: if (OffsetX<cMap_X-x_Fields) then OffsetX:= OffsetX+1;{Move map right}
+      GLUT_KEY_DOWN, KEY_NUMPAD2: if (OffsetY<cMap_y-y_Fields) then OffsetY:= OffsetY+1; {Move map down}
+      GLUT_KEY_UP, KEY_NUMPAD8: if (OffsetY>0) then OffsetY:= OffsetY-1; {Move map up}
+    end;//case
+  end//if
+  else begin
+    //we have a focused unit, so move it
+    case Key of
+      KEY_NUMPAD1: focused.Move(dirSW);
+      GLUT_KEY_DOWN, KEY_NUMPAD2: focused.Move(dirS); {Move down}
+      KEY_NUMPAD3: focused.Move(dirSE);
+      GLUT_KEY_LEFT, KEY_NUMPAD4: focused.Move(dirW); {Move left}
+      GLUT_KEY_RIGHT, KEY_NUMPAD6: focused.Move(dirE); {Move right}
+      KEY_NUMPAD7: focused.Move(dirNW);
+      GLUT_KEY_UP, KEY_NUMPAD8: focused.Move(dirN); {Move unit up}
+      KEY_NUMPAD9: focused.Move(dirNE);
+    end;//case
+  end;//if
+end;//proc
+
+procedure TGui.MouseFunc(const button, state, x,y: Longint);
+var pos_x, pos_y: Integer;
+begin
+  //handle mouse events here
+  if ((button=GLUT_LEFT) and (state=GLUT_UP) and (europe=nil) and (cur_colony=nil)) then
+  begin
+    GetSquareAtMouse(x,y, pos_x, pos_y);
+    WriteLn('GUI got square: x: ', pos_x, '; y: ', pos_y);//for debug
+    if (pos_x<>-1) then
+    begin
+      focused:= dat.GetFirstUnitInXY(pos_x, pos_y);
+      if focused<>nil then
+      begin
+        CenterOn(pos_x, pos_y);
+        glutPostRedisplay;
+      end;//if
+    end;//if
+  end;//if
 end;//proc
 
 procedure TGui.Resize(Width, Height: Longint);
@@ -235,6 +383,7 @@ begin
   // Set up depth buffer
   //glEnable(GL_DEPTH_TEST);
   //glDepthFunc(GL_LESS);
+  glAlphaFunc(GL_GREATER, 0.2);
   //Starting
   WriteLn('glutMainLoop');
   glutMainLoop;
@@ -247,6 +396,7 @@ end;//proc Start
 
 procedure TGui.Draw;
 var i, j: Integer;
+    tempUnit: TUnit;
 begin
   glLoadIdentity;
   glViewport(0,0, 32*x_Fields+BarWidth, 32*y_Fields+16+16);
@@ -317,6 +467,30 @@ begin
         glEnd;
         glDisable(GL_TEXTURE_2D);
       end;//else branch
+      
+      //check for unit and draw unit icon, if present
+      tempUnit:= dat.GetFirstUnitInXY(i,j);
+      if (tempUnit<>nil) then
+      begin
+        if (m_UnitTexNames[tempUnit.GetType]<>0) then
+        begin
+          glEnable(GL_TEXTURE_2D);
+          glEnable(GL_ALPHA_TEST);
+          glBindTexture(GL_TEXTURE_2D, m_UnitTexNames[tempUnit.GetType]);
+          glBegin(GL_QUADS);
+            glColor3f(1.0, 1.0, 1.0);
+            glTexCoord2f(0.0, 1.0);
+            glVertex2f(i-OffsetX, -j+y_Fields+OffsetY);//j: f(j)=-j+y_Fields+OffsetY
+            glTexCoord2f(0.0, 0.0);
+            glVertex2f(i-OffsetX, -j-1+y_Fields+OffsetY);//j+1
+            glTexCoord2f(1.0, 0.0);
+            glVertex2f(i-OffsetX+1, -j-1+y_Fields+OffsetY);//j+1
+            glTexCoord2f(1.0, 1.0);
+            glVertex2f(i-OffsetX+1, -j+y_Fields+OffsetY);//j
+          glEnd;
+          glDisable(GL_TEXTURE_2D);
+        end;//if
+      end;//if
     end;//for
   //end of map
 
@@ -362,7 +536,6 @@ begin
   OffSetY:= y-6;
   if OffSetY<0 then OffsetY:= 0
   else if (OffSetY>cMap_Y-y_Fields) then OffsetY:= cMap_Y-y_Fields;
-
   //Move Minimap accordingly
   MiniMapOffset_Y:= y -(Minimap_y_Fields div 2);
   if MiniMapOffset_Y<0 then MiniMapOffset_Y:=0
@@ -488,6 +661,28 @@ end;//func
 function TGui.InEurope: Boolean;
 begin
   Result:= europe<>nil;
+end;//func
+
+function TGui.GetFocusedUnit: TUnit;
+begin
+  Result:= focused;
+end;//func
+
+procedure TGui.GetSquareAtMouse(const mouse_x, mouse_y: Longint; var sq_x, sq_y: Integer);
+begin
+ sq_x:= mouse_x div 32;
+ sq_y:= (mouse_y-16) div 32;
+ if ((sq_x>=0) and (sq_x<x_Fields) and (sq_y>=0) and (sq_y<y_Fields)) then
+ begin
+   //all OK so far, add offset to get absolute values
+   sq_x:= sq_x+OffsetX;
+   sq_y:= sq_y+OffsetY;
+ end
+ else begin
+   //values out of range
+   sq_x:= -1;
+   sq_y:= -1;
+ end;//else
 end;//func
 
 end.

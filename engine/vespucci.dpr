@@ -32,6 +32,7 @@ begin
   end;//case
   if state=GLUT_UP then Write(' up') else Write(' down');
   WriteLn(' x: ',x, '; y: ', y);
+  TheGui.MouseFunc(button, state, x, y);
 end;//proc
 
 procedure ResizeWrapper(Width, Height: Longint); cdecl;

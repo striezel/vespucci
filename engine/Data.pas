@@ -7,14 +7,16 @@ uses
 
 const
 {$IFDEF Win32}
-  data_path = 'data\';
   path_delimiter = '\';
 {$ELSE}
-  data_path = 'data/';
   path_delimiter = '/';
 {$ENDIF}
+  data_path = 'data' + path_delimiter;
   america_map_path = data_path +'america'+path_delimiter+'america.vmd';
   img_path = data_path+'img'+path_delimiter;
+  good_img_path = img_path+'goods'+path_delimiter;
+  terrain_img_path = img_path+'terrain'+path_delimiter;
+  unit_img_path = img_path+'units'+path_delimiter;
 
 type
   TData = class
