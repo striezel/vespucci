@@ -67,7 +67,7 @@ const
        'hills.bmp', //ttHills
        'mountain.bmp'  //ttMountains
      );
-     
+
   cGoodTexNames: array [TGoodType] of string =(
        'food.bmp', //gtFood
        'sugar.bmp', //gtSugar
@@ -101,7 +101,7 @@ const
        'woodcutter.bmp', //utWoodcutter
        'oreminer.bmp', //utOreMiner
        'sugarplanter.bmp', //utSugarplanter
-       'cottonplanter.bmp', //utCottonplanter 
+       'cottonplanter.bmp', //utCottonplanter
        'tobaccoplanter.bmp', //utTobaccoplanter
        'preacher.bmp', //utPreacher
        'statesman.bmp', //utStatesman
@@ -136,6 +136,7 @@ const
 
   //Keys
   KEY_ESCAPE = 27;
+  KEY_SPACE = 32; //sure?
 
   //maybe starts with 97, maybe with 49, try it
   KEY_NUMPAD1 = 49;
@@ -311,6 +312,7 @@ begin
 end;//destructor
 
 procedure TGui.KeyFunc(Key: Byte; x, y: LongInt; Special: Boolean = False);
+var tempUnit: TUnit;
 begin
   if Key=KEY_ESCAPE then halt; {exit}
   case UpCase(char(Key)) of
@@ -318,7 +320,8 @@ begin
     'S': ;//sentry
     ' ': ;//space skips unit
     'C': begin
-           CenterOn(25, 35);//just for testing, yet
+           if focused<>nil then CenterOn(focused.GetPosX, focused.GetPosY)
+           else CenterOn(25, 35);//just for testing, yet
          end;
   end;
 
@@ -336,16 +339,39 @@ begin
   else begin
     //we have a focused unit, so move it
     case Key of
-      KEY_NUMPAD1: focused.Move(dirSW);
-      GLUT_KEY_DOWN, KEY_NUMPAD2: focused.Move(dirS); {Move down}
-      KEY_NUMPAD3: focused.Move(dirSE);
-      GLUT_KEY_LEFT, KEY_NUMPAD4: focused.Move(dirW); {Move left}
-      GLUT_KEY_RIGHT, KEY_NUMPAD6: focused.Move(dirE); {Move right}
-      KEY_NUMPAD7: focused.Move(dirNW);
-      GLUT_KEY_UP, KEY_NUMPAD8: focused.Move(dirN); {Move unit up}
-      KEY_NUMPAD9: focused.Move(dirNE);
+      KEY_NUMPAD1: focused.Move(dirSW, m_Map);
+      GLUT_KEY_DOWN, KEY_NUMPAD2: focused.Move(dirS, m_Map); {Move down}
+      KEY_NUMPAD3: focused.Move(dirSE, m_Map);
+      GLUT_KEY_LEFT, KEY_NUMPAD4: focused.Move(dirW, m_Map); {Move left}
+      GLUT_KEY_RIGHT, KEY_NUMPAD6: focused.Move(dirE, m_Map); {Move right}
+      KEY_NUMPAD7: focused.Move(dirNW, m_Map);
+      GLUT_KEY_UP, KEY_NUMPAD8: focused.Move(dirN, m_Map); {Move unit up}
+      KEY_NUMPAD9: focused.Move(dirNE, m_Map);
+      KEY_SPACE: if focused.MovesLeft>0 then
+                 begin
+                   focused.MovesLeft:= 0;
+                   tempUnit:= dat.GetFirstLazyUnit(dat.player_nation);
+                   if tempUnit<>nil then
+                   begin
+                     focused:= tempUnit;
+                     CenterOn(focused.GetPosX, focused.GetPosY);
+                   end;
+                 end//if
+                 else begin
+                   //no moves left, start new round
+                   dat.AdvanceYear;
+                   dat.NewRound(dat.player_nation);
+                   focused:= dat.GetFirstLazyUnit(dat.player_nation);
+                 end;
     end;//case
-  end;//if
+    //check if unit moved out of sight, and center on it, if neccessary
+    if focused<>nil then
+    begin
+      if ((focused.GetPosX<=OffsetX) or (focused.GetPosY<=OffsetY) or 
+          (focused.GetPosX>=OffsetX+x_Fields) or (focused.GetPosY>=OffsetY+y_Fields)) then
+        CenterOn(focused.GetPosX, focused.GetPosY);
+    end;//if
+  end;//else
 end;//proc
 
 procedure TGui.MouseFunc(const button, state, x,y: Longint);
@@ -359,11 +385,8 @@ begin
     if (pos_x<>-1) then
     begin
       focused:= dat.GetFirstUnitInXY(pos_x, pos_y);
-      if focused<>nil then
-      begin
-        CenterOn(pos_x, pos_y);
-        glutPostRedisplay;
-      end;//if
+      CenterOn(pos_x, pos_y);
+      glutPostRedisplay;
     end;//if
   end;//if
 end;//proc
@@ -467,7 +490,7 @@ begin
         glEnd;
         glDisable(GL_TEXTURE_2D);
       end;//else branch
-      
+
       //check for unit and draw unit icon, if present
       tempUnit:= dat.GetFirstUnitInXY(i,j);
       if (tempUnit<>nil) then
@@ -525,6 +548,49 @@ begin
   glEnd;//MiniMap
   glColor3ubv(@cMenuTextColour[0]);
   DrawMenuBar;
+  //display side bar information
+  // - season and year
+  WriteText(lang.GetSeason(dat.IsAutumn)+' '+IntToStr(dat.GetYear),
+            x_Fields + 4*PixelWidth,
+            y_Fields - 3*BorderWidth -2*PixelWidth*MiniMap_y_Fields- 16*PixelWidth);
+  // - info about focused unit
+  if focused<>nil then
+  begin
+    if m_UnitTexNames[focused.GetType]<>0 then
+    begin
+      //draw unit icon
+      glEnable(GL_TEXTURE_2D);
+      glEnable(GL_ALPHA_TEST);
+      glBindTexture(GL_TEXTURE_2D, m_UnitTexNames[focused.GetType]);
+      glBegin(GL_QUADS);
+        glColor3f(1.0, 1.0, 1.0);
+        glTexCoord2f(0.0, 0.0);
+        glVertex2f(x_Fields + 4*PixelWidth, 7.0);
+        glTexCoord2f(1.0, 0.0);
+        glVertex2f(x_Fields + 36*PixelWidth, 7.0);
+        glTexCoord2f(1.0, 1.0);
+        glVertex2f(x_Fields + 36*PixelWidth, 8.0);
+        glTexCoord2f(0.0, 1.0);
+        glVertex2f(x_Fields + 4*PixelWidth, 8.0);
+      glEnd;
+      glDisable(GL_TEXTURE_2D);
+    end;//if Icon present
+    // -- moves of unit
+    glColor3ubv(@cMenuTextColour[0]);
+    WriteText(lang.GetMoves+': '+IntToStr(focused.MovesLeft),
+              x_Fields +40*PixelWidth, 7.5);
+    // -- location of unit
+    WriteText(lang.GetLocation+': '+IntToStr(focused.GetPosX)+','+IntToStr(focused.GetPosY),
+              x_Fields +40*PixelWidth, 7.0);
+    // -- type of unit
+    WriteText(lang.GetUnitName(focused.GetType),
+              x_Fields +4*PixelWidth, 6.5);
+    // -- terrain of unit's location
+    WriteText(lang.GetTerrainName(m_Map.tiles[focused.GetPosX,focused.GetPosY].GetType),
+              x_Fields +4*PixelWidth, 6.0);
+  
+  end;//if Focused unit present
+  
   glutSwapBuffers();
 end; //Draw
 
