@@ -40,7 +40,7 @@ type
       constructor Create(const TypeOfUnit: TUnitType; const ANation: PNation; X: Integer=1; Y: Integer=1);
       destructor Destroy;
       procedure NewRound;
-      function Move(const direction: TDirection): Boolean;
+      function Move(const direction: TDirection; const AMap: TMap): Boolean;
       function GetPosX: Integer;
       function GetPosY: Integer;
       function GetNation: PNation;
@@ -168,8 +168,9 @@ begin
   end;
 end;//proc
 
-function TUnit.Move(const direction: TDirection): Boolean;
+function TUnit.Move(const direction: TDirection; const AMap: TMap): Boolean;
 var newX, newY: Integer;
+    allow: Boolean;
 begin
   if MovesLeft = 0 then
     Result:= False
@@ -186,18 +187,30 @@ begin
     else
       newY:= PosY;
     end;//case
+    allow:= True;
     //check if we are out of map
-    if (newX<0) or (newY<0) then
-      Result:= False
+    if ((newX<0) or (newY<0) or (newX>=cMap_X) or (newY>=cMap_Y)) then
+      allow:= False
     else begin
+      if AMap<>nil then
+        if AMap.tiles[newX,newY]<>nil then
+        begin
+          allow:= (IsShip=AMap.tiles[newX,newY].IsWater);
+        end;//if
+    end;//else
+    
+    if allow then
+    begin
       if direction<>dirNone then
       begin
         MovesLeft:= MovesLeft -1;
         PosX:= newX;
         PosY:= newY;
       end;//if
+      if ((AMap<>nil) and (Nation<>nil)) then AMap.DiscoverSurroundingTiles(newX, newX, Nation^.GetCount, UnitType=utScout);
       Result:= True;
-    end;//else
+    end//if
+    else Result:= False;
   end;//else
 end;//func
 

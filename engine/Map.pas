@@ -55,8 +55,11 @@ type
 
       //determines, whether a water tile has at least one non-water neighbour
       function IsTouchingLand(const x, y: Byte): Boolean;
-
+      //proc for reavealing surrounding tiles around a unit
       procedure DiscoverSurroundingTiles(const x,y: Byte; const cNation: Byte; const two_squares: Boolean);
+      //proc to reaveal complete map ("cheat")
+      procedure RevealAll(const num_Nation: Integer);
+      function IsDiscovered(const x,y: Byte; const num_Nation: Integer): Boolean;
   end;//class
   PMap = ^TMap;
 
@@ -276,5 +279,24 @@ begin
           discovered[i,j,cNation]:= True;
   end;//if
 end;//proc
+
+procedure TMap.RevealAll(const num_Nation: Integer);
+var i, j: Integer;
+begin
+  if ((num_Nation<=cMax_Nations) and (num_Nation>=cMin_Nations)) then
+  begin
+    for i:= 0 to cMap_X-1 do
+      for j:= 0 to cMap_Y-1 do
+        discovered[i,j, num_Nation]:= True;
+  end;//if
+end;//proc
+
+function TMap.IsDiscovered(const x,y: Byte; const num_Nation: Integer): Boolean;
+begin
+  if ((x>=cMap_X) or (y>=cMap_Y) or (num_Nation>cMax_Nations)
+      or (num_Nation<cMin_Nations)) then
+    Result:= True
+  else Result:= discovered[x,y, num_Nation];
+end;//func
 
 end.

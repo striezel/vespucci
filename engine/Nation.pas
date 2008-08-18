@@ -31,7 +31,7 @@ type
 
   TNation = class
     private
-      m_count: Integer;//not really sure, if we will need this later :|
+      m_count: Integer;
       m_NameStr: string;
     public
       constructor Create(const num: Integer; const NameStr: string);

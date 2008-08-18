@@ -29,6 +29,7 @@ type
               Unit_length: Integer;
               Unit_max: Integer;
             public
+              player_nation: Integer;
               constructor Create(var aLang: TLanguage);
               destructor Destroy;
               function GetYear: Integer;
@@ -38,6 +39,8 @@ type
               procedure AdvanceYear;
               function NewUnit(const TypeOfUnit: TUnitType; const ANation: Integer; X: Integer=1; Y: Integer=1): TUnit;
               function GetFirstUnitInXY(const x, y: Integer): TUnit;
+              function GetFirstLazyUnit(const num_Nation: Integer): TUnit;
+              procedure NewRound(const num_Nation: Integer);
           end;//class
 
 implementation
@@ -45,6 +48,7 @@ implementation
 constructor TData.Create(var aLang: TLanguage);
 var i: Integer;
 begin
+  player_nation:= cNationEngland;
   Year:= 1492;
   Autumn:= False;
   Nations[cNationEngland]:= TEuropeanNation.Create(cNationEngland, aLang.GetNationName(cNationEngland), 'Walter Raleigh');
@@ -110,11 +114,15 @@ begin
 end;//func
 
 function TData.NewUnit(const TypeOfUnit: TUnitType; const ANation: Integer; X: Integer=1; Y: Integer=1): TUnit;
+var i: Integer;
 begin
   if (Unit_max+2>Unit_length) then
   begin
     SetLength(m_Units, Unit_length+4);
     Unit_length:= Unit_length+4;
+    //"initialize" new units
+    for i:=1 to 4 do
+      m_Units[Unit_length-i]:= nil;
   end;//if
   m_Units[Unit_max+1]:= TUnit.Create(TypeOfUnit, GetNationPointer(ANation), X, Y);
   Unit_max:= Unit_max+1;
@@ -131,6 +139,31 @@ begin
       Result:= m_Units[i];
       break;
     end;//if
+end;//func
+
+function TData.GetFirstLazyUnit(const num_Nation: Integer): TUnit;
+var i: Integer;
+begin
+  Result:= nil;
+  for i:= 0 to Unit_max do
+    if m_Units[i]<>nil then
+    begin
+      if ((m_Units[i].MovesLeft>0) and (m_Units[i].GetNation^.GetCount=num_Nation)) then
+      begin
+        Result:= m_Units[i];
+        break;
+      end;//if
+    end;//if
+end;//func
+
+procedure TData.NewRound(const num_Nation: Integer);
+var i: Integer;
+begin
+  //call NewRound method for every unit of that nation
+  for i:= 0 to Unit_max do
+    if m_Units[i]<>nil then
+      if (m_Units[i].GetNation^.GetCount=num_Nation) then
+        m_Units[i].NewRound;
 end;//func
 
 end.
