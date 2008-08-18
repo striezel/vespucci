@@ -16,6 +16,9 @@ type
       TerrainNames: array[TTerrainType] of string;
       UnitNames: array[TUnitType] of string;
       Seasons: array[0..1] of string;
+      //others (Maybe we should introduce a structure for them, too.)
+      Location: string;
+      Moves: string;
       procedure InitialValues;
     public
       constructor Create;
@@ -26,6 +29,9 @@ type
       function GetTerrainName(const ATerrain: TTerrainType): string;
       function GetUnitName(const AUnit: TUnitType): string;
       function GetSeason(const autumn: Boolean): string;
+      //others
+      function GetLocation: string;
+      function GetMoves: string;
       function SaveToFile(const FileName: string): Boolean;
       function LoadFromFile(const FileName: string): Boolean;
   end;//class
@@ -147,6 +153,9 @@ begin
   //seasons
   Seasons[0]:= 'Frühling';
   Seasons[1]:= 'Herbst';
+  //others
+  Location:= 'Ort';
+  Moves:= 'Züge';
 end;//proc
 
 function TLanguage.GetOptionCount(const categ: TMenuCategory): Integer;
@@ -192,6 +201,16 @@ begin
   else Result:= Seasons[0];
 end;//func
 
+function TLanguage.GetLocation: string;
+begin
+  Result:= Location;
+end;//func
+
+function TLanguage.GetMoves: string;
+begin
+  Result:= Moves;
+end;//func
+
 function TLanguage.SaveToFile(const FileName: string): Boolean;
 var dat: TextFile;
     i: Integer;
@@ -224,6 +243,10 @@ begin
   WriteLn(dat, Seasons[0]);
   WriteLn(dat, Seasons[1]);
   WriteLn;
+  WriteLn(dat, '[Others]');
+  WriteLn(dat, Location);
+  WriteLn(dat, Moves);
+  WriteLn;
   CloseFile(dat);
   Result:= True;
 end;//func
@@ -242,7 +265,7 @@ begin
       CloseFile(dat);
       Exit;
     end;
-    
+
     while not Eof(dat) do
     begin
       ReadLn(dat, str1);
@@ -298,6 +321,21 @@ begin
           ReadLn(dat, str1);
           str1:= Trim(str1);
           if str1<>'' then Seasons[i]:= str1;
+          i:= i+1;
+        end;//while
+      end//if
+      else if str1='[Others]' then
+      begin
+        i:= 0;
+        while (i<=1) and not Eof(dat) do
+        begin
+          ReadLn(dat, str1);
+          str1:= Trim(str1);
+          if str1<>'' then
+          begin
+            if i=0 then Location:= str1
+            else Moves:= str1;
+          end;//if
           i:= i+1;
         end;//while
       end;//if

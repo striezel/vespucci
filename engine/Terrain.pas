@@ -58,6 +58,7 @@ type
                          const Ploughed: Boolean=False);
       destructor Destroy;
 
+      function GetType: TTerrainType;
       function ClearedBecomes: TTerrainType;
       function HasForest: Boolean;
       function HasRiver: Boolean;
@@ -105,6 +106,11 @@ destructor TTerrain.Destroy;
 begin
   inherited Destroy;
 end;//destruc
+
+function TTerrain.GetType: TTerrainType;
+begin
+  Result:= m_Type;
+end;//func
 
 function TTerrain.ClearedBecomes: TTerrainType;
 begin
