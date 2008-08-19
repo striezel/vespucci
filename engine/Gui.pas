@@ -135,6 +135,7 @@ const
   cMenuHighColour : array [0..2] of Byte = (255, 20, 20);
 
   //Keys
+  KEY_RETURN = 13; //sure?
   KEY_ESCAPE = 27;
   KEY_SPACE = 32; //sure?
 
@@ -159,6 +160,11 @@ type
       focused: TUnit;
       lang: TLanguage;
       dat: TData;
+      //text messages
+      msg: record
+             txt: AnsiString;
+             options: array of ShortString;
+           end;//rec
       //terrain texture "names" (as in OpenGL names)
       m_TerrainTexNames: array [TTerrainType] of GLuint;
       //good texture "names" (as in OpenGL names)
@@ -184,6 +190,8 @@ type
       procedure CenterOn(const x, y: Integer);
       procedure WriteText(const msg: string; const x, y: Single);
       procedure WriteHelvetica12(const msg: string; const x, y: Single);
+
+      procedure ShowMessageSimple(const msg_txt: AnsiString);
 
       function InMenu: Boolean;
       function InColony: Boolean;
@@ -237,6 +245,8 @@ begin
   cur_colony:= nil;
   europe:= nil;
   focused:= nil;
+  msg.txt:= '';
+  SetLength(msg.options, 0);
   lang:= TLanguage.Create;
   ptrGui:= @self;
   dat:= TData.Create(lang);
@@ -293,6 +303,22 @@ begin
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     end;//if
   end;//for
+  
+  //welcome message (German), originally for test reasons only
+  ShowMessageSimple(
+          'Willkommen bei Vespucci!                                    '
+         +'                                                            '
+         +'Hinweise zur Steuerung:                                     '
+         +'  Pfeiltasten bewegen eine Einheit/die Karte in die angege- '
+         +'  bene Richtung. Zusaetzlich koennen auch die Ziffern 1,3,7 '
+         +'  und 9 auf dem Nummernblock benutzt werden, um eine Einheit'
+         +'  diagonal zu bewegen.                                      '
+         +'  Leertaste beendet die aktuelle Runde, mit ESC wird das    '
+         +'  Spiel beendet. Die Leertaste oder Enter kann auch genutzt '
+         +'  werden, um diese Meldung verschwinden zu lassen.          '
+         +'                                                            '
+         +'  Viele Sachen sind noch nicht implementiert, Vespucci be-  '
+         +'  findet sich gerade am Anfang der Entwicklungsphase.');
 end;//constructor
 
 destructor TGui.Destroy;
@@ -324,6 +350,20 @@ begin
            else CenterOn(25, 35);//just for testing, yet
          end;
   end;
+  
+  //react on message
+  if msg.txt<>'' then
+  begin
+    case Key of
+      KEY_RETURN, KEY_ESCAPE, KEY_SPACE: begin
+                                           msg.txt:= '';
+                                           SetLength(msg.options, 0);
+                                           glutPostRedisplay;
+                                         end;//case KEY_SPACE
+    end;//case
+    Exit;//to prevent other things, keys can do to your units. We have
+         // a message window, so display it, until space is hit.
+  end;//if
 
   if (focused=nil) then
   begin
@@ -334,6 +374,11 @@ begin
       GLUT_KEY_RIGHT, KEY_NUMPAD6: if (OffsetX<cMap_X-x_Fields) then OffsetX:= OffsetX+1;{Move map right}
       GLUT_KEY_DOWN, KEY_NUMPAD2: if (OffsetY<cMap_y-y_Fields) then OffsetY:= OffsetY+1; {Move map down}
       GLUT_KEY_UP, KEY_NUMPAD8: if (OffsetY>0) then OffsetY:= OffsetY-1; {Move map up}
+      KEY_SPACE: //try to get next unit
+                 begin
+                   focused:= dat.GetFirstLazyUnit(dat.player_nation);
+                   if focused<>nil then CenterOn(focused.GetPosX, focused.GetPosY);
+                 end;//case SPACE
     end;//case
   end//if
   else begin
@@ -367,8 +412,8 @@ begin
     //check if unit moved out of sight, and center on it, if neccessary
     if focused<>nil then
     begin
-      if ((focused.GetPosX<=OffsetX) or (focused.GetPosY<=OffsetY) or 
-          (focused.GetPosX>=OffsetX+x_Fields) or (focused.GetPosY>=OffsetY+y_Fields)) then
+      if ((focused.GetPosX<=OffsetX) or (focused.GetPosY<=OffsetY) or
+          (focused.GetPosX>=OffsetX+x_Fields-1) or (focused.GetPosY>=OffsetY+y_Fields-1)) then
         CenterOn(focused.GetPosX, focused.GetPosY);
     end;//if
   end;//else
@@ -420,6 +465,8 @@ end;//proc Start
 procedure TGui.Draw;
 var i, j: Integer;
     tempUnit: TUnit;
+    msg_lines: Integer;
+    msg_cur_ln: string;
 begin
   glLoadIdentity;
   glViewport(0,0, 32*x_Fields+BarWidth, 32*y_Fields+16+16);
@@ -588,8 +635,36 @@ begin
     // -- terrain of unit's location
     WriteText(lang.GetTerrainName(m_Map.tiles[focused.GetPosX,focused.GetPosY].GetType),
               x_Fields +4*PixelWidth, 6.0);
-  
+
   end;//if Focused unit present
+  
+  //show message, where neccessary
+  if msg.txt<>'' then
+  begin
+    //get required number of lines
+    msg_lines:= (length(msg.txt)+59) div 60;
+    //draw box
+    glBegin(GL_QUADS);
+      glColor3f(0.83, 0.66, 0.39);
+      glVertex2f(2.0, 5.5 -0.25*msg_lines);
+      glVertex2f(18.0, 5.5 -0.25*msg_lines);
+      glVertex2f(18.0, 6.5 +0.25*msg_lines);
+      glVertex2f(2.0, 6.5 +0.25*msg_lines);
+    glEnd;
+    //draw box border
+    glLineWidth(2.0);
+    glBegin(GL_LINE_LOOP);
+      glColor3f(0.0, 0.0, 0.0);//black
+      glVertex2f(2.0, 5.5 -0.25*msg_lines);
+      glVertex2f(18.0, 5.5 -0.25*msg_lines);
+      glVertex2f(18.0, 6.5 +0.25*msg_lines);
+      glVertex2f(2.0, 6.5 +0.25*msg_lines);
+    glEnd;
+    //write lines
+    glColor3ubv(@cMenuTextColour[0]);
+    for i:= 1 to msg_lines do
+      WriteText(copy(msg.txt,1+(i-1)*60, 60), 2.5, 6.0+0.25*msg_lines-i*0.5);
+  end;//if
   
   glutSwapBuffers();
 end; //Draw
@@ -674,6 +749,28 @@ begin
       glVertex2f(i*38*PixelWidth, 40*PixelWidth -0.5);
     end;//for
   glEnd;
+  //draw the good icons, if present
+  glColor3f(1.0, 1.0, 1.0);
+  for i:= Ord(gtFood) to Ord(gtMusket) do
+  begin
+    if m_GoodTexNames[TGoodType(i)]<>0 then
+    begin
+      glEnable(GL_TEXTURE_2D);
+      glEnable(GL_ALPHA_TEST);
+      glBindTexture(GL_TEXTURE_2D, m_GoodTexNames[TGoodType(i)]);
+      glBegin(GL_QUADS);
+        glTexCoord2f(0.0, 0.0);
+        glVertex2f((i*38+7)*PixelWidth, -0.5+14*PixelWidth);
+        glTexCoord2f(1.0, 0.0);
+        glVertex2f((i*38+31)*PixelWidth, -0.5+14*PixelWidth);
+        glTexCoord2f(1.0, 1.0);
+        glVertex2f((i*38+31)*PixelWidth, -0.5+38*PixelWidth);
+        glTexCoord2f(0.0, 1.0);
+        glVertex2f((i*38+7)*PixelWidth, -0.5+38*PixelWidth);
+      glEnd;
+      glDisable(GL_TEXTURE_2D);
+    end;//if
+  end;//for
   //Draw the read E for exit
   glColor3f(1.0, 0.0, 0.0);
   glRasterPos2f((38*16.0+5)*PixelWidth, 0.0);
@@ -750,5 +847,11 @@ begin
    sq_y:= -1;
  end;//else
 end;//func
+
+procedure TGui.ShowMessageSimple(const msg_txt: AnsiString);
+begin
+  msg.txt:= Trim(msg_txt);
+  SetLength(msg.options, 0);
+end;//proc
 
 end.
