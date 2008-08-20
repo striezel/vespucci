@@ -130,6 +130,7 @@ const
     );
 
   cWindowCaption = 'Vespucci v0.01';
+  cSpace60 = '                                                            ';
 
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
   cMenuHighColour : array [0..2] of Byte = (255, 20, 20);
@@ -151,6 +152,7 @@ const
   KEY_NUMPAD9 = 57;
 
 type
+  TShortStrArr = array of ShortString;
   TGui = class
     private
       WindowHeight, WindowWidth: Integer;
@@ -163,7 +165,8 @@ type
       //text messages
       msg: record
              txt: AnsiString;
-             options: array of ShortString;
+             options: TShortStrArr;
+             selected_option: Integer;
            end;//rec
       //terrain texture "names" (as in OpenGL names)
       m_TerrainTexNames: array [TTerrainType] of GLuint;
@@ -192,6 +195,7 @@ type
       procedure WriteHelvetica12(const msg: string; const x, y: Single);
 
       procedure ShowMessageSimple(const msg_txt: AnsiString);
+      procedure ShowMessageOptions(const msg_txt: AnsiString; const opts: TShortStrArr);
 
       function InMenu: Boolean;
       function InColony: Boolean;
@@ -207,7 +211,7 @@ var
 
 implementation
 
-//helper function
+//helper functions
 function IntToStr(const i: Integer): string;
 begin
   Str(i, Result);
@@ -245,8 +249,11 @@ begin
   cur_colony:= nil;
   europe:= nil;
   focused:= nil;
+  //message
   msg.txt:= '';
   SetLength(msg.options, 0);
+  msg.selected_option:=0;
+  //language
   lang:= TLanguage.Create;
   ptrGui:= @self;
   dat:= TData.Create(lang);
@@ -303,11 +310,11 @@ begin
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     end;//if
   end;//for
-  
+
   //welcome message (German), originally for test reasons only
   ShowMessageSimple(
           'Willkommen bei Vespucci!                                    '
-         +'                                                            '
+         +cSpace60
          +'Hinweise zur Steuerung:                                     '
          +'  Pfeiltasten bewegen eine Einheit/die Karte in die angege- '
          +'  bene Richtung. Zusaetzlich koennen auch die Ziffern 1,3,7 '
@@ -316,7 +323,7 @@ begin
          +'  Leertaste beendet die aktuelle Runde, mit ESC wird das    '
          +'  Spiel beendet. Die Leertaste oder Enter kann auch genutzt '
          +'  werden, um diese Meldung verschwinden zu lassen.          '
-         +'                                                            '
+         +cSpace60
          +'  Viele Sachen sind noch nicht implementiert, Vespucci be-  '
          +'  findet sich gerade am Anfang der Entwicklungsphase.');
 end;//constructor
@@ -349,8 +356,8 @@ begin
            if focused<>nil then CenterOn(focused.GetPosX, focused.GetPosY)
            else CenterOn(25, 35);//just for testing, yet
          end;
-  end;
-  
+  end;//case
+
   //react on message
   if msg.txt<>'' then
   begin
@@ -361,6 +368,22 @@ begin
                                            glutPostRedisplay;
                                          end;//case KEY_SPACE
     end;//case
+    
+    //we even got options here
+    if length(msg.options)>0 then
+    begin
+      case Key of
+        GLUT_KEY_UP, KEY_NUMPAD8: begin
+                                    msg.selected_option:= msg.selected_option -1;
+                                    if msg.selected_option<0 then msg.selected_option:= High(msg.options);
+                                  end;//case UP
+        GLUT_KEY_DOWN, KEY_NUMPAD2: begin
+                                    msg.selected_option:= msg.selected_option +1;
+                                    if msg.selected_option>High(msg.options) then msg.selected_option:= 0;
+                                  end;//case DOWN
+      end;//case
+    end;//if options
+    
     Exit;//to prevent other things, keys can do to your units. We have
          // a message window, so display it, until space is hit.
   end;//if
@@ -465,8 +488,7 @@ end;//proc Start
 procedure TGui.Draw;
 var i, j: Integer;
     tempUnit: TUnit;
-    msg_lines: Integer;
-    msg_cur_ln: string;
+    msg_lines, msg_opts: Integer;
 begin
   glLoadIdentity;
   glViewport(0,0, 32*x_Fields+BarWidth, 32*y_Fields+16+16);
@@ -637,37 +659,79 @@ begin
               x_Fields +4*PixelWidth, 6.0);
 
   end;//if Focused unit present
-  
+
   //show message, where neccessary
   if msg.txt<>'' then
   begin
-    //get required number of lines
-    msg_lines:= (length(msg.txt)+59) div 60;
-    //draw box
-    glBegin(GL_QUADS);
-      glColor3f(0.83, 0.66, 0.39);
-      glVertex2f(2.0, 5.5 -0.25*msg_lines);
-      glVertex2f(18.0, 5.5 -0.25*msg_lines);
-      glVertex2f(18.0, 6.5 +0.25*msg_lines);
-      glVertex2f(2.0, 6.5 +0.25*msg_lines);
-    glEnd;
-    //draw box border
-    glLineWidth(2.0);
-    glBegin(GL_LINE_LOOP);
-      glColor3f(0.0, 0.0, 0.0);//black
-      glVertex2f(2.0, 5.5 -0.25*msg_lines);
-      glVertex2f(18.0, 5.5 -0.25*msg_lines);
-      glVertex2f(18.0, 6.5 +0.25*msg_lines);
-      glVertex2f(2.0, 6.5 +0.25*msg_lines);
-    glEnd;
-    //write lines
-    glColor3ubv(@cMenuTextColour[0]);
-    for i:= 1 to msg_lines do
-      WriteText(copy(msg.txt,1+(i-1)*60, 60), 2.5, 6.0+0.25*msg_lines-i*0.5);
+    if length(msg.options)=0 then
+    begin
+      //get required number of lines
+      msg_lines:= (length(msg.txt)+59) div 60;
+      //draw box
+      glBegin(GL_QUADS);
+        glColor3f(0.83, 0.66, 0.39);
+        glVertex2f(2.0, 5.5 -0.25*msg_lines);
+        glVertex2f(18.0, 5.5 -0.25*msg_lines);
+        glVertex2f(18.0, 6.5 +0.25*msg_lines);
+        glVertex2f(2.0, 6.5 +0.25*msg_lines);
+      glEnd;
+      //draw box border
+      glLineWidth(2.0);
+      glBegin(GL_LINE_LOOP);
+        glColor3f(0.0, 0.0, 0.0);//black
+        glVertex2f(2.0, 5.5 -0.25*msg_lines);
+        glVertex2f(18.0, 5.5 -0.25*msg_lines);
+        glVertex2f(18.0, 6.5 +0.25*msg_lines);
+        glVertex2f(2.0, 6.5 +0.25*msg_lines);
+      glEnd;
+      //write lines
+      glColor3ubv(@cMenuTextColour[0]);
+      for i:= 1 to msg_lines do
+        WriteText(copy(msg.txt,1+(i-1)*60, 60), 2.5, 6.0+0.25*msg_lines-i*0.5);
+    end
+    else begin
+      //we got options
+      //get required number of lines
+      msg_lines:= (length(msg.txt)+59) div 60;
+      msg_opts:= length(msg.options);
+      //draw box
+      glBegin(GL_QUADS);
+        glColor3f(0.83, 0.66, 0.39);
+        glVertex2f(2.0, 5.5 -0.25*(msg_lines+msg_opts));
+        glVertex2f(18.0, 5.5 -0.25*(msg_lines+msg_opts));
+        glVertex2f(18.0, 6.5 +0.25*(msg_lines+msg_opts));
+        glVertex2f(2.0, 6.5 +0.25*(msg_lines+msg_opts));
+      glEnd;
+      //draw box border
+      glLineWidth(2.0);
+      glBegin(GL_LINE_LOOP);
+        glColor3f(0.0, 0.0, 0.0);//black
+        glVertex2f(2.0, 5.5 -0.25*(msg_lines+msg_opts));
+        glVertex2f(18.0, 5.5 -0.25*(msg_lines+msg_opts));
+        glVertex2f(18.0, 6.5 +0.25*(msg_lines+msg_opts));
+        glVertex2f(2.0, 6.5 +0.25*(msg_lines+msg_opts));
+      glEnd;
+      //write text lines
+      glColor3ubv(@cMenuTextColour[0]);
+      for i:= 1 to msg_lines do
+        WriteText(copy(msg.txt,1+(i-1)*60, 60), 2.5, 6.0+0.25*(msg_lines+msg_opts)-i*0.5);
+      //draw highlighted background for current option
+      glBegin(GL_QUADS);
+        glColor3f(0.83*0.8, 0.66*0.8, 0.39*0.8);
+        glVertex2f(2.5, 5.4+0.25*(msg_lines+msg_opts)-(msg.selected_option+msg_lines)*0.5);
+        glVertex2f(17.5, 5.4+0.25*(msg_lines+msg_opts)-(msg.selected_option+msg_lines)*0.5);
+        glVertex2f(17.5, 5.9+0.25*(msg_lines+msg_opts)-(msg.selected_option+msg_lines)*0.5);
+        glVertex2f(2.5, 5.9+0.25*(msg_lines+msg_opts)-(msg.selected_option+msg_lines)*0.5);
+      glEnd;
+      //write options
+      glColor3ubv(@cMenuTextColour[0]);
+      for i:= 1 to msg_opts do
+        WriteText(' '+msg.options[i-1], 2.5, 6.0+0.25*(msg_lines+msg_opts)-(i+msg_lines)*0.5);
+    end;//if
   end;//if
-  
+
   glutSwapBuffers();
-end; //Draw
+end; //TGui.Draw
 
 procedure TGui.CenterOn(const x, y: Integer);
 begin
@@ -852,6 +916,16 @@ procedure TGui.ShowMessageSimple(const msg_txt: AnsiString);
 begin
   msg.txt:= Trim(msg_txt);
   SetLength(msg.options, 0);
+end;//proc
+
+procedure TGui.ShowMessageOptions(const msg_txt: AnsiString; const opts: TShortStrArr);
+var i: Integer;
+begin
+  msg.txt:= Trim(msg_txt)+cSpace60;
+  SetLength(msg.options, length(opts));
+  for i:= 0 to High(opts) do
+    msg.options[i]:= copy(Trim(opts[i]),1,59);
+  msg.selected_option:= 0;
 end;//proc
 
 end.
