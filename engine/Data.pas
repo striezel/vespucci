@@ -26,7 +26,6 @@ type
               Nations: array [cMin_Nations..cMaxIndian] of TNation;
               //the units
               m_Units: array of TUnit;
-              Unit_length: Integer;
               Unit_max: Integer;
             public
               player_nation: Integer;
@@ -57,10 +56,8 @@ begin
   Nations[cNationHolland]:= TEuropeanNation.Create(cNationHolland, aLang.GetNationName(cNationHolland), 'Michiel De Ruyter');
   for i:= cMinIndian to cMaxIndian do
       Nations[i]:= TIndianNation.Create(i, aLang.GetNationName(i));
-
   //units
-  Unit_length:= 0;
-  SetLength(m_Units, Unit_length);
+  SetLength(m_Units, 0);
   Unit_max:= -1;
 end;//construc
 
@@ -116,17 +113,16 @@ end;//func
 function TData.NewUnit(const TypeOfUnit: TUnitType; const ANation: Integer; X: Integer=1; Y: Integer=1): TUnit;
 var i: Integer;
 begin
-  if (Unit_max+2>Unit_length) then
+  if (Unit_max+1>High(m_Units)) then
   begin
-    SetLength(m_Units, Unit_length+4);
-    Unit_length:= Unit_length+4;
+    SetLength(m_Units, High(m_Units)+5);
     //"initialize" new units
-    for i:=1 to 4 do
-      m_Units[Unit_length-i]:= nil;
+    for i:=Unit_max+1 to High(m_Units) do
+      m_Units[i]:= nil;
   end;//if
   m_Units[Unit_max+1]:= TUnit.Create(TypeOfUnit, GetNationPointer(ANation), X, Y);
   Unit_max:= Unit_max+1;
-  Result:= m_Units[Unit_max+1];
+  Result:= m_Units[Unit_max];
 end;//proc
 
 function TData.GetFirstUnitInXY(const x, y: Integer): TUnit;

@@ -258,6 +258,7 @@ begin
   ptrGui:= @self;
   dat:= TData.Create(lang);
   dat.NewUnit(utCaravel, cNationEngland, 36, 13);
+  WriteLn('First caravel created.');
   //set texture names to "empty" and then load them
   glEnable(GL_TEXTURE_2D);
   //terrain textures
@@ -368,7 +369,7 @@ begin
                                            glutPostRedisplay;
                                          end;//case KEY_SPACE
     end;//case
-    
+
     //we even got options here
     if length(msg.options)>0 then
     begin
@@ -383,7 +384,7 @@ begin
                                   end;//case DOWN
       end;//case
     end;//if options
-    
+
     Exit;//to prevent other things, keys can do to your units. We have
          // a message window, so display it, until space is hit.
   end;//if
