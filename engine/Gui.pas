@@ -168,6 +168,10 @@ type
              options: TShortStrArr;
              selected_option: Integer;
            end;//rec
+      msg_queue: array of record
+                            txt: AnsiString;
+                            options:TShortStrArr;
+                          end;//rec
       //terrain texture "names" (as in OpenGL names)
       m_TerrainTexNames: array [TTerrainType] of GLuint;
       //good texture "names" (as in OpenGL names)
@@ -179,6 +183,7 @@ type
       procedure DrawGoodsBar;
       procedure DrawColonyTitleBar;
       procedure GetSquareAtMouse(const mouse_x, mouse_y: Longint; var sq_x, sq_y: Integer);
+      procedure GetNextMessage;
     public
       m_Map: TMap;
       OffsetX, OffsetY: Integer;
@@ -191,8 +196,8 @@ type
       procedure Start;
       procedure Draw;
       procedure CenterOn(const x, y: Integer);
-      procedure WriteText(const msg: string; const x, y: Single);
-      procedure WriteHelvetica12(const msg: string; const x, y: Single);
+      procedure WriteText(const msg_txt: string; const x, y: Single);
+      procedure WriteHelvetica12(const msg_txt: string; const x, y: Single);
 
       procedure ShowMessageSimple(const msg_txt: AnsiString);
       procedure ShowMessageOptions(const msg_txt: AnsiString; const opts: TShortStrArr);
@@ -205,6 +210,10 @@ type
   PGui = ^TGui;
 
   function IntToStr(const i: Integer): string;
+  function ToShortStrArr(const s1, s2: ShortString): TShortStrArr; overload;
+  function ToShortStrArr(const s1, s2, s3: ShortString): TShortStrArr; overload;
+  function ToShortStrArr(const s1, s2, s3, s4: ShortString): TShortStrArr; overload;
+  function ToShortStrArr(const s1, s2, s3, s4, s5: ShortString): TShortStrArr; overload;
 
 var
   ptrGUI: PGui;
@@ -215,6 +224,40 @@ implementation
 function IntToStr(const i: Integer): string;
 begin
   Str(i, Result);
+end;//func
+
+function ToShortStrArr(const s1, s2: ShortString): TShortStrArr; overload;
+begin
+  SetLength(Result, 2);
+  Result[0]:= s1;
+  Result[1]:= s2;
+end;//func
+
+function ToShortStrArr(const s1, s2, s3: ShortString): TShortStrArr; overload;
+begin
+  SetLength(Result, 3);
+  Result[0]:= s1;
+  Result[1]:= s2;
+  Result[2]:= s3;
+end;//func
+
+function ToShortStrArr(const s1, s2, s3, s4: ShortString): TShortStrArr; overload;
+begin
+  SetLength(Result, 4);
+  Result[0]:= s1;
+  Result[1]:= s2;
+  Result[2]:= s3;
+  Result[3]:= s4;
+end;//func
+
+function ToShortStrArr(const s1, s2, s3, s4, s5: ShortString): TShortStrArr; overload;
+begin
+  SetLength(Result, 5);
+  Result[0]:= s1;
+  Result[1]:= s2;
+  Result[2]:= s3;
+  Result[3]:= s4;
+  Result[4]:= s5;
 end;//func
 
 // **** TGui functions ****
@@ -253,6 +296,7 @@ begin
   msg.txt:= '';
   SetLength(msg.options, 0);
   msg.selected_option:=0;
+  SetLength(msg_queue, 0);
   //language
   lang:= TLanguage.Create;
   ptrGui:= @self;
@@ -348,28 +392,15 @@ end;//destructor
 procedure TGui.KeyFunc(Key: Byte; x, y: LongInt; Special: Boolean = False);
 var tempUnit: TUnit;
 begin
-  if Key=KEY_ESCAPE then halt; {exit}
-  case UpCase(char(Key)) of
-    'F': ;//fortify
-    'S': ;//sentry
-    ' ': ;//space skips unit
-    'C': begin
-           if focused<>nil then CenterOn(focused.GetPosX, focused.GetPosY)
-           else CenterOn(25, 35);//just for testing, yet
-         end;
-  end;//case
-
   //react on message
   if msg.txt<>'' then
   begin
     case Key of
       KEY_RETURN, KEY_ESCAPE, KEY_SPACE: begin
-                                           msg.txt:= '';
-                                           SetLength(msg.options, 0);
+                                           GetNextMessage;
                                            glutPostRedisplay;
                                          end;//case KEY_SPACE
     end;//case
-
     //we even got options here
     if length(msg.options)>0 then
     begin
@@ -388,6 +419,18 @@ begin
     Exit;//to prevent other things, keys can do to your units. We have
          // a message window, so display it, until space is hit.
   end;//if
+
+  //"general" keys
+  if Key=KEY_ESCAPE then halt; {exit}
+  case UpCase(char(Key)) of
+    'F': ;//fortify
+    'S': ;//sentry
+    ' ': ;//space skips unit
+    'C': begin
+           if focused<>nil then CenterOn(focused.GetPosX, focused.GetPosY)
+           else CenterOn(25, 35);//just for testing, yet
+         end;
+  end;//case
 
   if (focused=nil) then
   begin
@@ -749,7 +792,7 @@ begin
     MiniMapOffset_Y:= cMap_Y-Minimap_y_fields;
 end;//proc
 
-procedure TGui.WriteText(const msg: string; const x, y: Single);
+procedure TGui.WriteText(const msg_txt: string; const x, y: Single);
 //const cFontType = GLUT_BITMAP_8_BY_13;
 {maybe we should try GLUT_BITMAP_9_BY_15 instead.
    other alternatives:
@@ -758,21 +801,21 @@ procedure TGui.WriteText(const msg: string; const x, y: Single);
 var i: Integer;
 begin
   glRasterPos3f(x, y, 0.2);
-  for i:= 1 to length(msg) do
-    if (Ord(msg[i]) >=32){ and (Ord(msg[i]) <=127)} then
+  for i:= 1 to length(msg_txt) do
+    if (Ord(msg_txt[i]) >=32){ and (Ord(msg_txt[i]) <=127)} then
     begin
-      glutBitmapCharacter(GLUT_BITMAP_8_BY_13, Ord(msg[i]));
+      glutBitmapCharacter(GLUT_BITMAP_8_BY_13, Ord(msg_txt[i]));
     end;
 end;//proc
 
-procedure TGui.WriteHelvetica12(const msg: string; const x, y: Single);
+procedure TGui.WriteHelvetica12(const msg_txt: string; const x, y: Single);
 var i: Integer;
 begin
   glRasterPos3f(x, y, 0.2);
-  for i:= 1 to length(msg) do
-    if (Ord(msg[i]) >=32){ and (Ord(msg[i]) <=127)} then
+  for i:= 1 to length(msg_txt) do
+    if (Ord(msg_txt[i]) >=32){ and (Ord(msg_txt[i]) <=127)} then
     begin
-      glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, Ord(msg[i]));
+      glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, Ord(msg_txt[i]));
     end;
 end;//proc
 
@@ -915,18 +958,66 @@ end;//func
 
 procedure TGui.ShowMessageSimple(const msg_txt: AnsiString);
 begin
-  msg.txt:= Trim(msg_txt);
-  SetLength(msg.options, 0);
+  if msg.txt='' then
+  begin
+    msg.txt:= Trim(msg_txt);
+    SetLength(msg.options, 0);
+  end
+  else begin
+    SetLength(msg_queue, Length(msg_queue)+1);
+    msg_queue[High(msg_queue)].txt:= Trim(msg_txt);
+    SetLength(msg_queue[High(msg_queue)].options, 0);
+  end;//else
 end;//proc
 
 procedure TGui.ShowMessageOptions(const msg_txt: AnsiString; const opts: TShortStrArr);
 var i: Integer;
 begin
-  msg.txt:= Trim(msg_txt)+cSpace60;
-  SetLength(msg.options, length(opts));
-  for i:= 0 to High(opts) do
-    msg.options[i]:= copy(Trim(opts[i]),1,59);
-  msg.selected_option:= 0;
+  if msg.txt='' then
+  begin
+    msg.txt:= Trim(msg_txt)+cSpace60;
+    SetLength(msg.options, length(opts));
+    for i:= 0 to High(opts) do
+      msg.options[i]:= copy(Trim(opts[i]),1,59);
+    msg.selected_option:= 0;
+  end
+  else begin
+    SetLength(msg_queue, Length(msg_queue)+1);
+    msg_queue[High(msg_queue)].txt:= Trim(msg_txt)+cSpace60;
+    SetLength(msg_queue[High(msg_queue)].options, length(opts));
+    for i:= 0 to High(opts) do
+      msg_queue[High(msg_queue)].options[i]:= copy(Trim(opts[i]),1,59);
+  end;//else
+end;//proc
+
+procedure TGui.GetNextMessage;
+var i, j: Integer;
+begin
+  if length(msg_queue)>0 then
+  begin
+    msg.txt:= msg_queue[0].txt;
+    SetLength(msg.options, length(msg_queue[0].options));
+    for i:=0 to High(msg_queue[0].options) do
+      msg.options[i]:= msg_queue[0].options[i];
+    //move all options one more index to the beginning
+    {//maybe we should implement queue as list rather than as array}
+    for i:= 0 to High(msg_queue)-1 do
+    begin
+      msg_queue[i].txt:= msg_queue[i+1].txt;
+      SetLength(msg_queue[i].options, length(msg_queue[i+1].options));
+      for j:= 0 to High(msg_queue[i+1].options) do
+        msg_queue[i].options[j]:= msg_queue[i+1].options[j];
+    end;//for
+    //shorten queue (and thus remove last element)
+    SetLength(msg_queue, length(msg_queue)-1);
+    msg.selected_option:=0;
+  end//if-then-branch
+  else begin
+    //no new messages in queue; clear msg.
+    msg.txt:= '';
+    SetLength(msg.options, 0);
+    msg.selected_option:=0;
+  end;//else branch
 end;//proc
 
 end.

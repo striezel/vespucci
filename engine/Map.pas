@@ -83,10 +83,10 @@ end;//construc
 destructor TMap.Destroy;
 var i, j: Byte;
 begin
-  inherited Destroy;
   for i:=0 to cMap_X do
     for j:=0 to cMap_Y do
       if tiles[i,j]<>nil then tiles[i,j].Free;
+  inherited Destroy;
 end;//destruc
 
 procedure TMap.Generate(const Landmass: Single);
