@@ -941,19 +941,21 @@ end;//func
 
 procedure TGui.GetSquareAtMouse(const mouse_x, mouse_y: Longint; var sq_x, sq_y: Integer);
 begin
- sq_x:= mouse_x div 32;
- sq_y:= (mouse_y-16) div 32;
- if ((sq_x>=0) and (sq_x<x_Fields) and (sq_y>=0) and (sq_y<y_Fields)) then
- begin
-   //all OK so far, add offset to get absolute values
-   sq_x:= sq_x+OffsetX;
-   sq_y:= sq_y+OffsetY;
- end
- else begin
-   //values out of range
-   sq_x:= -1;
-   sq_y:= -1;
- end;//else
+  sq_x:= mouse_x div 32;
+  if mouse_y>16 then
+    sq_y:= (mouse_y-16) div 32
+  else sq_y:= -1;
+  if ((sq_x>=0) and (sq_x<x_Fields) and (sq_y>=0) and (sq_y<y_Fields)) then
+  begin
+    //all OK so far, add offset to get absolute values
+    sq_x:= sq_x+OffsetX;
+    sq_y:= sq_y+OffsetY;
+  end
+  else begin
+    //values out of range
+    sq_x:= -1;
+    sq_y:= -1;
+  end;//else
 end;//func
 
 procedure TGui.ShowMessageSimple(const msg_txt: AnsiString);
