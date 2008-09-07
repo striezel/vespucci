@@ -4,7 +4,10 @@ interface
 
 uses
   Map, Data, GL, GLU, GLUT, Terrain, Language, Colony, Nation, Goods, Units,
-  SysUtils, BitmapReader;
+  SysUtils, BitmapReader
+  {$IFDEF Win32}, Windows
+  {$ELSE} //linux stuff here
+  {$ENDIF};
 
 const
   x_Fields = 15;
@@ -167,10 +170,12 @@ type
              txt: AnsiString;
              options: TShortStrArr;
              selected_option: Integer;
+             msg_ID: LongWord;
            end;//rec
       msg_queue: array of record
                             txt: AnsiString;
                             options:TShortStrArr;
+                            msg_ID: LongWord;
                           end;//rec
       //terrain texture "names" (as in OpenGL names)
       m_TerrainTexNames: array [TTerrainType] of GLuint;
@@ -178,12 +183,19 @@ type
       m_GoodTexNames: array [TGoodType] of GLuint;
       //unit texture "names" (as in OpenGL names)
       m_UnitTexNames: array [TUnitType] of GLuint;
+
+      m_last_ID: LongWord;
+      m_last_processed_ID: LongWord;
+      m_last_selected_option: Integer;
+
       procedure InitGLUT;
       procedure DrawMenuBar;
       procedure DrawGoodsBar;
       procedure DrawColonyTitleBar;
       procedure GetSquareAtMouse(const mouse_x, mouse_y: Longint; var sq_x, sq_y: Integer);
       procedure GetNextMessage;
+
+      procedure ProcessEvents;
     public
       m_Map: TMap;
       OffsetX, OffsetY: Integer;
@@ -200,12 +212,17 @@ type
       procedure WriteHelvetica12(const msg_txt: string; const x, y: Single);
 
       procedure ShowMessageSimple(const msg_txt: AnsiString);
-      procedure ShowMessageOptions(const msg_txt: AnsiString; const opts: TShortStrArr);
+      procedure ShowMessageOptions(const msg_txt: AnsiString; const opts: TShortStrArr; const msgID: LongWord=0);
 
       function InMenu: Boolean;
       function InColony: Boolean;
       function InEurope: Boolean;
       function GetFocusedUnit: TUnit;
+
+      function GetUniqueID: LongWord;
+      function GetLastProcessedMessageID: LongWord;
+      function GetLastSelectedOption: Integer;
+      function GetSelectedMenuOption(const msg_txt: AnsiString; const opts: TShortStrArr): Integer;
   end;//class TGui
   PGui = ^TGui;
 
@@ -266,14 +283,17 @@ constructor TGui.Create;
 var i: Integer;
     tempTex: TArraySq32RGB;
     AlphaTex: TArraySq32RGBA;
-    bfh: TBitmapFileHeader;
-    bih: TBitmapInfoHeader;
+    bfh: BitmapReader.TBitmapFileHeader;
+    bih: BitmapReader.TBitmapInfoHeader;
     err_str: string;
 begin
   inherited Create;
   OffsetX:= 0; OffsetY:= 0;
   MiniMapOffset_Y:= 0;
   m_Map:= TMap.Create;
+  m_last_ID:= 0;
+  m_last_processed_ID:=0;
+  m_last_selected_option:= -1;
   if FileExists(america_map_path) then
   begin
     if m_Map.LoadFromFile(america_map_path) then
@@ -421,7 +441,8 @@ begin
   end;//if
 
   //"general" keys
-  if Key=KEY_ESCAPE then halt; {exit}
+  if Key=KEY_ESCAPE then 
+    if GetSelectedMenuOption('Vespucci beenden?', ToShortStrArr('Nein', 'Ja')) = 1 then halt; {exit}
   case UpCase(char(Key)) of
     'F': ;//fortify
     'S': ;//sentry
@@ -964,15 +985,17 @@ begin
   begin
     msg.txt:= Trim(msg_txt);
     SetLength(msg.options, 0);
+    msg.msg_ID:= 0;
   end
   else begin
     SetLength(msg_queue, Length(msg_queue)+1);
     msg_queue[High(msg_queue)].txt:= Trim(msg_txt);
     SetLength(msg_queue[High(msg_queue)].options, 0);
+    msg_queue[High(msg_queue)].msg_ID:= 0;
   end;//else
 end;//proc
 
-procedure TGui.ShowMessageOptions(const msg_txt: AnsiString; const opts: TShortStrArr);
+procedure TGui.ShowMessageOptions(const msg_txt: AnsiString; const opts: TShortStrArr; const msgID: LongWord=0);
 var i: Integer;
 begin
   if msg.txt='' then
@@ -982,6 +1005,8 @@ begin
     for i:= 0 to High(opts) do
       msg.options[i]:= copy(Trim(opts[i]),1,59);
     msg.selected_option:= 0;
+    if msgID<>0 then msg.msg_ID:= msgID
+    else msg.msg_ID:= GetUniqueID;
   end
   else begin
     SetLength(msg_queue, Length(msg_queue)+1);
@@ -989,18 +1014,28 @@ begin
     SetLength(msg_queue[High(msg_queue)].options, length(opts));
     for i:= 0 to High(opts) do
       msg_queue[High(msg_queue)].options[i]:= copy(Trim(opts[i]),1,59);
+    if msgID<>0 then msg_queue[High(msg_queue)].msg_ID:= msgID
+    else msg_queue[High(msg_queue)].msg_ID:= GetUniqueID;
   end;//else
 end;//proc
 
 procedure TGui.GetNextMessage;
 var i, j: Integer;
 begin
+  //save last ID and selection before anything else
+  if ((msg.msg_ID<>0) and (length(msg.options)>1)) then
+  begin
+    m_last_processed_ID:= msg.msg_ID;
+    m_last_selected_option:= msg.selected_option;
+  end;
+  //now the main work
   if length(msg_queue)>0 then
   begin
     msg.txt:= msg_queue[0].txt;
     SetLength(msg.options, length(msg_queue[0].options));
     for i:=0 to High(msg_queue[0].options) do
       msg.options[i]:= msg_queue[0].options[i];
+    msg.msg_ID:= msg_queue[0].msg_ID;
     //move all options one more index to the beginning
     {//maybe we should implement queue as list rather than as array}
     for i:= 0 to High(msg_queue)-1 do
@@ -1009,6 +1044,7 @@ begin
       SetLength(msg_queue[i].options, length(msg_queue[i+1].options));
       for j:= 0 to High(msg_queue[i+1].options) do
         msg_queue[i].options[j]:= msg_queue[i+1].options[j];
+      msg_queue[i].msg_ID:= msg_queue[i+1].msg_ID;
     end;//for
     //shorten queue (and thus remove last element)
     SetLength(msg_queue, length(msg_queue)-1);
@@ -1019,7 +1055,55 @@ begin
     msg.txt:= '';
     SetLength(msg.options, 0);
     msg.selected_option:=0;
+    msg.msg_ID:= 0;
   end;//else branch
 end;//proc
+
+function TGui.GetUniqueID: LongWord;
+begin
+  m_last_ID:= m_last_ID+1;
+  Result:= m_last_ID;
+end;//func
+
+function TGui.GetLastProcessedMessageID: LongWord;
+begin
+  Result:= m_last_processed_ID;
+end;//func
+
+function TGui.GetLastSelectedOption: Integer;
+begin
+  Result:= m_last_selected_option;
+end;//func
+
+procedure TGui.ProcessEvents;
+{$IFDEF Win32}
+var aMsg: TMsg;
+{$ENDIF}
+begin
+{$IFDEF Win32}
+  //windows stuff here
+  while (PeekMessage(aMsg, 0, 0, 0, PM_NOREMOVE)) do
+  begin
+    if (not GetMessage(aMsg, 0, 0, 0)) then break;
+    TranslateMessage(aMsg);
+    DispatchMessage(aMsg);
+    Draw;
+  end;//while
+{$ELSE}
+  //linux stuff here
+{$ENDIF}
+end;//func
+
+function TGui.GetSelectedMenuOption(const msg_txt: AnsiString; const opts: TShortStrArr): Integer;
+var tempID: LongWord;
+begin
+  tempID:= GetUniqueID;
+  Result:= -1;
+  ShowMessageOptions(msg_txt, opts, tempID);
+  repeat
+    ProcessEvents;
+  until GetLastProcessedMessageID=tempID;
+  Result:= GetLastSelectedOption;
+end;//func
 
 end.
