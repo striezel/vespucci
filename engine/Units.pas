@@ -29,6 +29,7 @@ type
                utMan_o_War,
 
                utBrave, utBraveOnHorse);
+  TUnitLocation = (ulAmerica, ulInColony, ulGoToEurope, ulGoToNewWorld, ulEurope, ulEmbarked);
   TDirection = (dirSW, dirS, dirSE, dirE, dirNE, dirN, dirNW, dirW, dirNone);
 
   TTask = class;
@@ -41,11 +42,14 @@ type
       destructor Destroy;
       procedure NewRound;
       function Move(const direction: TDirection; const AMap: TMap): Boolean;
+      function WarpToXY(const x, y: Byte): Boolean;
       function GetPosX: Integer;
       function GetPosY: Integer;
       function GetNation: PNation;
       function GetType: TUnitType;
       procedure ChangeType(const newType: TUnitType);
+      function GetLocation: TUnitLocation;
+      procedure SetLocation(const loc: TUnitLocation);
       function IsShip: Boolean;
       function MovesPerRound: Integer;
       function AttackStrength: Integer;
@@ -55,6 +59,7 @@ type
       function LoadGood(const AGood: TGoodType; const num: Byte): Boolean;
       function UnloadGood(const AGood: TGoodType; const num: Byte): Byte;
       function LoadUnit(AUnit: PUnit): Boolean;
+      function UnloadUnit(const AType: TUnitType; const x,y: Byte): Boolean;
       //item functions
       function GetToolAmount: Byte;
       procedure GiveTools(const amount: Byte);
@@ -65,6 +70,7 @@ type
     private
       PosX, PosY: Integer;
       UnitType: TUnitType;
+      m_location: TUnitLocation;
       Nation: PNation;
       //stores items like horses, muskets, tools
       items: Byte;
@@ -132,6 +138,7 @@ begin
   UnitType:= TypeOfUnit;
   PosX:= X;
   PosY:= Y;
+  m_location:= ulAmerica;
   MovesLeft:= MovesPerRound;
   Nation:= ANation;
   items:= 0;
@@ -214,6 +221,16 @@ begin
   end;//else
 end;//func
 
+function TUnit.WarpToXY(const x, y: Byte): Boolean;
+begin
+  if ((x>=cMap_X) or (y>=cMap_Y)) then Result:= False
+  else begin
+    PosX:= x;
+    PosY:= y;
+    Result:= True;
+  end;
+end;//func
+
 function TUnit.GetPosX: Integer;
 begin
   Result:= PosX;
@@ -239,6 +256,16 @@ begin
   //we don't wanna change ships' type or convoy
   if ((not IsShip) and (UnitType<>utConvoy)) then
     UnitType:= newType;
+end;//proc
+
+function TUnit.GetLocation: TUnitLocation;
+begin
+  Result:= m_location;
+end;//func
+
+procedure TUnit.SetLocation(const loc: TUnitLocation);
+begin
+  m_location:= loc;
 end;//proc
 
 function TUnit.IsShip: Boolean;
@@ -301,7 +328,7 @@ begin
       if passengers[i]<>nil then occupied:= occupied+1;
       if cargo_load[i].amount>0 then occupied:= occupied+1;
     end;//for
-    if FreightCapacity<occupied then Result:= 0
+    if FreightCapacity<=occupied then Result:= 0
     else Result:= FreightCapacity - occupied;
   end//else
 end;//func
@@ -360,8 +387,31 @@ begin
     while (passengers[slot]<>nil) and (slot<5) do
       slot:= slot+1;
     passengers[slot]:= AUnit;
+    AUnit^.SetLocation(ulEmbarked);
     Result:= True;
   end;//else
+end;//func
+
+{tries to unload a unit and place it at the given coordinates
+ -Return value: true on success, false otherwise
+ -TODO: unloads first unit of given type, so if there are two ore more units of
+  ===== the same type loaded, then it migth unload the wrong one}
+function TUnit.UnloadUnit(const AType: TUnitType; const x,y: Byte): Boolean;
+var i: Integer;
+begin
+  Result:= False;
+  if FreightCapacity<=0 then exit;
+  if ((sqr(x-GetPosX)>1) or (sqr(y-GetPosY)>1)) then Exit;
+  for i:= 5 downto 0 do
+  begin
+    if passengers[i]^.GetType=AType then
+      if passengers[i]^.WarpToXY(x,y) then
+      begin
+        passengers[i]^.SetLocation(self.GetLocation);
+        Result:= True;
+        break;
+      end;//if
+  end;//func
 end;//func
 
 function TUnit.GetToolAmount: Byte;

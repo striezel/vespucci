@@ -6,7 +6,7 @@ uses
   Map, Data, GL, GLU, GLUT, Terrain, Language, Colony, Nation, Goods, Units,
   SysUtils, BitmapReader
   {$IFDEF Win32}, Windows
-  {$ELSE} //linux stuff here
+  {$ELSE}{, keysym, X, Xlib, libc} //linux stuff here
   {$ENDIF};
 
 const
@@ -156,6 +156,13 @@ const
 
 type
   TShortStrArr = array of ShortString;
+  PQueueElem = ^TQueueElem;
+  TQueueElem = record
+                 txt: AnsiString;
+                 options:TShortStrArr;
+                 msg_ID: LongWord;
+                 next: PQueueElem;
+               end;//rec
   TGui = class
     private
       WindowHeight, WindowWidth: Integer;
@@ -283,8 +290,6 @@ constructor TGui.Create;
 var i: Integer;
     tempTex: TArraySq32RGB;
     AlphaTex: TArraySq32RGBA;
-    bfh: BitmapReader.TBitmapFileHeader;
-    bih: BitmapReader.TBitmapInfoHeader;
     err_str: string;
 begin
   inherited Create;
@@ -329,7 +334,7 @@ begin
   for i:= Ord(Low(TTerrainType)) to Ord(High(TTerrainType)) do
   begin
     m_TerrainTexNames[TTerrainType(i)]:= 0;
-    if ReadBitmapToArr32RGB(terrain_img_path+cTerrainTexNames[TTerrainType(i)], bfh, bih, tempTex, err_str) then
+    if ReadBitmapToArr32RGB(terrain_img_path+cTerrainTexNames[TTerrainType(i)], tempTex, err_str) then
     begin
       //change order of color components from blue, green, red (as in file) to
       //  red, green, blue (as needed for GL)
@@ -345,7 +350,7 @@ begin
   for i:= Ord(Low(TGoodType)) to Ord(High(TGoodType)) do
   begin
     m_GoodTexNames[TGoodType(i)]:= 0;
-    if ReadBitmapToArr32RGB(good_img_path+cGoodTexNames[TGoodType(i)], bfh, bih, tempTex, err_str) then
+    if ReadBitmapToArr32RGB(good_img_path+cGoodTexNames[TGoodType(i)], tempTex, err_str) then
     begin
       //change order of color components from blue, green, red (as in file) to
       //  red, green, blue (as needed for GL)
@@ -362,7 +367,7 @@ begin
   for i:= Ord(Low(TUnitType)) to Ord(High(TUnitType)) do
   begin
     m_UnitTexNames[TUnitType(i)]:= 0;
-    if ReadBitmapToArr32RGB(unit_img_path+cUnitTexNames[TUnitType(i)], bfh, bih, tempTex, err_str) then
+    if ReadBitmapToArr32RGB(unit_img_path+cUnitTexNames[TUnitType(i)], tempTex, err_str) then
     begin
       //change order of color components from blue, green, red (as in file) to
       //  red, green, blue (as needed for GL)
@@ -451,6 +456,8 @@ begin
            if focused<>nil then CenterOn(focused.GetPosX, focused.GetPosY)
            else CenterOn(25, 35);//just for testing, yet
          end;
+    //T is for testing only
+    'T': WriteLn('GotMenuOption: ', GetSelectedMenuOption('Dies ist ein Test.', ToShortStrArr('eins', 'zwei', 'drei')));
   end;//case
 
   if (focused=nil) then
@@ -1078,6 +1085,11 @@ end;//func
 procedure TGui.ProcessEvents;
 {$IFDEF Win32}
 var aMsg: TMsg;
+{$ELSE}
+{var dpy: PDisplay;
+    event: TXEvent;
+    spec_key: Integer;
+    key_sym: TKeySym;}
 {$ENDIF}
 begin
 {$IFDEF Win32}
@@ -1091,6 +1103,53 @@ begin
   end;//while
 {$ELSE}
   //linux stuff here
+  {dpy:= XOpenDisplay(nil);
+  if dpy<>nil then
+  begin
+    WriteLn('Display opened');
+    while (XPending(dpy)>0) do
+    begin
+      WriteLn('Pending events: ', XPending(dpy));
+      XNextEvent(dpy, @event);
+      case event._type of
+        ButtonPress: MouseFunc(event.xbutton.button-1, GLUT_DOWN, event.xbutton.x, event.xbutton.y);
+        ButtonRelease: MouseFunc(event.xbutton.button-1, GLUT_UP, event.xbutton.x, event.xbutton.y);
+        KeyPress: begin
+                    key_sym:= XLookupKeySym(@(event.xkey), 0);
+                    spec_key:= -1;
+                    case key_sym of
+                      XK_F1: spec_key:= GLUT_KEY_F1;
+                      XK_F2: spec_key:= GLUT_KEY_F2;
+                      XK_F3: spec_key:= GLUT_KEY_F3;
+                      XK_F4: spec_key:= GLUT_KEY_F4;
+                      XK_F5: spec_key:= GLUT_KEY_F5;
+                      XK_F6: spec_key:= GLUT_KEY_F6;
+                      XK_F7: spec_key:= GLUT_KEY_F7;
+                      XK_F8: spec_key:= GLUT_KEY_F8;
+                      XK_F9: spec_key:= GLUT_KEY_F9;
+                      XK_F10: spec_key:= GLUT_KEY_F10;
+                      XK_F11: spec_key:= GLUT_KEY_F11;
+                      XK_F12: spec_key:= GLUT_KEY_F12;
+                      XK_Left: spec_key:= GLUT_KEY_LEFT;
+                      XK_Right: spec_key:= GLUT_KEY_RIGHT;
+                      XK_Up: spec_key:= GLUT_KEY_UP;
+                      XK_Down: spec_key:= GLUT_KEY_DOWN;
+                      XK_KP_Prior, XK_Prior: spec_key:= GLUT_KEY_PAGE_UP;
+                      XK_KP_Next, XK_Next: spec_key:= GLUT_KEY_PAGE_DOWN;
+                      XK_KP_Home, XK_Home: spec_key:= GLUT_KEY_HOME;
+                      XK_KP_End, XK_End: spec_key:= GLUT_KEY_END;
+                      XK_KP_Insert, XK_Insert: spec_key:= GLUT_KEY_INSERT;
+                    end;//case
+                    if spec_key<>-1 then KeyFunc(spec_key, event.xkey.x, event.xkey.y, True)
+                    else KeyFunc(event.xkey.keycode, event.xkey.x, event.xkey.y, false);
+                  end;//case: KeyPress
+      end;//case
+      Draw;
+    end;//while
+    XCloseDisplay(dpy);
+    WriteLn('Display closed.');
+  end;//if
+  //usleep(200*1000);}
 {$ENDIF}
 end;//func
 

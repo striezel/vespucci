@@ -37,11 +37,10 @@ type
     biClrImportant: LongWord;
   end;//rec
 
-  function ReadBitmap(const FileName: string; var bfh: TBitmapFileHeader;
+  {function ReadBitmap(const FileName: string; var bfh: TBitmapFileHeader;
                      var bih: TBitmapInfoHeader; var Data: Pointer;
-                     var err: string): Boolean;
-  function ReadBitmapToArr32RGB(const FileName: string; var bfh: TBitmapFileHeader;
-                     var bih: TBitmapInfoHeader; var Data: TArraySq32RGB;
+                     var err: string): Boolean;}
+  function ReadBitmapToArr32RGB(const FileName: string; var Data: TArraySq32RGB;
                      var err: string): Boolean;
   procedure SwapRGB_To_BGR(var pic: TArraySq32RGB);
   procedure SwapRGB_To_RBG(var pic: TArraySq32RGB);
@@ -50,7 +49,7 @@ type
 
 implementation
 
-function ReadBitmap(const FileName: string; var bfh: TBitmapFileHeader;
+{function ReadBitmap(const FileName: string; var bfh: TBitmapFileHeader;
                      var bih: TBitmapInfoHeader; var Data: Pointer;
                      var err: string): Boolean;
 var fs: TFileStream;
@@ -175,12 +174,13 @@ begin
   fs.Free;
   Result:= True;
   err:= 'No error.';
-end;//func
+end;//func}
 
-function ReadBitmapToArr32RGB(const FileName: string; var bfh: TBitmapFileHeader;
-                     var bih: TBitmapInfoHeader; var Data: TArraySq32RGB;
+function ReadBitmapToArr32RGB(const FileName: string; var Data: TArraySq32RGB;
                      var err: string): Boolean;
 var fs: TFileStream;
+    bfh: TBitmapFileHeader;
+    bih: TBitmapInfoHeader; 
 begin
   Result:= False;
   err:= 'No error yet.';
