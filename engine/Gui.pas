@@ -179,11 +179,15 @@ type
              selected_option: Integer;
              msg_ID: LongWord;
            end;//rec
-      msg_queue: array of record
+      {msg_queue: array of record
                             txt: AnsiString;
                             options:TShortStrArr;
                             msg_ID: LongWord;
-                          end;//rec
+                          end;//rec}
+      msg_queue: record
+                   first: PQueueElem;
+                   last: PQueueElem;
+                 end;//rec
       //terrain texture "names" (as in OpenGL names)
       m_TerrainTexNames: array [TTerrainType] of GLuint;
       //good texture "names" (as in OpenGL names)
@@ -200,7 +204,8 @@ type
       procedure DrawGoodsBar;
       procedure DrawColonyTitleBar;
       procedure GetSquareAtMouse(const mouse_x, mouse_y: Longint; var sq_x, sq_y: Integer);
-      procedure GetNextMessage;
+      procedure EnqueueNewMessage(const msg_txt: AnsiString; const opts: TShortStrArr; const msgID: LongWord=0);
+      procedure GetNextMessage;//de-facto dequeue
 
       procedure ProcessEvents;
     public
@@ -321,7 +326,9 @@ begin
   msg.txt:= '';
   SetLength(msg.options, 0);
   msg.selected_option:=0;
-  SetLength(msg_queue, 0);
+  //SetLength(msg_queue, 0);
+  msg_queue.first:= nil;
+  msg_queue.last:= nil;
   //language
   lang:= TLanguage.Create;
   ptrGui:= @self;
@@ -446,7 +453,7 @@ begin
   end;//if
 
   //"general" keys
-  if Key=KEY_ESCAPE then 
+  if Key=KEY_ESCAPE then
     if GetSelectedMenuOption('Vespucci beenden?', ToShortStrArr('Nein', 'Ja')) = 1 then halt; {exit}
   case UpCase(char(Key)) of
     'F': ;//fortify
@@ -457,7 +464,15 @@ begin
            else CenterOn(25, 35);//just for testing, yet
          end;
     //T is for testing only
-    'T': WriteLn('GotMenuOption: ', GetSelectedMenuOption('Dies ist ein Test.', ToShortStrArr('eins', 'zwei', 'drei')));
+    'T': begin
+           ShowMessageSimple('Dies ist ein Test.');
+           ShowMessageSimple('Nummer zwei.');
+           ShowMessageOptions('Nummer drei.', ToShortStrArr('1', '2', '3'));
+           ShowMessageSimple('Nummer zum vierten Male. :o');
+           ShowMessageSimple('Nummer fünef.');
+           ShowMessageSimple('Nummer Sechs.');
+           ShowMessageOptions('Sieben mal sieben ist...', ToShortStrArr('7', '49', 'vierzig und neun', 'nicht definiert'));
+         end;
   end;//case
 
   if (focused=nil) then
@@ -986,7 +1001,29 @@ begin
   end;//else
 end;//func
 
+procedure TGui.EnqueueNewMessage(const msg_txt: AnsiString; const opts: TShortStrArr; const msgID: LongWord=0);
+var temp: PQueueElem;
+    i: Integer;
+begin
+  New(temp);
+  temp^.txt:= msg_txt;
+  SetLength(temp^.options, length(opts));
+  for i:= 0 to High(opts) do temp^.options[i]:= copy(Trim(opts[i]),1,59);
+  temp^.msg_ID:= msgID;
+  temp^.next:= nil;
+  if msg_queue.first=nil then
+  begin
+    msg_queue.first:= temp;
+    msg_queue.last:= temp;
+  end//if
+  else begin
+    msg_queue.last^.next:= temp;
+    msg_queue.last:= temp;
+  end;//else
+end;//proc
+
 procedure TGui.ShowMessageSimple(const msg_txt: AnsiString);
+var null_opts: TShortStrArr;
 begin
   if msg.txt='' then
   begin
@@ -995,15 +1032,15 @@ begin
     msg.msg_ID:= 0;
   end
   else begin
-    SetLength(msg_queue, Length(msg_queue)+1);
-    msg_queue[High(msg_queue)].txt:= Trim(msg_txt);
-    SetLength(msg_queue[High(msg_queue)].options, 0);
-    msg_queue[High(msg_queue)].msg_ID:= 0;
+    //enqueue new message
+    SetLength(null_opts, 0);
+    EnqueueNewMessage(msg_txt, null_opts, 0);
   end;//else
 end;//proc
 
 procedure TGui.ShowMessageOptions(const msg_txt: AnsiString; const opts: TShortStrArr; const msgID: LongWord=0);
 var i: Integer;
+    tempCardinal: LongWord;
 begin
   if msg.txt='' then
   begin
@@ -1016,18 +1053,15 @@ begin
     else msg.msg_ID:= GetUniqueID;
   end
   else begin
-    SetLength(msg_queue, Length(msg_queue)+1);
-    msg_queue[High(msg_queue)].txt:= Trim(msg_txt)+cSpace60;
-    SetLength(msg_queue[High(msg_queue)].options, length(opts));
-    for i:= 0 to High(opts) do
-      msg_queue[High(msg_queue)].options[i]:= copy(Trim(opts[i]),1,59);
-    if msgID<>0 then msg_queue[High(msg_queue)].msg_ID:= msgID
-    else msg_queue[High(msg_queue)].msg_ID:= GetUniqueID;
+    //enqueue new message
+    if msgID<>0 then tempCardinal:= msgID else tempCardinal:= GetUniqueID;
+    EnqueueNewMessage(Trim(msg_txt)+cSpace60, opts, tempCardinal);
   end;//else
 end;//proc
 
 procedure TGui.GetNextMessage;
-var i, j: Integer;
+var i: Integer;
+    temp: PQueueElem;
 begin
   //save last ID and selection before anything else
   if ((msg.msg_ID<>0) and (length(msg.options)>1)) then
@@ -1036,25 +1070,19 @@ begin
     m_last_selected_option:= msg.selected_option;
   end;
   //now the main work
-  if length(msg_queue)>0 then
+  if msg_queue.first<>nil then
   begin
-    msg.txt:= msg_queue[0].txt;
-    SetLength(msg.options, length(msg_queue[0].options));
-    for i:=0 to High(msg_queue[0].options) do
-      msg.options[i]:= msg_queue[0].options[i];
-    msg.msg_ID:= msg_queue[0].msg_ID;
-    //move all options one more index to the beginning
-    {//maybe we should implement queue as list rather than as array}
-    for i:= 0 to High(msg_queue)-1 do
-    begin
-      msg_queue[i].txt:= msg_queue[i+1].txt;
-      SetLength(msg_queue[i].options, length(msg_queue[i+1].options));
-      for j:= 0 to High(msg_queue[i+1].options) do
-        msg_queue[i].options[j]:= msg_queue[i+1].options[j];
-      msg_queue[i].msg_ID:= msg_queue[i+1].msg_ID;
-    end;//for
-    //shorten queue (and thus remove last element)
-    SetLength(msg_queue, length(msg_queue)-1);
+    msg.txt:= msg_queue.first^.txt;
+    SetLength(msg.options, length(msg_queue.first^.options));
+    for i:=0 to High(msg_queue.first^.options) do
+      msg.options[i]:= msg_queue.first^.options[i];
+    msg.msg_ID:= msg_queue.first^.msg_ID;
+    //move first pointer to new first element
+    temp:= msg_queue.first;
+    msg_queue.first:= msg_queue.first^.next;
+    if msg_queue.first=nil then msg_queue.last:= nil;
+    //shorten queue (and thus free former first element)
+    Dispose(temp);
     msg.selected_option:=0;
   end//if-then-branch
   else begin
