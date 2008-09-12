@@ -42,7 +42,7 @@ type
       destructor Destroy;
       procedure NewRound;
       function Move(const direction: TDirection; const AMap: TMap): Boolean;
-      function WarpToXY(const x, y: Byte): Boolean;
+      function WarpToXY(const x, y: Byte; AMap: TMap): Boolean;
       function GetPosX: Integer;
       function GetPosY: Integer;
       function GetNation: PNation;
@@ -59,7 +59,7 @@ type
       function LoadGood(const AGood: TGoodType; const num: Byte): Boolean;
       function UnloadGood(const AGood: TGoodType; const num: Byte): Byte;
       function LoadUnit(AUnit: PUnit): Boolean;
-      function UnloadUnit(const AType: TUnitType; const x,y: Byte): Boolean;
+      function UnloadUnit(const AType: TUnitType; const x,y: Byte; AMap: TMap): Boolean;
       //item functions
       function GetToolAmount: Byte;
       procedure GiveTools(const amount: Byte);
@@ -130,7 +130,26 @@ type
       function Execute: Boolean;
   end;//class
 
+  procedure ApplyDir(var x,y: Byte; const dir: TDirection);
+
 implementation
+
+//helper procedure
+procedure ApplyDir(var x,y: Byte; const dir: TDirection);
+begin
+  case dir of
+    dirW, dirSW, dirNW: x:= x-1;
+    dirE, dirNE, dirSE: x:= x+1;
+  end;//case
+  case dir of
+    dirNW, dirN, dirNE: y:= y-1;
+    dirSW, dirS, dirSE: y:= y+1;
+  end;//case
+end;//proc
+
+// ***************
+// *TUnit methods*
+// ***************
 
 constructor TUnit.Create(const TypeOfUnit: TUnitType; const ANation: PNation; X: Integer=1; Y: Integer=1);
 var i: Integer;
@@ -221,13 +240,15 @@ begin
   end;//else
 end;//func
 
-function TUnit.WarpToXY(const x, y: Byte): Boolean;
+function TUnit.WarpToXY(const x, y: Byte; AMap: TMap): Boolean;
 begin
   if ((x>=cMap_X) or (y>=cMap_Y)) then Result:= False
   else begin
     PosX:= x;
     PosY:= y;
     Result:= True;
+    if ((AMap<>nil) and (self.Nation<>nil)) then
+      AMap.DiscoverSurroundingTiles(x,y, Nation^.GetCount, UnitType=utScout);
   end;
 end;//func
 
@@ -396,7 +417,7 @@ end;//func
  -Return value: true on success, false otherwise
  -TODO: unloads first unit of given type, so if there are two ore more units of
   ===== the same type loaded, then it migth unload the wrong one}
-function TUnit.UnloadUnit(const AType: TUnitType; const x,y: Byte): Boolean;
+function TUnit.UnloadUnit(const AType: TUnitType; const x,y: Byte; AMap: TMap): Boolean;
 var i: Integer;
 begin
   Result:= False;
@@ -405,7 +426,8 @@ begin
   for i:= 5 downto 0 do
   begin
     if passengers[i]^.GetType=AType then
-      if passengers[i]^.WarpToXY(x,y) then
+      //maybe we should try to deliver a map as third argument instead of "nil"
+      if passengers[i]^.WarpToXY(x,y,AMap) then
       begin
         passengers[i]^.SetLocation(self.GetLocation);
         Result:= True;
