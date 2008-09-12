@@ -19,6 +19,8 @@ type
       //others (Maybe we should introduce a structure for them, too.)
       Location: string;
       Moves: string;
+      //for landfall message box
+      Landfall: array[0..2] of string;
       procedure InitialValues;
     public
       constructor Create;
@@ -32,6 +34,7 @@ type
       //others
       function GetLocation: string;
       function GetMoves: string;
+      function GetLandfall(const which: Byte): string;
       function SaveToFile(const FileName: string): Boolean;
       function LoadFromFile(const FileName: string): Boolean;
   end;//class
@@ -156,6 +159,10 @@ begin
   //others
   Location:= 'Ort';
   Moves:= 'Züge';
+  //landfall
+  Landfall[0]:= 'Sollen wir an Land gehen, Eure Exzellenz, und die Schiffe zurücklassen?';
+  Landfall[1]:= 'Bei den Schiffen bleiben';
+  Landfall[2]:= 'An Land gehen';
 end;//proc
 
 function TLanguage.GetOptionCount(const categ: TMenuCategory): Integer;
@@ -211,6 +218,12 @@ begin
   Result:= Moves;
 end;//func
 
+function TLanguage.GetLandfall(const which: Byte): string;
+begin
+  if which>2 then Result:= ''
+  else Result:= Landfall[which];
+end;//func
+
 function TLanguage.SaveToFile(const FileName: string): Boolean;
 var dat: TextFile;
     i: Integer;
@@ -247,6 +260,9 @@ begin
   WriteLn(dat, Location);
   WriteLn(dat, Moves);
   WriteLn;
+  WriteLn(dat, '[Landfall]');
+  for i:=0 to 2 do
+    WriteLn(dat, Landfall[i]);
   CloseFile(dat);
   Result:= True;
 end;//func
@@ -336,6 +352,17 @@ begin
             if i=0 then Location:= str1
             else Moves:= str1;
           end;//if
+          i:= i+1;
+        end;//while
+      end//if
+      else if str1='[Landfall]' then
+      begin
+        i:= 0;
+        while (i<=2) and not Eof(dat) do
+        begin
+          ReadLn(dat, str1);
+          str1:= Trim(str1);
+          if str1<>'' then Landfall[i]:= str1;
           i:= i+1;
         end;//while
       end;//if
