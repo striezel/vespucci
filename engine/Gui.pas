@@ -4,10 +4,7 @@ interface
 
 uses
   Map, Data, GL, GLU, GLUT, Terrain, Language, Colony, Nation, Goods, Units,
-  SysUtils, BitmapReader
-  {$IFDEF Win32}, Windows
-  {$ELSE}{, keysym, X, Xlib, libc} //linux stuff here
-  {$ENDIF};
+  SysUtils, BitmapReader, Callbacks;
 
 const
   x_Fields = 15;
@@ -160,7 +157,7 @@ type
   TQueueElem = record
                  txt: AnsiString;
                  options:TShortStrArr;
-                 msg_ID: LongWord;
+                 cbRec: TCallbackRec;
                  next: PQueueElem;
                end;//rec
   TGui = class
@@ -177,7 +174,7 @@ type
              txt: AnsiString;
              options: TShortStrArr;
              selected_option: Integer;
-             msg_ID: LongWord;
+             cbRec: TCallbackRec;
            end;//rec
       {msg_queue: array of record
                             txt: AnsiString;
@@ -195,19 +192,13 @@ type
       //unit texture "names" (as in OpenGL names)
       m_UnitTexNames: array [TUnitType] of GLuint;
 
-      m_last_ID: LongWord;
-      m_last_processed_ID: LongWord;
-      m_last_selected_option: Integer;
-
       procedure InitGLUT;
       procedure DrawMenuBar;
       procedure DrawGoodsBar;
       procedure DrawColonyTitleBar;
       procedure GetSquareAtMouse(const mouse_x, mouse_y: Longint; var sq_x, sq_y: Integer);
-      procedure EnqueueNewMessage(const msg_txt: AnsiString; const opts: TShortStrArr; const msgID: LongWord=0);
+      procedure EnqueueNewMessage(const msg_txt: AnsiString; const opts: TShortStrArr; cbRec: TCallbackRec);
       procedure GetNextMessage;//de-facto dequeue
-
-      procedure ProcessEvents;
     public
       m_Map: TMap;
       OffsetX, OffsetY: Integer;
@@ -224,17 +215,12 @@ type
       procedure WriteHelvetica12(const msg_txt: string; const x, y: Single);
 
       procedure ShowMessageSimple(const msg_txt: AnsiString);
-      procedure ShowMessageOptions(const msg_txt: AnsiString; const opts: TShortStrArr; const msgID: LongWord=0);
+      procedure ShowMessageOptions(const msg_txt: AnsiString; const opts: TShortStrArr; cbRec: TCallbackRec);
 
       function InMenu: Boolean;
       function InColony: Boolean;
       function InEurope: Boolean;
       function GetFocusedUnit: TUnit;
-
-      function GetUniqueID: LongWord;
-      function GetLastProcessedMessageID: LongWord;
-      function GetLastSelectedOption: Integer;
-      function GetSelectedMenuOption(const msg_txt: AnsiString; const opts: TShortStrArr): Integer;
   end;//class TGui
   PGui = ^TGui;
 
@@ -301,9 +287,6 @@ begin
   OffsetX:= 0; OffsetY:= 0;
   MiniMapOffset_Y:= 0;
   m_Map:= TMap.Create;
-  m_last_ID:= 0;
-  m_last_processed_ID:=0;
-  m_last_selected_option:= -1;
   if FileExists(america_map_path) then
   begin
     if m_Map.LoadFromFile(america_map_path) then
@@ -423,6 +406,7 @@ end;//destructor
 
 procedure TGui.KeyFunc(Key: Byte; x, y: LongInt; Special: Boolean = False);
 var tempUnit: TUnit;
+    temp_cb: TCallbackRec;
 begin
   //react on message
   if msg.txt<>'' then
@@ -454,7 +438,12 @@ begin
 
   //"general" keys
   if Key=KEY_ESCAPE then
-    if GetSelectedMenuOption('Vespucci beenden?', ToShortStrArr('Nein', 'Ja')) = 1 then halt; {exit}
+  begin
+    temp_cb._type:= CBT_EXIT;
+    temp_cb.cbExit:= @CBF_Exit;
+    ShowMessageOptions('Vespucci beenden?', ToShortStrArr('Nein', 'Ja'), temp_cb);
+  end;//if
+    //if GetSelectedMenuOption('Vespucci beenden?', ToShortStrArr('Nein', 'Ja')) = 1 then halt; {exit}
   case UpCase(char(Key)) of
     'F': ;//fortify
     'S': ;//sentry
@@ -467,11 +456,11 @@ begin
     'T': begin
            ShowMessageSimple('Dies ist ein Test.');
            ShowMessageSimple('Nummer zwei.');
-           ShowMessageOptions('Nummer drei.', ToShortStrArr('1', '2', '3'));
+           ShowMessageOptions('Nummer drei.', ToShortStrArr('1', '2', '3'), cEmptyCallback);
            ShowMessageSimple('Nummer zum vierten Male. :o');
            ShowMessageSimple('Nummer fünef.');
            ShowMessageSimple('Nummer Sechs.');
-           ShowMessageOptions('Sieben mal sieben ist...', ToShortStrArr('7', '49', 'vierzig und neun', 'nicht definiert'));
+           ShowMessageOptions('Sieben mal sieben ist...', ToShortStrArr('7', '49', 'vierzig und neun', 'nicht definiert'), cEmptyCallback);
          end;
   end;//case
 
@@ -1001,7 +990,7 @@ begin
   end;//else
 end;//func
 
-procedure TGui.EnqueueNewMessage(const msg_txt: AnsiString; const opts: TShortStrArr; const msgID: LongWord=0);
+procedure TGui.EnqueueNewMessage(const msg_txt: AnsiString; const opts: TShortStrArr; cbRec: TCallbackRec);
 var temp: PQueueElem;
     i: Integer;
 begin
@@ -1009,7 +998,7 @@ begin
   temp^.txt:= msg_txt;
   SetLength(temp^.options, length(opts));
   for i:= 0 to High(opts) do temp^.options[i]:= copy(Trim(opts[i]),1,59);
-  temp^.msg_ID:= msgID;
+  temp^.cbRec:= cbRec;
   temp^.next:= nil;
   if msg_queue.first=nil then
   begin
@@ -1029,18 +1018,17 @@ begin
   begin
     msg.txt:= Trim(msg_txt);
     SetLength(msg.options, 0);
-    msg.msg_ID:= 0;
+    msg.cbRec:= cEmptyCallback;
   end
   else begin
     //enqueue new message
     SetLength(null_opts, 0);
-    EnqueueNewMessage(msg_txt, null_opts, 0);
+    EnqueueNewMessage(msg_txt, null_opts, cEmptyCallback);
   end;//else
 end;//proc
 
-procedure TGui.ShowMessageOptions(const msg_txt: AnsiString; const opts: TShortStrArr; const msgID: LongWord=0);
+procedure TGui.ShowMessageOptions(const msg_txt: AnsiString; const opts: TShortStrArr; cbRec: TCallbackRec);
 var i: Integer;
-    tempCardinal: LongWord;
 begin
   if msg.txt='' then
   begin
@@ -1049,13 +1037,11 @@ begin
     for i:= 0 to High(opts) do
       msg.options[i]:= copy(Trim(opts[i]),1,59);
     msg.selected_option:= 0;
-    if msgID<>0 then msg.msg_ID:= msgID
-    else msg.msg_ID:= GetUniqueID;
+    msg.cbRec:= cbRec;
   end
   else begin
     //enqueue new message
-    if msgID<>0 then tempCardinal:= msgID else tempCardinal:= GetUniqueID;
-    EnqueueNewMessage(Trim(msg_txt)+cSpace60, opts, tempCardinal);
+    EnqueueNewMessage(Trim(msg_txt)+cSpace60, opts, cbRec);
   end;//else
 end;//proc
 
@@ -1063,11 +1049,13 @@ procedure TGui.GetNextMessage;
 var i: Integer;
     temp: PQueueElem;
 begin
-  //save last ID and selection before anything else
-  if ((msg.msg_ID<>0) and (length(msg.options)>1)) then
+  //save last selection before anything else
+  if (length(msg.options)>1) then
   begin
-    m_last_processed_ID:= msg.msg_ID;
-    m_last_selected_option:= msg.selected_option;
+    //set last selected option
+    msg.cbRec.option:= msg.selected_option;
+    //handle callbacks    
+    HandleCallback(msg.cbRec);
   end;
   //now the main work
   if msg_queue.first<>nil then
@@ -1076,7 +1064,7 @@ begin
     SetLength(msg.options, length(msg_queue.first^.options));
     for i:=0 to High(msg_queue.first^.options) do
       msg.options[i]:= msg_queue.first^.options[i];
-    msg.msg_ID:= msg_queue.first^.msg_ID;
+    msg.cbRec:= msg_queue.first^.cbRec;
     //move first pointer to new first element
     temp:= msg_queue.first;
     msg_queue.first:= msg_queue.first^.next;
@@ -1090,107 +1078,8 @@ begin
     msg.txt:= '';
     SetLength(msg.options, 0);
     msg.selected_option:=0;
-    msg.msg_ID:= 0;
+    msg.cbRec:= cEmptyCallback;
   end;//else branch
 end;//proc
-
-function TGui.GetUniqueID: LongWord;
-begin
-  m_last_ID:= m_last_ID+1;
-  Result:= m_last_ID;
-end;//func
-
-function TGui.GetLastProcessedMessageID: LongWord;
-begin
-  Result:= m_last_processed_ID;
-end;//func
-
-function TGui.GetLastSelectedOption: Integer;
-begin
-  Result:= m_last_selected_option;
-end;//func
-
-procedure TGui.ProcessEvents;
-{$IFDEF Win32}
-var aMsg: TMsg;
-{$ELSE}
-{var dpy: PDisplay;
-    event: TXEvent;
-    spec_key: Integer;
-    key_sym: TKeySym;}
-{$ENDIF}
-begin
-{$IFDEF Win32}
-  //windows stuff here
-  while (PeekMessage(aMsg, 0, 0, 0, PM_NOREMOVE)) do
-  begin
-    if (not GetMessage(aMsg, 0, 0, 0)) then break;
-    TranslateMessage(aMsg);
-    DispatchMessage(aMsg);
-    Draw;
-  end;//while
-{$ELSE}
-  //linux stuff here
-  {dpy:= XOpenDisplay(nil);
-  if dpy<>nil then
-  begin
-    WriteLn('Display opened');
-    while (XPending(dpy)>0) do
-    begin
-      WriteLn('Pending events: ', XPending(dpy));
-      XNextEvent(dpy, @event);
-      case event._type of
-        ButtonPress: MouseFunc(event.xbutton.button-1, GLUT_DOWN, event.xbutton.x, event.xbutton.y);
-        ButtonRelease: MouseFunc(event.xbutton.button-1, GLUT_UP, event.xbutton.x, event.xbutton.y);
-        KeyPress: begin
-                    key_sym:= XLookupKeySym(@(event.xkey), 0);
-                    spec_key:= -1;
-                    case key_sym of
-                      XK_F1: spec_key:= GLUT_KEY_F1;
-                      XK_F2: spec_key:= GLUT_KEY_F2;
-                      XK_F3: spec_key:= GLUT_KEY_F3;
-                      XK_F4: spec_key:= GLUT_KEY_F4;
-                      XK_F5: spec_key:= GLUT_KEY_F5;
-                      XK_F6: spec_key:= GLUT_KEY_F6;
-                      XK_F7: spec_key:= GLUT_KEY_F7;
-                      XK_F8: spec_key:= GLUT_KEY_F8;
-                      XK_F9: spec_key:= GLUT_KEY_F9;
-                      XK_F10: spec_key:= GLUT_KEY_F10;
-                      XK_F11: spec_key:= GLUT_KEY_F11;
-                      XK_F12: spec_key:= GLUT_KEY_F12;
-                      XK_Left: spec_key:= GLUT_KEY_LEFT;
-                      XK_Right: spec_key:= GLUT_KEY_RIGHT;
-                      XK_Up: spec_key:= GLUT_KEY_UP;
-                      XK_Down: spec_key:= GLUT_KEY_DOWN;
-                      XK_KP_Prior, XK_Prior: spec_key:= GLUT_KEY_PAGE_UP;
-                      XK_KP_Next, XK_Next: spec_key:= GLUT_KEY_PAGE_DOWN;
-                      XK_KP_Home, XK_Home: spec_key:= GLUT_KEY_HOME;
-                      XK_KP_End, XK_End: spec_key:= GLUT_KEY_END;
-                      XK_KP_Insert, XK_Insert: spec_key:= GLUT_KEY_INSERT;
-                    end;//case
-                    if spec_key<>-1 then KeyFunc(spec_key, event.xkey.x, event.xkey.y, True)
-                    else KeyFunc(event.xkey.keycode, event.xkey.x, event.xkey.y, false);
-                  end;//case: KeyPress
-      end;//case
-      Draw;
-    end;//while
-    XCloseDisplay(dpy);
-    WriteLn('Display closed.');
-  end;//if
-  //usleep(200*1000);}
-{$ENDIF}
-end;//func
-
-function TGui.GetSelectedMenuOption(const msg_txt: AnsiString; const opts: TShortStrArr): Integer;
-var tempID: LongWord;
-begin
-  tempID:= GetUniqueID;
-  Result:= -1;
-  ShowMessageOptions(msg_txt, opts, tempID);
-  repeat
-    ProcessEvents;
-  until GetLastProcessedMessageID=tempID;
-  Result:= GetLastSelectedOption;
-end;//func
 
 end.
