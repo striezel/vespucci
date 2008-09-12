@@ -282,6 +282,7 @@ var i: Integer;
     tempTex: TArraySq32RGB;
     AlphaTex: TArraySq32RGBA;
     err_str: string;
+    Ship, passenger: TUnit;
 begin
   inherited Create;
   OffsetX:= 0; OffsetY:= 0;
@@ -316,8 +317,14 @@ begin
   lang:= TLanguage.Create;
   ptrGui:= @self;
   dat:= TData.Create(lang);
-  dat.NewUnit(utCaravel, cNationEngland, 36, 13);
+  Ship:= dat.NewUnit(utCaravel, cNationEngland, 36, 13);
   WriteLn('First caravel created.');
+  passenger:= dat.NewUnit(utColonist, cNationEngland, 36, 13);
+  passenger.GiveTools(100);
+  Ship.LoadUnit(passenger);
+  {//wait until we have texture for regulars
+  passenger:= dat.NewUnit(utRegular, cNationEngland, 36, 13);
+  Ship.LoadUnit(passenger);}
   //set texture names to "empty" and then load them
   glEnable(GL_TEXTURE_2D);
   //terrain textures
@@ -407,6 +414,8 @@ end;//destructor
 procedure TGui.KeyFunc(Key: Byte; x, y: LongInt; Special: Boolean = False);
 var tempUnit: TUnit;
     temp_cb: TCallbackRec;
+    temp_x, temp_y: Byte;
+    direc: TDirection;
 begin
   //react on message
   if msg.txt<>'' then
@@ -482,15 +491,16 @@ begin
   end//if
   else begin
     //we have a focused unit, so move it
+    direc:= dirNone;
     case Key of
-      KEY_NUMPAD1: focused.Move(dirSW, m_Map);
-      GLUT_KEY_DOWN, KEY_NUMPAD2: focused.Move(dirS, m_Map); {Move down}
-      KEY_NUMPAD3: focused.Move(dirSE, m_Map);
-      GLUT_KEY_LEFT, KEY_NUMPAD4: focused.Move(dirW, m_Map); {Move left}
-      GLUT_KEY_RIGHT, KEY_NUMPAD6: focused.Move(dirE, m_Map); {Move right}
-      KEY_NUMPAD7: focused.Move(dirNW, m_Map);
-      GLUT_KEY_UP, KEY_NUMPAD8: focused.Move(dirN, m_Map); {Move unit up}
-      KEY_NUMPAD9: focused.Move(dirNE, m_Map);
+      KEY_NUMPAD1: direc:=dirSW;
+      GLUT_KEY_DOWN, KEY_NUMPAD2: direc:= dirS; {Move down}
+      KEY_NUMPAD3: direc:= dirSE;
+      GLUT_KEY_LEFT, KEY_NUMPAD4: direc:= dirW; {Move left}
+      GLUT_KEY_RIGHT, KEY_NUMPAD6: direc:= dirE; {Move right}
+      KEY_NUMPAD7: direc:= dirNW;
+      GLUT_KEY_UP, KEY_NUMPAD8: direc:= dirN; {Move unit up}
+      KEY_NUMPAD9: direc:= dirNE;
       KEY_SPACE: if focused.MovesLeft>0 then
                  begin
                    focused.MovesLeft:= 0;
@@ -508,6 +518,28 @@ begin
                    focused:= dat.GetFirstLazyUnit(dat.player_nation);
                  end;
     end;//case
+    //should move now
+    if direc<>dirNone then
+    begin
+      temp_x:= focused.GetPosX;
+      temp_y:= focused.GetPosY;
+      ApplyDir(temp_x, temp_y, direc);
+      if (focused.IsShip and not m_Map.tiles[temp_x, temp_y].IsWater and (focused.EmbarkedPassengers>0)) then
+      begin
+        //check for landfall
+        temp_cb._type:= CBT_LANDFALL;
+        temp_cb.Landfall.cbLandfall:= @CBF_Landfall;
+        temp_cb.Landfall.Ship:= focused;
+        tempUnit:= focused.GetFirstEmbarkedPassenger;
+        if tempUnit<>nil then temp_cb.Landfall.UType:= tempUnit.GetType
+        else temp_cb.Landfall.UType:= utGalleon;
+        temp_cb.Landfall.x:= temp_x;
+        temp_cb.Landfall.y:= temp_y;
+        temp_cb.Landfall.AMap:= m_Map;
+        ShowMessageOptions(lang.GetLandfall(0), ToShortStrArr(lang.GetLandfall(1), lang.GetLandfall(2)), temp_cb);
+      end
+      else focused.Move(direc, m_Map);
+    end;//if
     //check if unit moved out of sight, and center on it, if neccessary
     if focused<>nil then
     begin
@@ -1054,7 +1086,7 @@ begin
   begin
     //set last selected option
     msg.cbRec.option:= msg.selected_option;
-    //handle callbacks    
+    //handle callbacks
     HandleCallback(msg.cbRec);
   end;
   //now the main work

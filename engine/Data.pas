@@ -37,7 +37,7 @@ type
               function GetNationPointer(const count: Integer): PNation;
               procedure AdvanceYear;
               function NewUnit(const TypeOfUnit: TUnitType; const ANation: Integer; X: Integer=1; Y: Integer=1): TUnit;
-              function GetFirstUnitInXY(const x, y: Integer): TUnit;
+              function GetFirstUnitInXY(const x, y: Integer; const OnlyAmerica: Boolean=True): TUnit;
               function GetFirstLazyUnit(const num_Nation: Integer): TUnit;
               procedure NewRound(const num_Nation: Integer);
           end;//class
@@ -125,15 +125,18 @@ begin
   Result:= m_Units[Unit_max];
 end;//proc
 
-function TData.GetFirstUnitInXY(const x, y: Integer): TUnit;
+function TData.GetFirstUnitInXY(const x, y: Integer; const OnlyAmerica: Boolean=True): TUnit;
 var i: Integer;
 begin
   Result:= nil;
   for i:= 0 to Unit_max do
     if ((m_Units[i].GetPosX=x) and (m_Units[i].GetPosY=y)) then
     begin
-      Result:= m_Units[i];
-      break;
+      if ((m_Units[i].GetLocation=ulAmerica) or not OnlyAmerica) then
+      begin
+        Result:= m_Units[i];
+        break;
+      end;//if
     end;//if
 end;//func
 
@@ -144,7 +147,7 @@ begin
   for i:= 0 to Unit_max do
     if m_Units[i]<>nil then
     begin
-      if ((m_Units[i].MovesLeft>0) and (m_Units[i].GetNation^.GetCount=num_Nation)) then
+      if ((m_Units[i].MovesLeft>0) and (m_Units[i].GetNation^.GetCount=num_Nation) and (m_Units[i].GetLocation=ulAmerica)) then
       begin
         Result:= m_Units[i];
         break;

@@ -56,9 +56,11 @@ type
       //functions for loading/ unloading freigth or passengers and checking freigth status
       function FreightCapacity: Byte;
       function FreeCapacity: Byte;
+      function EmbarkedPassengers: Byte;
+      function GetFirstEmbarkedPassenger: TUnit;
       function LoadGood(const AGood: TGoodType; const num: Byte): Boolean;
       function UnloadGood(const AGood: TGoodType; const num: Byte): Byte;
-      function LoadUnit(AUnit: PUnit): Boolean;
+      function LoadUnit(AUnit: TUnit): Boolean;
       function UnloadUnit(const AType: TUnitType; const x,y: Byte; AMap: TMap): Boolean;
       //item functions
       function GetToolAmount: Byte;
@@ -75,7 +77,7 @@ type
       //stores items like horses, muskets, tools
       items: Byte;
       //stores passengers (on ships)
-      passengers: array [0..5] of PUnit;
+      passengers: array [0..5] of TUnit;
       //stores cargo (on ships an convoys)
       cargo_load: array [0..5] of record
                                     amount: Byte;
@@ -138,12 +140,12 @@ implementation
 procedure ApplyDir(var x,y: Byte; const dir: TDirection);
 begin
   case dir of
-    dirW, dirSW, dirNW: x:= x-1;
-    dirE, dirNE, dirSE: x:= x+1;
+    dirW, dirSW, dirNW: if x>0 then x:= x-1;
+    dirE, dirNE, dirSE: if x<cMap_X-1 then x:= x+1;
   end;//case
   case dir of
-    dirNW, dirN, dirNE: y:= y-1;
-    dirSW, dirS, dirSE: y:= y+1;
+    dirNW, dirN, dirNE: if y>0 then y:= y-1;
+    dirSW, dirS, dirSE: if y<cMap_Y-1 then y:= y+1;
   end;//case
 end;//proc
 
@@ -224,7 +226,7 @@ begin
           allow:= (IsShip=AMap.tiles[newX,newY].IsWater);
         end;//if
     end;//else
-    
+
     if allow then
     begin
       if direction<>dirNone then
@@ -354,6 +356,24 @@ begin
   end//else
 end;//func
 
+function TUnit.EmbarkedPassengers: Byte;
+var i: Integer;
+begin
+  Result:= 0;
+  for i:= 0 to 5 do
+    if passengers[i]<>nil then Result:= Result+1;
+end;//func
+
+function TUnit.GetFirstEmbarkedPassenger: TUnit;
+var i: Integer;
+begin
+  Result:= nil;
+  for i:= 0 to 5 do
+  begin
+    if passengers[i]<>nil then Result:= passengers[i];
+  end;//for
+end;//func
+
 {*tries to load num units of good 'AGood'; maximum is 100
  TO-DO: function still uses a new slot for every good, even if there already is
  ****** an amount of the given good loaded (e.g. trying to load 20 food and
@@ -398,17 +418,17 @@ begin
 end;//func
 
 //tries to load unit 'AUnit' and returns True on success
-function TUnit.LoadUnit(AUnit: PUnit): Boolean;
+function TUnit.LoadUnit(AUnit: TUnit): Boolean;
 var slot: Byte;
 begin
   if (FreeCapacity=0) or (AUnit=nil) or (UnitType=utConvoy) then Result:= False
-  else if (AUnit^.FreightCapacity>0) then Result:= False //no ships or convoys
+  else if (AUnit.FreightCapacity>0) then Result:= False //no ships or convoys
   else begin
     slot:= 0;
     while (passengers[slot]<>nil) and (slot<5) do
       slot:= slot+1;
     passengers[slot]:= AUnit;
-    AUnit^.SetLocation(ulEmbarked);
+    AUnit.SetLocation(ulEmbarked);
     Result:= True;
   end;//else
 end;//func
@@ -425,20 +445,21 @@ begin
   if ((sqr(x-GetPosX)>1) or (sqr(y-GetPosY)>1)) then Exit;
   for i:= 5 downto 0 do
   begin
-    if passengers[i]^.GetType=AType then
-      //maybe we should try to deliver a map as third argument instead of "nil"
-      if passengers[i]^.WarpToXY(x,y,AMap) then
-      begin
-        passengers[i]^.SetLocation(self.GetLocation);
-        Result:= True;
-        break;
-      end;//if
-  end;//func
+    if passengers[i]<>nil then
+      if passengers[i].GetType=AType then
+        if passengers[i].WarpToXY(x,y,AMap) then
+        begin
+          passengers[i].SetLocation(self.GetLocation);
+          passengers[i]:= nil;
+          Result:= True;
+          break;
+        end;//if
+  end;//for
 end;//func
 
 function TUnit.GetToolAmount: Byte;
 begin
-  Result:= (items and UNIT_TOOL_MASK)*5;
+  Result:= (items and UNIT_TOOL_MASK)*20;
 end;//func
 
 procedure TUnit.GiveTools(const amount: Byte);
