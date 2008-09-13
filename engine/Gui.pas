@@ -571,11 +571,12 @@ procedure TGui.Resize(Width, Height: Longint);
 begin
   WindowWidth:= Width;
   WindowHeight:= Height;
+  if ((Width<>32*x_Fields+BarWidth) or (Height<>32*y_Fields+16+16)) then
+    glutReshapeWindow(32*x_Fields+BarWidth, 32*y_Fields+16+16);
 end;//proc
 
 procedure TGui.InitGLUT;
 begin
-// DoImplementThisStuff;
   WriteLn('glEnable-like stuff');
    // Enable backface culling
   glEnable(GL_CULL_FACE);
@@ -894,15 +895,16 @@ begin
 end;//proc
 
 procedure TGui.DrawGoodsBar;
-var i: Integer;
+var i, j, str_width: Integer;
+    price_str: string;
 begin
   //background
   glBegin(GL_QUADS);
     glColor3ub(76, 100, 172);
     glVertex2f(0.0, -0.5);
     glVertex2f(38*PixelWidth*16.0, -0.5);
-    glVertex2f(38*PixelWidth*16.0, 40*PixelWidth-0.5);
-    glVertex2f(0.0, 40*PixelWidth-0.5);
+    glVertex2f(38*PixelWidth*16.0, 52*PixelWidth-0.5);
+    glVertex2f(0.0, 52*PixelWidth-0.5);
   glEnd;
   glLineWidth(2.0);
   //border box
@@ -910,15 +912,15 @@ begin
     glColor3ub(192, 216, 240);
     glVertex2f(0.0, -0.5);
     glVertex2f(38*PixelWidth*16.0, -0.5);
-    glVertex2f(38*PixelWidth*16.0, 40*PixelWidth -0.5);
-    glVertex2f(0.0, 40*PixelWidth-0.5);
+    glVertex2f(38*PixelWidth*16.0, 52*PixelWidth -0.5);
+    glVertex2f(0.0, 52*PixelWidth-0.5);
   glEnd;
   //the vertical lines
   glBegin(GL_LINES);
     for i:= 1 to 15 do
     begin
       glVertex2f(i*38*PixelWidth, -0.5);
-      glVertex2f(i*38*PixelWidth, 40*PixelWidth -0.5);
+      glVertex2f(i*38*PixelWidth, 52*PixelWidth -0.5);
     end;//for
   glEnd;
   //draw the good icons, if present
@@ -932,13 +934,13 @@ begin
       glBindTexture(GL_TEXTURE_2D, m_GoodTexNames[TGoodType(i)]);
       glBegin(GL_QUADS);
         glTexCoord2f(0.0, 0.0);
-        glVertex2f((i*38+7)*PixelWidth, -0.5+14*PixelWidth);
+        glVertex2f((i*38+4)*PixelWidth, -0.5+17*PixelWidth);
         glTexCoord2f(1.0, 0.0);
-        glVertex2f((i*38+31)*PixelWidth, -0.5+14*PixelWidth);
+        glVertex2f((i*38+36)*PixelWidth, -0.5+17*PixelWidth);
         glTexCoord2f(1.0, 1.0);
-        glVertex2f((i*38+31)*PixelWidth, -0.5+38*PixelWidth);
+        glVertex2f((i*38+36)*PixelWidth, -0.5+49*PixelWidth);
         glTexCoord2f(0.0, 1.0);
-        glVertex2f((i*38+7)*PixelWidth, -0.5+38*PixelWidth);
+        glVertex2f((i*38+4)*PixelWidth, -0.5+49*PixelWidth);
       glEnd;
       glDisable(GL_TEXTURE_2D);
     end;//if
@@ -962,9 +964,12 @@ begin
     glColor3ub(0,0,0);
     for i:= Ord(gtFood) to Ord(gtMusket) do
     begin
-      WriteHelvetica12(IntToStr(europe^.GetPrice(TGoodType(i), True))+'/'
-               +IntToStr(europe^.GetPrice(TGoodType(i), False)),
-               (2+i*38)*PixelWidth, 4*PixelWidth -0.5);
+      price_str:= IntToStr(europe^.GetPrice(TGoodType(i), True))+'/'
+                 +IntToStr(europe^.GetPrice(TGoodType(i), False));
+      str_width:= 0;
+      for j:= 1 to length(price_str) do
+        str_width:= str_width + glutBitmapWidth(GLUT_BITMAP_HELVETICA_12, Ord(price_str[j]));
+      WriteHelvetica12(price_str, (2+ ((36-str_width) div 2) +i*38)*PixelWidth, 4*PixelWidth -0.5);
     end;//for
   end//else if
 end;//proc
