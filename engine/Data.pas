@@ -3,7 +3,7 @@ unit Data;
 interface
 
 uses
-  Nation, Language, Units;
+  Nation, Language, Units, Colony;
 
 const
 {$IFDEF Win32}
@@ -17,6 +17,7 @@ const
   good_img_path = img_path+'goods'+path_delimiter;
   terrain_img_path = img_path+'terrain'+path_delimiter;
   unit_img_path = img_path+'units'+path_delimiter;
+  colony_img_path = img_path+'colony'+path_delimiter;
 
 type
   TData = class
@@ -27,6 +28,9 @@ type
               //the units
               m_Units: array of TUnit;
               Unit_max: Integer;
+              //the colonies
+              m_Colonies: array of TColony;
+              Colony_max: Integer;
             public
               player_nation: Integer;
               constructor Create(var aLang: TLanguage);
@@ -36,9 +40,15 @@ type
               function GetNation(const count: Integer): TNation;
               function GetNationPointer(const count: Integer): PNation;
               procedure AdvanceYear;
+              //units
               function NewUnit(const TypeOfUnit: TUnitType; const ANation: Integer; X: Integer=1; Y: Integer=1): TUnit;
               function GetFirstUnitInXY(const x, y: Integer; const OnlyAmerica: Boolean=True): TUnit;
               function GetFirstLazyUnit(const num_Nation: Integer): TUnit;
+              //colonies
+              function NewColony(const x,y: Byte; const num_Nation: Integer; const AName: ShortString): TColony;
+              function GetColonyInXY(const x,y: Byte): TColony;
+              function FreeForSettlement(const x,y:Byte): Boolean;
+              //others
               procedure NewRound(const num_Nation: Integer);
           end;//class
 
@@ -59,6 +69,9 @@ begin
   //units
   SetLength(m_Units, 0);
   Unit_max:= -1;
+  //colonies
+  SetLength(m_Colonies, 0);
+  Colony_max:= -1;
 end;//construc
 
 destructor TData.Destroy;
@@ -68,6 +81,10 @@ begin
     if Nations[i]<>nil then Nations[i].Destroy;
   for i:=Unit_max downto 0 do
     if m_Units[i]<>nil then m_Units[i].Destroy;
+  SetLength(m_Units, 0);
+  for i:= Colony_max downto 0 do
+    if m_Colonies[i]<>nil then m_Colonies[i].Destroy;
+  SetLength(m_Colonies, 0);
 end;//destruc
 
 function TData.GetYear: Integer;
@@ -155,6 +172,48 @@ begin
     end;//if
 end;//func
 
+function TData.NewColony(const x,y: Byte; const num_Nation: Integer; const AName: ShortString): TColony;
+var i: Integer;
+begin
+  if (Colony_max+1>High(m_Colonies)) then
+  begin
+    SetLength(m_Colonies, High(m_Colonies)+5);
+    //"initialize" new colonies
+    for i:=Colony_max+1 to High(m_Colonies) do
+      m_Colonies[i]:= nil;
+  end;//if
+  m_Colonies[Colony_max+1]:= TColony.Create(x, y, GetNation(num_nation), AName);
+  Colony_max:= Colony_max+1;
+  Result:= m_Colonies[Colony_max];
+end;//func
+
+function TData.GetColonyInXY(const x,y: Byte): TColony;
+var i: Integer;
+begin
+  Result:= nil;
+  for i:= 0 to Colony_max do
+    if m_Colonies[i]<>nil then
+      if ((m_Colonies[i].GetPosX=x) and (m_Colonies[i].GetPosY=y)) then
+      begin
+        Result:= m_Colonies[i];
+        break;
+      end;//if
+end;//func
+
+function TData.FreeForSettlement(const x,y:Byte): Boolean;
+var i,j: Integer;
+begin
+  Result:= True;
+  for i:= x-2 to x+2 do
+    for j:= y-2 to y+2 do
+      if ((x>=0) and (y>=0)) then
+        if GetColonyInXY(x,y)<>nil then
+        begin
+          Result:= False;
+          Exit; //maybe simple "break;" won't do - we are in a "double loop"
+        end;//if
+end;//func
+
 procedure TData.NewRound(const num_Nation: Integer);
 var i: Integer;
 begin
@@ -163,6 +222,13 @@ begin
     if m_Units[i]<>nil then
       if (m_Units[i].GetNation^.GetCount=num_Nation) then
         m_Units[i].NewRound;
+  //call NewRound method for every colony
+  for i:= 0 to Colony_max do
+    if m_Colonies[i]<>nil then
+      if m_Colonies[i].GetNation<>nil then
+        if (m_Colonies[i].GetNation.GetCount=num_Nation) then
+          //we should try to get a valid map instead of just nil in next line
+          m_Colonies[i].NewRound(nil);
 end;//func
 
 end.
