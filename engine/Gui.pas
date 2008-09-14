@@ -17,6 +17,9 @@ const
   Minimap_x_Fields = 56;
   Minimap_y_Fields = 39;
 
+  cWindowWidth = 32*x_Fields+BarWidth;
+  cWindowHeight = 32*y_Fields+16+16;
+
   BorderWidth: Single = 0.0625; // =1/16, i.e. 2px
   BorderColour: array[0..2] of Byte = (0,0,0); //black
 
@@ -162,7 +165,7 @@ type
                end;//rec
   TGui = class
     private
-      WindowHeight, WindowWidth: Integer;
+      mouse_x, mouse_y: Integer;
       menu_cat: TMenuCategory;
       cur_colony: PColony;
       europe: PEuropeanNation;
@@ -197,6 +200,7 @@ type
       procedure DrawGoodsBar;
       procedure DrawColonyTitleBar;
       procedure GetSquareAtMouse(const mouse_x, mouse_y: Longint; var sq_x, sq_y: Integer);
+      function  GetGoodAtMouse: TGoodType;
       procedure EnqueueNewMessage(const msg_txt: AnsiString; const opts: TShortStrArr; cbRec: TCallbackRec);
       procedure GetNextMessage;//de-facto dequeue
     public
@@ -205,9 +209,10 @@ type
       MiniMapOffset_Y: Integer;
       constructor Create;
       destructor Destroy;
-      procedure KeyFunc(Key: Byte; x, y: Longint; Special: Boolean = False);
-      procedure MouseFunc(const button, state, x,y: Longint);
-      procedure Resize(Width, Height: Longint);
+      procedure KeyFunc(Key: Byte; x, y: LongInt; Special: Boolean = False);
+      procedure MouseFunc(const button, state, x,y: LongInt);
+      procedure MouseMoveFunc(const x,y: LongInt);
+      procedure Resize(Width, Height: LongInt);
       procedure Start;
       procedure Draw;
       procedure CenterOn(const x, y: Integer);
@@ -285,6 +290,8 @@ var i: Integer;
     Ship, passenger: TUnit;
 begin
   inherited Create;
+  mouse_x:= 0;
+  mouse_y:= 0;
   OffsetX:= 0; OffsetY:= 0;
   MiniMapOffset_Y:= 0;
   m_Map:= TMap.Create;
@@ -550,7 +557,7 @@ begin
   end;//else
 end;//proc
 
-procedure TGui.MouseFunc(const button, state, x,y: Longint);
+procedure TGui.MouseFunc(const button, state, x,y: LongInt);
 var pos_x, pos_y: Integer;
 begin
   //handle mouse events here
@@ -567,12 +574,16 @@ begin
   end;//if
 end;//proc
 
-procedure TGui.Resize(Width, Height: Longint);
+procedure TGui.MouseMoveFunc(const x,y: LongInt);
 begin
-  WindowWidth:= Width;
-  WindowHeight:= Height;
-  if ((Width<>32*x_Fields+BarWidth) or (Height<>32*y_Fields+16+16)) then
-    glutReshapeWindow(32*x_Fields+BarWidth, 32*y_Fields+16+16);
+  mouse_x:= x;
+  mouse_y:= y;
+end;//func
+
+procedure TGui.Resize(Width, Height: LongInt);
+begin
+  if ((Width<>cWindowWidth) or (Height<>cWindowHeight)) then
+    glutReshapeWindow(cWindowWidth, cWindowHeight);
 end;//proc
 
 procedure TGui.InitGLUT;
@@ -600,7 +611,7 @@ var i, j: Integer;
     msg_lines, msg_opts: Integer;
 begin
   glLoadIdentity;
-  glViewport(0,0, 32*x_Fields+BarWidth, 32*y_Fields+16+16);
+  glViewport(0,0, cWindowWidth, cWindowHeight);
   glOrtho(0.0, 20.0, -0.5, 12.5, -1.0, 1.0);
 
   glClearColor(0.83, 0.66, 0.39,0.0);//set "wooden" color as clear color...
@@ -971,7 +982,24 @@ begin
         str_width:= str_width + glutBitmapWidth(GLUT_BITMAP_HELVETICA_12, Ord(price_str[j]));
       WriteHelvetica12(price_str, (2+ ((36-str_width) div 2) +i*38)*PixelWidth, 4*PixelWidth -0.5);
     end;//for
-  end//else if
+  end;//else if
+  if GetGoodAtMouse<>gtCross then
+  begin
+    price_str:= lang.GetGoodName(GetGoodAtMouse);
+    str_width:= 8*length(price_str);
+    //use "i" as temporary var to store the pixel count where the text begins
+    if (str_width+mouse_x<cWindowWidth) then i:= mouse_x
+    else i:= cWindowWidth-str_width;
+    glBegin(GL_QUADS);
+      glColor3ub(0,0,0);
+      glVertex2f((i-2)*PixelWidth, 51*PixelWidth -0.5);
+      glVertex2f((i+2+str_width)*PixelWidth, 51*PixelWidth -0.5);
+      glVertex2f((i+2+str_width)*PixelWidth, 66*PixelWidth -0.5);
+      glVertex2f((i-2)*PixelWidth, 66*PixelWidth -0.5);
+    glEnd;
+    glColor3ub(255, 255, 255);
+    WriteText(price_str, i*PixelWidth, 53*PixelWidth -0.5)
+  end;//func
 end;//proc
 
 procedure TGui.DrawColonyTitleBar;
@@ -1025,6 +1053,14 @@ begin
     sq_x:= -1;
     sq_y:= -1;
   end;//else
+end;//func
+
+function TGui.GetGoodAtMouse: TGoodType;
+begin
+  if ((mouse_x<0) or (mouse_x>607) or (mouse_y<cWindowHeight-50) or (mouse_y>cWindowHeight-16)) then
+    Result:= gtCross
+  else
+    Result:= TGoodType(Ord(gtFood)+(mouse_x div 38));
 end;//func
 
 procedure TGui.EnqueueNewMessage(const msg_txt: AnsiString; const opts: TShortStrArr; cbRec: TCallbackRec);
