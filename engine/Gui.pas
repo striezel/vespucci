@@ -142,9 +142,11 @@ const
   cMenuHighColour : array [0..2] of Byte = (255, 20, 20);
 
   //Keys
+  KEY_BACKSPACE = 8;
   KEY_RETURN = 13; //sure?
   KEY_ESCAPE = 27;
   KEY_SPACE = 32; //sure?
+  KEY_DELETE = 127;
 
   //maybe starts with 97, maybe with 49, try it
   KEY_NUMPAD1 = 49;
@@ -163,6 +165,7 @@ type
   TQueueElem = record
                  txt: AnsiString;
                  options:TShortStrArr;
+                 inputCaption, inputText: ShortString;
                  cbRec: TCallbackRec;
                  next: PQueueElem;
                end;//rec
@@ -180,13 +183,9 @@ type
              txt: AnsiString;
              options: TShortStrArr;
              selected_option: Integer;
+             inputCaption, inputText: ShortString;
              cbRec: TCallbackRec;
            end;//rec
-      {msg_queue: array of record
-                            txt: AnsiString;
-                            options:TShortStrArr;
-                            msg_ID: LongWord;
-                          end;//rec}
       msg_queue: record
                    first: PQueueElem;
                    last: PQueueElem;
@@ -204,9 +203,9 @@ type
       procedure DrawMenuBar;
       procedure DrawGoodsBar;
       procedure DrawColonyTitleBar;
-      procedure GetSquareAtMouse(const mouse_x, mouse_y: Longint; var sq_x, sq_y: Integer);
+      procedure GetSquareAtMouse(var sq_x, sq_y: Integer);
       function  GetGoodAtMouse: TGoodType;
-      procedure EnqueueNewMessage(const msg_txt: AnsiString; const opts: TShortStrArr; cbRec: TCallbackRec);
+      procedure EnqueueNewMessage(const msg_txt: AnsiString; const opts: TShortStrArr; const inCaption, inText: ShortString; cbRec: TCallbackRec);
       procedure GetNextMessage;//de-facto dequeue
     public
       m_Map: TMap;
@@ -226,6 +225,7 @@ type
 
       procedure ShowMessageSimple(const msg_txt: AnsiString);
       procedure ShowMessageOptions(const msg_txt: AnsiString; const opts: TShortStrArr; cbRec: TCallbackRec);
+      procedure ShowMessageInput(const msg_txt: AnsiString; const inCaption: ShortString; const inDefault: ShortString; cbRec: TCallbackRec);
 
       function InMenu: Boolean;
       function InColony: Boolean;
@@ -322,7 +322,8 @@ begin
   msg.txt:= '';
   SetLength(msg.options, 0);
   msg.selected_option:=0;
-  //SetLength(msg_queue, 0);
+  msg.inputCaption:= '';
+  msg.inputText:= '';
   msg_queue.first:= nil;
   msg_queue.last:= nil;
   //language
@@ -446,11 +447,26 @@ begin
   //react on message
   if msg.txt<>'' then
   begin
+    if msg.inputCaption<>'' then
+    begin
+      //process input
+      case Key of
+        KEY_BACKSPACE, KEY_DELETE: msg.inputText:= copy(msg.inputText, 1, length(msg.inputText)-1);
+        KEY_RETURN, KEY_ESCAPE: begin
+                                  GetNextMessage;
+                                  glutPostRedisplay;
+                                end;
+        else begin
+          if ((Key>=KEY_SPACE) and not Special) then msg.inputText:= msg.inputText+Chr(Key);
+        end;//case-else
+      end;//case
+      Exit; //better be safe than sorry ;)
+    end;//if input message
     case Key of
       KEY_RETURN, KEY_ESCAPE, KEY_SPACE: begin
                                            GetNextMessage;
                                            glutPostRedisplay;
-                                         end;//case KEY_SPACE
+                                         end;//case
     end;//case
     //we even got options here
     if length(msg.options)>0 then
@@ -484,18 +500,27 @@ begin
          if focused<>nil then
          begin
            if (focused.IsShip or m_Map.tiles[focused.GetPosX, focused.GetPosY].IsWater) then
-             ShowMessageSimple('Sie können keine Kolonie im Wasser oder vom Schiff aus er-  '
-                              +'richten, sondern müssen erst Sielder an Land schicken.')
+             ShowMessageSimple(lang.GetBuildColony(2))
            else begin
-             if dat.FreeForSettlement(focused.GetPosX, focused.GetPosY) then
-             begin
-               cur_colony:= dat.NewColony(focused.GetPosX, focused.GetPosY, dat.player_nation, 'New colony');
-               focused.SetLocation(ulInColony);
-               focused:= nil;
-             end
-             else
-               ShowMessageSimple('Dieses Land liegt für eine neue Kolonie zu nah an einer     '
-                                +'schon bestehenden Kolonie, Eure Exzellenz.');
+             if m_Map.tiles[focused.GetPosX, focused.GetPosY].GetType=ttMountains then
+               ShowMessageSimple(lang.GetBuildColony(4))
+             else begin
+               if dat.FreeForSettlement(focused.GetPosX, focused.GetPosY) then
+               begin
+                 temp_cb.inputText:= '';
+                 temp_cb._type:= CBT_BUILD_COLONY;
+                 temp_cb.BuildColony.x:= focused.GetPosX;
+                 temp_cb.BuildColony.y:= focused.GetPosY;
+                 temp_cb.BuildColony.num_nation:= dat.player_nation;
+                 temp_cb.BuildColony.founder:= focused;
+                 temp_cb.BuildColony.AMap:= m_Map;
+                 temp_cb.BuildColony.AData:= dat;
+                 ShowMessageInput(lang.GetBuildColony(0), lang.GetBuildColony(1), 'Plymouth', temp_cb);
+                 focused:= nil;
+               end
+               else
+                 ShowMessageSimple(lang.GetBuildColony(3));
+             end;//else
            end;//if
          end;//if
          //end of 'B'
@@ -508,11 +533,11 @@ begin
          end;
     //T is for testing only
     'T': begin
-           ShowMessageSimple('Dies ist ein Test.');
+           ShowMessageSimple('Dies ist ein Test./ This is a test.');
            ShowMessageSimple('Nummer zwei.');
            ShowMessageOptions('Nummer drei.', ToShortStrArr('1', '2', '3'), cEmptyCallback);
            ShowMessageSimple('Nummer zum vierten Male. :o');
-           ShowMessageSimple('Nummer fünef.');
+           ShowMessageInput('Number five. Please insert a text here, for testing.', 'Your text:', '(leer)', cEmptyCallback);
            ShowMessageSimple('Nummer Sechs.');
            ShowMessageOptions('Sieben mal sieben ist...', ToShortStrArr('7', '49', 'vierzig und neun', 'nicht definiert'), cEmptyCallback);
          end;
@@ -601,7 +626,7 @@ begin
   //handle mouse events here
   if ((button=GLUT_LEFT) and (state=GLUT_UP) and (europe=nil) and (cur_colony=nil)) then
   begin
-    GetSquareAtMouse(x,y, pos_x, pos_y);
+    GetSquareAtMouse(pos_x, pos_y);
     WriteLn('GUI got square: x: ', pos_x, '; y: ', pos_y);//for debug
     if (pos_x<>-1) then
     begin
@@ -848,29 +873,71 @@ begin
   begin
     if length(msg.options)=0 then
     begin
-      //get required number of lines
-      msg_lines:= (length(msg.txt)+59) div 60;
-      //draw box
-      glBegin(GL_QUADS);
-        glColor3f(0.83, 0.66, 0.39);
-        glVertex2f(2.0, 5.5 -0.25*msg_lines);
-        glVertex2f(18.0, 5.5 -0.25*msg_lines);
-        glVertex2f(18.0, 6.5 +0.25*msg_lines);
-        glVertex2f(2.0, 6.5 +0.25*msg_lines);
-      glEnd;
-      //draw box border
-      glLineWidth(2.0);
-      glBegin(GL_LINE_LOOP);
-        glColor3f(0.0, 0.0, 0.0);//black
-        glVertex2f(2.0, 5.5 -0.25*msg_lines);
-        glVertex2f(18.0, 5.5 -0.25*msg_lines);
-        glVertex2f(18.0, 6.5 +0.25*msg_lines);
-        glVertex2f(2.0, 6.5 +0.25*msg_lines);
-      glEnd;
-      //write lines
-      glColor3ubv(@cMenuTextColour[0]);
-      for i:= 1 to msg_lines do
-        WriteText(copy(msg.txt,1+(i-1)*60, 60), 2.5, 6.0+0.25*msg_lines-i*0.5);
+      if msg.inputCaption='' then
+      begin
+        {we got a simple message, no options, no input :) }
+        //get required number of lines
+        msg_lines:= (length(msg.txt)+59) div 60;
+        //draw box
+        glBegin(GL_QUADS);
+          glColor3f(0.83, 0.66, 0.39);
+          glVertex2f(2.0, 5.5 -0.25*msg_lines);
+          glVertex2f(18.0, 5.5 -0.25*msg_lines);
+          glVertex2f(18.0, 6.5 +0.25*msg_lines);
+          glVertex2f(2.0, 6.5 +0.25*msg_lines);
+        glEnd;
+        //draw box border
+        glLineWidth(2.0);
+        glBegin(GL_LINE_LOOP);
+          glColor3f(0.0, 0.0, 0.0);//black
+          glVertex2f(2.0, 5.5 -0.25*msg_lines);
+          glVertex2f(18.0, 5.5 -0.25*msg_lines);
+          glVertex2f(18.0, 6.5 +0.25*msg_lines);
+          glVertex2f(2.0, 6.5 +0.25*msg_lines);
+        glEnd;
+        //write lines
+        glColor3ubv(@cMenuTextColour[0]);
+        for i:= 1 to msg_lines do
+          WriteText(copy(msg.txt,1+(i-1)*60, 60), 2.5, 6.0+0.25*msg_lines-i*0.5);
+      end//if
+      else begin
+        {we got an input message window here}
+        //get required number of lines
+        msg_lines:= (length(msg.txt)+59) div 60;
+        //draw box
+        glBegin(GL_QUADS);
+          glColor3f(0.83, 0.66, 0.39);
+          //we have one more line, due to input...  
+          glVertex2f(2.0, 5.25 -0.25*msg_lines);
+          glVertex2f(18.0, 5.25 -0.25*msg_lines);
+          glVertex2f(18.0, 6.75 +0.25*msg_lines);
+          glVertex2f(2.0, 6.75 +0.25*msg_lines);
+        glEnd;
+        //draw box border
+        glLineWidth(2.0);
+        glBegin(GL_LINE_LOOP);
+          glColor3f(0.0, 0.0, 0.0);//black
+          glVertex2f(2.0, 5.25 -0.25*msg_lines);
+          glVertex2f(18.0, 5.25 -0.25*msg_lines);
+          glVertex2f(18.0, 6.75 +0.25*msg_lines);
+          glVertex2f(2.0, 6.75 +0.25*msg_lines);
+        glEnd;
+        //write lines of message
+        glColor3ubv(@cMenuTextColour[0]);
+        for i:= 1 to msg_lines do
+          WriteText(copy(msg.txt,1+(i-1)*60, 60), 2.5, 6.25+0.25*msg_lines-i*0.5);
+        //write caption
+        WriteText(msg.inputCaption, 2.5, 5.75 -msg_lines*0.25);
+        //write input text
+        WriteText(msg.inputText, 3.0+ 0.25*length(msg.inputCaption), 5.75 -msg_lines*0.25);
+        //draw border of "text input box"
+        glBegin(GL_LINE_LOOP);
+          glVertex2f(2.75+ 0.25*length(msg.inputCaption), 5.5 -msg_lines*0.25);
+          glVertex2f(17.75, 5.5 -msg_lines*0.25);
+          glVertex2f(17.75, 6.25 -msg_lines*0.25);
+          glVertex2f(2.75+ 0.25*length(msg.inputCaption), 6.25 -msg_lines*0.25);
+        glEnd;
+      end;//else
     end
     else begin
       //we got options
@@ -1070,7 +1137,6 @@ var s: string;
 begin
   if cur_colony<>nil then
   begin
-    //year and season still need to be adjusted dynamically
     s:= cur_colony.GetName +'.  '+lang.GetSeason(dat.IsAutumn)+', '+IntToStr(dat.GetYear)+'. Gold: ';
     if cur_colony.GetNation.IsEuropean then s:= s+IntToStr(TEuropeanNation(cur_colony.GetNation).GetGold)+'°'
     else s:= s+' -1°';
@@ -1099,7 +1165,7 @@ begin
   Result:= focused;
 end;//func
 
-procedure TGui.GetSquareAtMouse(const mouse_x, mouse_y: Longint; var sq_x, sq_y: Integer);
+procedure TGui.GetSquareAtMouse(var sq_x, sq_y: Integer);
 begin
   sq_x:= mouse_x div 32;
   if mouse_y>16 then
@@ -1126,7 +1192,7 @@ begin
     Result:= TGoodType(Ord(gtFood)+(mouse_x div 38));
 end;//func
 
-procedure TGui.EnqueueNewMessage(const msg_txt: AnsiString; const opts: TShortStrArr; cbRec: TCallbackRec);
+procedure TGui.EnqueueNewMessage(const msg_txt: AnsiString; const opts: TShortStrArr; const inCaption, inText: ShortString; cbRec: TCallbackRec);
 var temp: PQueueElem;
     i: Integer;
 begin
@@ -1134,6 +1200,9 @@ begin
   temp^.txt:= msg_txt;
   SetLength(temp^.options, length(opts));
   for i:= 0 to High(opts) do temp^.options[i]:= copy(Trim(opts[i]),1,59);
+  //maximum caption is half the line long (i.e. 30 characters) 
+  temp^.inputCaption:= copy(Trim(inCaption),1, 30);
+  temp^.inputText:= Trim(inText);
   temp^.cbRec:= cbRec;
   temp^.next:= nil;
   if msg_queue.first=nil then
@@ -1154,12 +1223,14 @@ begin
   begin
     msg.txt:= Trim(msg_txt);
     SetLength(msg.options, 0);
+    msg.inputCaption:= '';
+    msg.inputText:= '';
     msg.cbRec:= cEmptyCallback;
   end
   else begin
     //enqueue new message
     SetLength(null_opts, 0);
-    EnqueueNewMessage(msg_txt, null_opts, cEmptyCallback);
+    EnqueueNewMessage(msg_txt, null_opts, '', '', cEmptyCallback);
   end;//else
 end;//proc
 
@@ -1172,24 +1243,47 @@ begin
     SetLength(msg.options, length(opts));
     for i:= 0 to High(opts) do
       msg.options[i]:= copy(Trim(opts[i]),1,59);
+    msg.inputCaption:= '';
+    msg.inputText:= '';
     msg.selected_option:= 0;
     msg.cbRec:= cbRec;
   end
   else begin
     //enqueue new message
-    EnqueueNewMessage(Trim(msg_txt)+cSpace60, opts, cbRec);
+    EnqueueNewMessage(Trim(msg_txt)+cSpace60, opts, '', '', cbRec);
   end;//else
 end;//proc
+
+procedure TGui.ShowMessageInput(const msg_txt: AnsiString; const inCaption: ShortString; const inDefault: ShortString; cbRec: TCallbackRec);
+var null_opts: TShortStrArr;
+begin
+  if msg.txt='' then
+  begin
+    msg.txt:= Trim(msg_txt)+cSpace60;
+    SetLength(msg.options, 0);
+    //input caption maximum is half the line (i.e. 30 characters)
+    msg.inputCaption:= copy(Trim(inCaption),1, 30);
+    msg.inputText:= Trim(inDefault);
+    msg.selected_option:= 0;
+    msg.cbRec:= cbRec;
+  end//if
+  else begin
+    //enqueue new message
+    SetLength(null_opts, 0);
+    EnqueueNewMessage(Trim(msg_txt)+cSpace60, null_opts, inCaption, inDefault, cbRec);
+  end;//else
+end;//func
 
 procedure TGui.GetNextMessage;
 var i: Integer;
     temp: PQueueElem;
 begin
   //save last selection before anything else
-  if (length(msg.options)>1) then
+  if ((length(msg.options)>1) or (msg.inputCaption<>'')) then
   begin
     //set last selected option
     msg.cbRec.option:= msg.selected_option;
+    msg.cbRec.inputText:= msg.inputText;
     //handle callbacks
     HandleCallback(msg.cbRec);
   end;
@@ -1200,6 +1294,8 @@ begin
     SetLength(msg.options, length(msg_queue.first^.options));
     for i:=0 to High(msg_queue.first^.options) do
       msg.options[i]:= msg_queue.first^.options[i];
+    msg.inputCaption:= msg_queue.first^.inputCaption;
+    msg.inputText:= msg_queue.first^.inputText;
     msg.cbRec:= msg_queue.first^.cbRec;
     //move first pointer to new first element
     temp:= msg_queue.first;
@@ -1214,6 +1310,8 @@ begin
     msg.txt:= '';
     SetLength(msg.options, 0);
     msg.selected_option:=0;
+    msg.inputCaption:= '';
+    msg.inputText:= '';
     msg.cbRec:= cEmptyCallback;
   end;//else branch
 end;//proc
