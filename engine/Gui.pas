@@ -131,6 +131,9 @@ const
        'brave.bmp', //utBrave
        'brave_horse.bmp'//utBraveOnHorse
     );
+  cColonyTexNames: array [0..0] of string =(
+       'colony.bmp' //normal colony
+    );
 
   cWindowCaption = 'Vespucci v0.01';
   cSpace60 = '                                                            ';
@@ -167,7 +170,7 @@ type
     private
       mouse_x, mouse_y: Integer;
       menu_cat: TMenuCategory;
-      cur_colony: PColony;
+      cur_colony: TColony;
       europe: PEuropeanNation;
       focused: TUnit;
       lang: TLanguage;
@@ -194,6 +197,8 @@ type
       m_GoodTexNames: array [TGoodType] of GLuint;
       //unit texture "names" (as in OpenGL names)
       m_UnitTexNames: array [TUnitType] of GLuint;
+      //colony texture "names" ( " " " " )
+      m_ColonyTexNames: array [0..0] of GLuint;
 
       procedure InitGLUT;
       procedure DrawMenuBar;
@@ -384,6 +389,20 @@ begin
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     end;//if
   end;//for
+  //colony textures
+  m_ColonyTexNames[0]:= 0;
+  if ReadBitmapToArr32RGB(colony_img_path+cColonyTexNames[0], tempTex, err_str) then
+  begin
+    //change order of color components from blue, green, red (as in file) to
+    //  red, green, blue (as needed for GL)
+    SwapRGB_To_BGR(tempTex);
+    GetAlphaByColor(tempTex, AlphaTex);
+    glGenTextures(1, @m_ColonyTexNames[0]);
+    glBindTexture(GL_TEXTURE_2D, m_ColonyTexNames[0]);
+    glTexImage2D(GL_TEXTURE_2D, 0, 4, 32, 32, 0, GL_RGBA, GL_UNSIGNED_BYTE, @AlphaTex[0].r);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  end;//if
 
   //welcome message (German), originally for test reasons only
   ShowMessageSimple(
@@ -461,6 +480,25 @@ begin
   end;//if
     //if GetSelectedMenuOption('Vespucci beenden?', ToShortStrArr('Nein', 'Ja')) = 1 then halt; {exit}
   case UpCase(char(Key)) of
+    'B': //build colony
+         if focused<>nil then
+         begin
+           if (focused.IsShip or m_Map.tiles[focused.GetPosX, focused.GetPosY].IsWater) then
+             ShowMessageSimple('Sie können keine Kolonie im Wasser oder vom Schiff aus er-  '
+                              +'richten, sondern müssen erst Sielder an Land schicken.')
+           else begin
+             if dat.FreeForSettlement(focused.GetPosX, focused.GetPosY) then
+             begin
+               cur_colony:= dat.NewColony(focused.GetPosX, focused.GetPosY, dat.player_nation, 'New colony');
+               focused.SetLocation(ulInColony);
+               focused:= nil;
+             end
+             else
+               ShowMessageSimple('Dieses Land liegt für eine neue Kolonie zu nah an einer     '
+                                +'schon bestehenden Kolonie, Eure Exzellenz.');
+           end;//if
+         end;//if
+         //end of 'B'
     'F': ;//fortify
     'S': ;//sentry
     ' ': ;//space skips unit
@@ -608,6 +646,7 @@ end;//proc Start
 procedure TGui.Draw;
 var i, j: Integer;
     tempUnit: TUnit;
+    tempColony: TColony;
     msg_lines, msg_opts: Integer;
 begin
   glLoadIdentity;
@@ -689,6 +728,30 @@ begin
           glEnable(GL_TEXTURE_2D);
           glEnable(GL_ALPHA_TEST);
           glBindTexture(GL_TEXTURE_2D, m_UnitTexNames[tempUnit.GetType]);
+          glBegin(GL_QUADS);
+            glColor3f(1.0, 1.0, 1.0);
+            glTexCoord2f(0.0, 1.0);
+            glVertex2f(i-OffsetX, -j+y_Fields+OffsetY);//j: f(j)=-j+y_Fields+OffsetY
+            glTexCoord2f(0.0, 0.0);
+            glVertex2f(i-OffsetX, -j-1+y_Fields+OffsetY);//j+1
+            glTexCoord2f(1.0, 0.0);
+            glVertex2f(i-OffsetX+1, -j-1+y_Fields+OffsetY);//j+1
+            glTexCoord2f(1.0, 1.0);
+            glVertex2f(i-OffsetX+1, -j+y_Fields+OffsetY);//j
+          glEnd;
+          glDisable(GL_TEXTURE_2D);
+        end;//if
+      end;//if
+      
+      //check for colony and draw icon, if present
+      tempColony:= dat.GetColonyInXY(i,j);
+      if tempColony<>nil then
+      begin
+        if (m_ColonyTexNames[0]<>0) then
+        begin
+          glEnable(GL_TEXTURE_2D);
+          glEnable(GL_ALPHA_TEST);
+          glBindTexture(GL_TEXTURE_2D, m_ColonyTexNames[0]);
           glBegin(GL_QUADS);
             glColor3f(1.0, 1.0, 1.0);
             glTexCoord2f(0.0, 1.0);
@@ -966,7 +1029,7 @@ begin
     glColor3ub(0,0,0);
     for i:= Ord(gtFood) to Ord(gtMusket) do
     begin
-      WriteText(IntToStr(cur_colony^.GetStore(TGoodType(i))), (5+i*38)*PixelWidth, 4*PixelWidth -0.5);
+      WriteText(IntToStr(cur_colony.GetStore(TGoodType(i))), (5+i*38)*PixelWidth, 4*PixelWidth -0.5);
     end;//for
   end//if
   //european port view
@@ -1008,8 +1071,8 @@ begin
   if cur_colony<>nil then
   begin
     //year and season still need to be adjusted dynamically
-    s:= cur_colony^.GetName +'.  '+lang.GetSeason(dat.IsAutumn)+', '+IntToStr(dat.GetYear)+'. Gold: ';
-    if cur_colony^.GetNation^.IsEuropean then s:= s+IntToStr(TEuropeanNation(cur_colony^.GetNation^).GetGold)+'°'
+    s:= cur_colony.GetName +'.  '+lang.GetSeason(dat.IsAutumn)+', '+IntToStr(dat.GetYear)+'. Gold: ';
+    if cur_colony.GetNation.IsEuropean then s:= s+IntToStr(TEuropeanNation(cur_colony.GetNation).GetGold)+'°'
     else s:= s+' -1°';
     glColor3ubv(@cMenuTextColour[0]);
     WriteText(s, 0.1, 12.0+5.0*PixelWidth);

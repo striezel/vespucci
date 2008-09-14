@@ -26,7 +26,7 @@ type
 
   TColony = class(TSettlement)
     public
-      constructor Create(const X, Y: Integer; const ANation: PNation; const AName: string);
+      constructor Create(const X, Y: Integer; const ANation: TNation; const AName: string);
       destructor Destroy;
       function GetName: string;
       function GetStore(const AGood: TGoodType): Word;
@@ -51,7 +51,7 @@ implementation
 
 // **** TColony functions ****
 
-constructor TColony.Create(const X, Y: Integer; const ANation: PNation; const AName: string);
+constructor TColony.Create(const X, Y: Integer; const ANation: TNation; const AName: string);
 var bt: TBuildingType;
     gt: TGoodType;
     i,j: Integer;
