@@ -10,19 +10,19 @@ begin
   TheGUI.Draw;
 end;
 
-procedure KeyWrapper(Key: Byte; x, y: Longint); cdecl;
+procedure KeyWrapper(Key: Byte; x, y: LongInt); cdecl;
 begin
   WriteLn('Key: ', Key);
   TheGUI.KeyFunc(Key, x,y, False);
 end;
 
-procedure SpecialWrapper(Key: Longint; x, y: Longint); cdecl;
+procedure SpecialWrapper(Key: Longint; x, y: LongInt); cdecl;
 begin
   WriteLn('Special key: ', Key);
   TheGUI.KeyFunc(Key, x, y, True);
 end;
 
-procedure MouseWrapper(button, state, x, y: Longint); cdecl;
+procedure MouseWrapper(button, state, x, y: LongInt); cdecl;
 begin
   case button of
     GLUT_LEFT_BUTTON: Write('LeftMouse');
@@ -35,7 +35,13 @@ begin
   TheGui.MouseFunc(button, state, x, y);
 end;//proc
 
-procedure ResizeWrapper(Width, Height: Longint); cdecl;
+procedure MouseMoveWrapper(x,y: LongInt); cdecl;
+begin
+  WriteLn('Mouse moved. x: ',x,'; y: ', y);
+  TheGui.MouseMoveFunc(x,y);
+end;//proc
+
+procedure ResizeWrapper(Width, Height: LongInt); cdecl;
 begin
   TheGUI.Resize(Width, Height);
 end;//proc
@@ -56,7 +62,7 @@ begin
   WriteLn('glutInitWindowPosition...');
   glutInitWindowPosition(0,0);
   WriteLn('glutInitWindowSize...');
-  glutInitWindowSize(32*x_Fields+BarWidth, 32*y_Fields+16+16);
+  glutInitWindowSize(cWindowWidth, cWindowHeight);
 
   WriteLn('glutCreateWindow...');
   if (glutCreateWindow(cWindowCaption)<=0) then
@@ -73,6 +79,8 @@ begin
   glutKeyboardFunc(@KeyWrapper);
   glutSpecialFunc(@SpecialWrapper);
   glutMouseFunc(@MouseWrapper);
+  glutMotionFunc(@MouseMoveWrapper);
+  glutPassiveMotionFunc(@MouseMoveWrapper);
   glutIdleFunc(@IdleWrapper);
 
   WriteLn('Starting GUI...');
