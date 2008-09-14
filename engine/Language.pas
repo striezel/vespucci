@@ -21,6 +21,8 @@ type
       Moves: string;
       //for landfall message box
       Landfall: array[0..2] of string;
+      //for building new colonies
+      BuildColony: array[0..4] of string;
       procedure InitialValues;
     public
       constructor Create;
@@ -35,6 +37,7 @@ type
       function GetLocation: string;
       function GetMoves: string;
       function GetLandfall(const which: Byte): string;
+      function GetBuildColony(const which: Byte): string;
       function SaveToFile(const FileName: string): Boolean;
       function LoadFromFile(const FileName: string): Boolean;
   end;//class
@@ -163,6 +166,15 @@ begin
   Landfall[0]:= 'Sollen wir an Land gehen, Eure Exzellenz, und die Schiffe zurücklassen?';
   Landfall[1]:= 'Bei den Schiffen bleiben';
   Landfall[2]:= 'An Land gehen';
+  //build colony
+  BuildColony[0]:= 'Wie sollen wir diese Kolonie nennen?';
+  BuildColony[1]:= 'Name:';
+  // -- build colony error messages
+  BuildColony[2]:= 'Sie können keine Kolonie im Wasser oder vom Schiff aus er-  '
+                  +'richten, sondern müssen erst Sielder an Land schicken.';
+  BuildColony[3]:= 'Dieses Land liegt für eine neue Kolonie zu nah an einer     '
+                  +'schon bestehenden Kolonie, Eure Exzellenz.';
+  BuildColony[4]:= 'Kolonien können nicht in den Bergen gebaut werden, Eure Exzellenz.';
 end;//proc
 
 function TLanguage.GetOptionCount(const categ: TMenuCategory): Integer;
@@ -224,6 +236,12 @@ begin
   else Result:= Landfall[which];
 end;//func
 
+function TLanguage.GetBuildColony(const which: Byte): string;
+begin
+  if which>4 then Result:= ''
+  else Result:= BuildColony[which];
+end;//func
+
 function TLanguage.SaveToFile(const FileName: string): Boolean;
 var dat: TextFile;
     i: Integer;
@@ -263,6 +281,10 @@ begin
   WriteLn(dat, '[Landfall]');
   for i:=0 to 2 do
     WriteLn(dat, Landfall[i]);
+  WriteLn;
+  WriteLn(dat, '[BuildColony]');
+  for i:=0 to 4 do
+    WriteLn(dat, BuildColony[i]);
   CloseFile(dat);
   Result:= True;
 end;//func
@@ -363,6 +385,17 @@ begin
           ReadLn(dat, str1);
           str1:= Trim(str1);
           if str1<>'' then Landfall[i]:= str1;
+          i:= i+1;
+        end;//while
+      end//if
+      else if str1='[BuildColony]' then
+      begin
+        i:= 0;
+        while (i<=4) and not Eof(dat) do
+        begin
+          ReadLn(dat, str1);
+          str1:= Trim(str1);
+          if str1<>'' then BuildColony[i]:= str1;
           i:= i+1;
         end;//while
       end;//if
