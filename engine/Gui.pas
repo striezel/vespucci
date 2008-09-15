@@ -173,6 +173,8 @@ type
     private
       mouse_x, mouse_y: Integer;
       menu_cat: TMenuCategory;
+      OffsetX, OffsetY: Integer;
+      MiniMapOffset_Y: Integer;
       cur_colony: TColony;
       europe: PEuropeanNation;
       focused: TUnit;
@@ -211,8 +213,6 @@ type
       procedure GetNextMessage;//de-facto dequeue
     public
       m_Map: TMap;
-      OffsetX, OffsetY: Integer;
-      MiniMapOffset_Y: Integer;
       constructor Create;
       destructor Destroy;
       procedure KeyFunc(Key: Byte; x, y: LongInt; Special: Boolean = False);
@@ -589,7 +589,7 @@ begin
                  else begin
                    //no moves left, start new round
                    dat.AdvanceYear;
-                   dat.NewRound(dat.player_nation);
+                   dat.NewRound(dat.player_nation, m_Map);
                    focused:= dat.GetFirstLazyUnit(dat.player_nation);
                  end;
     end;//case
@@ -709,7 +709,7 @@ begin
   end//if
   else begin
     //draw the normal america view with map and stuff
-  
+
     //draw borders
     glBegin(GL_QUADS);
       glColor3ubv(@BorderColour);

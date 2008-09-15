@@ -3,7 +3,7 @@ unit Data;
 interface
 
 uses
-  Nation, Language, Units, Colony;
+  Nation, Language, Units, Colony, Map, Goods;
 
 const
 {$IFDEF Win32}
@@ -49,7 +49,7 @@ type
               function GetColonyInXY(const x,y: Byte): TColony;
               function FreeForSettlement(const x,y:Byte): Boolean;
               //others
-              procedure NewRound(const num_Nation: Integer);
+              procedure NewRound(const num_Nation: Integer; AMap: TMap);
           end;//class
 
 implementation
@@ -214,7 +214,7 @@ begin
         end;//if
 end;//func
 
-procedure TData.NewRound(const num_Nation: Integer);
+procedure TData.NewRound(const num_Nation: Integer; AMap: TMap);
 var i: Integer;
 begin
   //call NewRound method for every unit of that nation
@@ -227,8 +227,18 @@ begin
     if m_Colonies[i]<>nil then
       if m_Colonies[i].GetNation<>nil then
         if (m_Colonies[i].GetNation.GetCount=num_Nation) then
+        begin
           //we should try to get a valid map instead of just nil in next line
-          m_Colonies[i].NewRound(nil);
+          m_Colonies[i].NewRound(AMap);
+          //following should be implemented in TColony and not here
+          if m_Colonies[i].GetStore(gtFood)>=200 then
+          begin
+            //time for new inhabitant
+            m_Colonies[i].RemoveFromStore(gtFood, 200);
+            //creates new unit and sets its location to America
+            NewUnit(utColonist, num_nation, m_Colonies[i].GetPosX, m_Colonies[i].GetPosY).SetLocation(ulAmerica);
+          end;//if
+        end;//if
 end;//func
 
 end.

@@ -3,7 +3,7 @@ unit Colony;
 interface
 
 uses
-  Nation, Settlement, Goods, Units, Map{, Terrain};
+  Nation, Settlement, Goods, Units, Map;
 
 type
   TBuildingType = (btFort, //Einpfählung, Fort, Festung
@@ -30,11 +30,14 @@ type
       destructor Destroy;
       function GetName: string;
       function GetStore(const AGood: TGoodType): Word;
+      function RemoveFromStore(const AGood: TGoodType; const amount: Byte): Byte;
+      procedure AddToStore(const AGood: TGoodType; const amount: Byte);
       function GetMaxLevel(const bt: TBuildingType): Byte;
       procedure ConstructNextLevel(const bt: TBuildingType);
       function GetProduction(const bt: TBuildingType; const ut: TUnitType): Integer;
       procedure NewRound(const AMap: TMap);
       function GetUnitInField(const x_shift, y_shift: Integer): TUnit;
+      function GetInhabitants: Word;
     private
       m_Name: string;
       Store: array[TGoodType] of Word; //max. is 300, a word should do it;
@@ -133,6 +136,26 @@ end;//func
 function TColony.GetStore(const AGood: TGoodType): Word;
 begin
   Result:= Store[AGood];
+end;//func
+
+function TColony.RemoveFromStore(const AGood: TGoodType; const amount: Byte): Byte;
+begin
+  if Store[AGood]>=amount then
+  begin
+    Store[AGood]:= Store[AGood]-amount;
+    Result:= amount;
+  end
+  else begin
+    Result:= Store[AGood];
+    Store[AGood]:= 0;
+  end;//else
+end;//func
+
+procedure TColony.AddToStore(const AGood: TGoodType; const amount: Byte);
+begin
+  //no function, it always succeeds. However, storage amount is cut to maximum
+  // storage capacity during next call to TColony.NewRound.
+  Store[AGood]:= Store[AGood]+amount;
 end;//func
 
 function TColony.GetMaxLevel(const bt: TBuildingType): Byte;
@@ -276,6 +299,14 @@ begin
     if (not(TGoodType(i) in [gtFood, gtHammer, gtLibertyBell, gtCross])
          and (Store[TGoodType(i)]>(1+buildings[btWarehouse])*100)) then
       Store[TGoodType(i)]:= (1+buildings[btWarehouse])*100;
+
+  //check for inhabitants and food needed
+  i:= GetInhabitants*2;
+  if RemoveFromStore(gtFood, i)<>i then
+  begin
+    //not enough food - we should put a message and probably let an inhabitant
+    // starve from hunger here.
+  end;
 end;//func
 
 function TColony.GetUnitInField(const x_shift, y_shift: Integer): TUnit;
@@ -284,5 +315,16 @@ begin
   else Result:= UnitsInFields[x_shift, y_shift].u;
 end;//func
 
+function TColony.GetInhabitants: Word;
+var i, j: Integer;
+begin
+  Result:=0;
+  for i:= -1 to 1 do
+    for j:= -1 to 1 do
+      if UnitsInFields[i,j].u<>nil then Result:= Result+1;
+  for i:= Ord(btArmory) to Ord(btBlacksmith) do
+    for j:= 0 to 2 do
+      if UnitsInBuilding[TBuildingType(i),j]<>nil then Result:= Result+1;
+end;//func
 
 end.
