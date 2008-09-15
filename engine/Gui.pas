@@ -203,6 +203,8 @@ type
       procedure DrawMenuBar;
       procedure DrawGoodsBar;
       procedure DrawColonyTitleBar;
+      procedure DrawMessage;
+      procedure DrawColonyView;
       procedure GetSquareAtMouse(var sq_x, sq_y: Integer);
       function  GetGoodAtMouse: TGoodType;
       procedure EnqueueNewMessage(const msg_txt: AnsiString; const opts: TShortStrArr; const inCaption, inText: ShortString; cbRec: TCallbackRec);
@@ -490,11 +492,14 @@ begin
   //"general" keys
   if Key=KEY_ESCAPE then
   begin
-    temp_cb._type:= CBT_EXIT;
-    temp_cb.cbExit:= @CBF_Exit;
-    ShowMessageOptions('Vespucci beenden?', ToShortStrArr('Nein', 'Ja'), temp_cb);
-  end;//if
-    //if GetSelectedMenuOption('Vespucci beenden?', ToShortStrArr('Nein', 'Ja')) = 1 then halt; {exit}
+    if InColony then cur_colony:= nil
+    else if InEurope then europe:= nil
+    else begin
+      temp_cb._type:= CBT_EXIT;
+      temp_cb.cbExit:= @CBF_Exit;
+      ShowMessageOptions('Vespucci beenden?', ToShortStrArr('Nein', 'Ja'), temp_cb);
+    end;//else
+  end;//if KEY_ESCAPE
   case UpCase(char(Key)) of
     'B': //build colony
          if focused<>nil then
@@ -623,6 +628,17 @@ end;//proc
 procedure TGui.MouseFunc(const button, state, x,y: LongInt);
 var pos_x, pos_y: Integer;
 begin
+  if msg.txt<>'' then Exit;
+  if (cur_colony<>nil) then
+  begin
+    //check for pressing the red "E" in colony view
+    if ((button=GLUT_LEFT) and (state=GLUT_UP) and (x>608) and (y>cWindowHeight-50)) then
+    begin
+      cur_colony:= nil;
+      glutPostRedisplay;
+    end;//if
+    Exit;
+  end;
   //handle mouse events here
   if ((button=GLUT_LEFT) and (state=GLUT_UP) and (europe=nil) and (cur_colony=nil)) then
   begin
@@ -632,6 +648,12 @@ begin
     begin
       focused:= dat.GetFirstUnitInXY(pos_x, pos_y);
       CenterOn(pos_x, pos_y);
+      {If we don't have a unit there, there might be a colony?}
+      if focused=nil then cur_colony:= dat.GetColonyInXY(pos_x, pos_y);
+      //if not player's colony, set back to nil
+      if cur_colony<>nil then
+        if cur_colony.GetNation<>nil then
+          if cur_colony.GetNation.GetCount<>dat.player_nation then cur_colony:= nil;
       glutPostRedisplay;
     end;//if
   end;//if
@@ -672,7 +694,6 @@ procedure TGui.Draw;
 var i, j: Integer;
     tempUnit: TUnit;
     tempColony: TColony;
-    msg_lines, msg_opts: Integer;
 begin
   glLoadIdentity;
   glViewport(0,0, cWindowWidth, cWindowHeight);
@@ -682,192 +703,292 @@ begin
                                      //saves us from drawing wooden bar
   glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT);
 
-  //draw borders
-  glBegin(GL_QUADS);
-    glColor3ubv(@BorderColour);
-    //vertical border between map/ sidebar
-    glVertex2f(x_Fields, 0.0);
-    glVertex2f(x_Fields+BorderWidth, 0.0);
-    glVertex2f(x_Fields+BorderWidth, y_Fields);
-    glVertex2f(x_Fields, y_Fields);
+  if InColony then
+  begin
+    DrawColonyView;
+  end//if
+  else begin
+    //draw the normal america view with map and stuff
+  
+    //draw borders
+    glBegin(GL_QUADS);
+      glColor3ubv(@BorderColour);
+      //vertical border between map/ sidebar
+      glVertex2f(x_Fields, 0.0);
+      glVertex2f(x_Fields+BorderWidth, 0.0);
+      glVertex2f(x_Fields+BorderWidth, y_Fields);
+      glVertex2f(x_Fields, y_Fields);
 
-    //horizontal border between map & (later to come) menu
+      //horizontal border between map & (later to come) menu
+      glVertex2f(0.0, y_Fields);
+      glVertex2f(x_Fields+ BarWidth*PixelWidth, y_Fields);
+      glVertex2f(x_Fields+ BarWidth*PixelWidth, y_Fields+BorderWidth);
+      glVertex2f(0.0, y_Fields+BorderWidth);
+
+      //horizontal bar between minimap & rest of bar
+      glVertex2f(x_Fields, y_Fields - 2*BorderWidth -2*PixelWidth*MiniMap_y_Fields);
+      glVertex2f(x_Fields, y_Fields - 3*BorderWidth -2*PixelWidth*MiniMap_y_Fields);
+      glVertex2f(x_Fields+ BarWidth*PixelWidth,
+                 y_Fields - 3*BorderWidth -2*PixelWidth*MiniMap_y_Fields);
+      glVertex2f(x_Fields+ BarWidth*PixelWidth,
+                 y_Fields - 2*BorderWidth -2*PixelWidth*MiniMap_y_Fields);
+    glEnd;//borders
+
+    //draw the real map
+    for i:= OffsetX to OffSetX +x_Fields-1 do
+      for j:= OffSetY to OffsetY +y_Fields-1 do
+      begin
+        if m_TerrainTexNames[m_Map.tiles[i,j].m_Type]=0 then
+        begin
+          glBegin(GL_QUADS);
+            case m_Map.tiles[i,j].m_Type of
+              ttArctic: glColor3f(1.0, 1.0, 1.0);//white
+              ttSea: glColor3f(0.0, 0.0, 1.0);//blue
+              ttOpenSea: glColor3f(0.3, 0.3, 1.0);//lighter blue
+              ttHills, ttMountains: glColor3f(0.5, 0.0, 0.0);
+            else
+              glColor3f(0.3, 1.0, 0.3);//some greenish stuff
+            end;//case
+            glVertex2f(i-OffsetX, -j+y_Fields+OffsetY);//j: f(j)=-j+y_Fields+OffsetY
+            glVertex2f(i-OffsetX, -j-1+y_Fields+OffsetY);//j+1
+            glVertex2f(i-OffsetX+1, -j-1+y_Fields+OffsetY);//j+1
+            glVertex2f(i-OffsetX+1, -j+y_Fields+OffsetY);//j
+          glEnd;
+        end//if-then
+        else begin
+          glEnable(GL_TEXTURE_2D);
+          glBindTexture(GL_TEXTURE_2D, m_TerrainTexNames[m_Map.tiles[i,j].m_Type]);
+          glBegin(GL_QUADS);
+            glColor3f(1.0, 1.0, 1.0);
+            glTexCoord2f(0.0, 1.0);
+            glVertex2f(i-OffsetX, -j+y_Fields+OffsetY);//j: f(j)=-j+y_Fields+OffsetY
+            glTexCoord2f(0.0, 0.0);
+            glVertex2f(i-OffsetX, -j-1+y_Fields+OffsetY);//j+1
+            glTexCoord2f(1.0, 0.0);
+            glVertex2f(i-OffsetX+1, -j-1+y_Fields+OffsetY);//j+1
+            glTexCoord2f(1.0, 1.0);
+            glVertex2f(i-OffsetX+1, -j+y_Fields+OffsetY);//j
+          glEnd;
+          glDisable(GL_TEXTURE_2D);
+        end;//else branch
+
+        //check for unit and draw unit icon, if present
+        tempUnit:= dat.GetFirstUnitInXY(i,j);
+        if (tempUnit<>nil) then
+        begin
+          if (m_UnitTexNames[tempUnit.GetType]<>0) then
+          begin
+            glEnable(GL_TEXTURE_2D);
+            glEnable(GL_ALPHA_TEST);
+            glBindTexture(GL_TEXTURE_2D, m_UnitTexNames[tempUnit.GetType]);
+            glBegin(GL_QUADS);
+              glColor3f(1.0, 1.0, 1.0);
+              glTexCoord2f(0.0, 1.0);
+              glVertex2f(i-OffsetX, -j+y_Fields+OffsetY);//j: f(j)=-j+y_Fields+OffsetY
+              glTexCoord2f(0.0, 0.0);
+              glVertex2f(i-OffsetX, -j-1+y_Fields+OffsetY);//j+1
+              glTexCoord2f(1.0, 0.0);
+              glVertex2f(i-OffsetX+1, -j-1+y_Fields+OffsetY);//j+1
+              glTexCoord2f(1.0, 1.0);
+              glVertex2f(i-OffsetX+1, -j+y_Fields+OffsetY);//j
+            glEnd;
+            glDisable(GL_TEXTURE_2D);
+          end;//if
+        end;//if
+
+        //check for colony and draw icon, if present
+        tempColony:= dat.GetColonyInXY(i,j);
+        if tempColony<>nil then
+        begin
+          if (m_ColonyTexNames[0]<>0) then
+          begin
+            glEnable(GL_TEXTURE_2D);
+            glEnable(GL_ALPHA_TEST);
+            glBindTexture(GL_TEXTURE_2D, m_ColonyTexNames[0]);
+            glBegin(GL_QUADS);
+              glColor3f(1.0, 1.0, 1.0);
+              glTexCoord2f(0.0, 1.0);
+              glVertex2f(i-OffsetX, -j+y_Fields+OffsetY);//j: f(j)=-j+y_Fields+OffsetY
+              glTexCoord2f(0.0, 0.0);
+              glVertex2f(i-OffsetX, -j-1+y_Fields+OffsetY);//j+1
+              glTexCoord2f(1.0, 0.0);
+              glVertex2f(i-OffsetX+1, -j-1+y_Fields+OffsetY);//j+1
+              glTexCoord2f(1.0, 1.0);
+              glVertex2f(i-OffsetX+1, -j+y_Fields+OffsetY);//j
+            glEnd;
+            glDisable(GL_TEXTURE_2D);
+          end;//if
+        end;//if
+      end;//for
+    //end of map
+
+    //draw the MiniMap
+
+    //draw border (as a rectangle larger than minimap)
+    glBegin(GL_QUADS);
+      glColor3ub(157, 86, 20);
+      glVertex2f(x_Fields+ 22*PixelWidth, y_Fields);
+      glVertex2f(x_Fields+ 22*PixelWidth,
+                 y_Fields-2*BorderWidth - Minimap_y_Fields*2*PixelWidth);
+      glVertex2f(x_Fields+ (BarWidth-22)*PixelWidth,
+                 y_Fields-2*BorderWidth - Minimap_y_Fields*2*PixelWidth);
+      glVertex2f(x_Fields+ (BarWidth-22)*PixelWidth, y_Fields);
+    glEnd;
+
+    //draw the actual minimap
+    glBegin(GL_QUADS);
+      for i:=0 to MiniMap_x_Fields-1 do
+        for j:= MiniMapOffset_Y to MiniMapOffset_Y +MiniMap_y_Fields-1 do
+        begin
+          glColor3ubv(@cMapColour[m_Map.tiles[i,j].m_Type,0]);
+          glVertex3f(x_Fields + (24+2*i)*PixelWidth,
+                     y_Fields-BorderWidth - (j-MinimapOffset_Y)*2*PixelWidth, 0.1);
+          glVertex3f(x_Fields + (24+2*i)*PixelWidth,
+                     y_Fields-BorderWidth - (j-MinimapOffset_Y+1)*2*PixelWidth, 0.1);
+          glVertex3f(x_Fields + (26+2*i)*PixelWidth,
+                     y_Fields-BorderWidth - (j-MinimapOffset_Y+1)*2*PixelWidth, 0.1);
+          glVertex3f(x_Fields + (26+2*i)*PixelWidth,
+                     y_Fields-BorderWidth - (j-MinimapOffset_Y)*2*PixelWidth, 0.1);
+        end;//for
+    glEnd;//MiniMap
+    glColor3ubv(@cMenuTextColour[0]);
+    DrawMenuBar;
+    //display side bar information
+    // - season and year
+    WriteText(lang.GetSeason(dat.IsAutumn)+' '+IntToStr(dat.GetYear),
+              x_Fields + 4*PixelWidth,
+              y_Fields - 3*BorderWidth -2*PixelWidth*MiniMap_y_Fields- 16*PixelWidth);
+    // - info about focused unit
+    if focused<>nil then
+    begin
+      if m_UnitTexNames[focused.GetType]<>0 then
+      begin
+        //draw unit icon
+        glEnable(GL_TEXTURE_2D);
+        glEnable(GL_ALPHA_TEST);
+        glBindTexture(GL_TEXTURE_2D, m_UnitTexNames[focused.GetType]);
+        glBegin(GL_QUADS);
+          glColor3f(1.0, 1.0, 1.0);
+          glTexCoord2f(0.0, 0.0);
+          glVertex2f(x_Fields + 4*PixelWidth, 7.0);
+          glTexCoord2f(1.0, 0.0);
+          glVertex2f(x_Fields + 36*PixelWidth, 7.0);
+          glTexCoord2f(1.0, 1.0);
+          glVertex2f(x_Fields + 36*PixelWidth, 8.0);
+          glTexCoord2f(0.0, 1.0);
+          glVertex2f(x_Fields + 4*PixelWidth, 8.0);
+        glEnd;
+        glDisable(GL_TEXTURE_2D);
+      end;//if Icon present
+      // -- moves of unit
+      glColor3ubv(@cMenuTextColour[0]);
+      WriteText(lang.GetMoves+': '+IntToStr(focused.MovesLeft),
+                x_Fields +40*PixelWidth, 7.5);
+      // -- location of unit
+      WriteText(lang.GetLocation+': '+IntToStr(focused.GetPosX)+','+IntToStr(focused.GetPosY),
+                x_Fields +40*PixelWidth, 7.0);
+      // -- type of unit
+      WriteText(lang.GetUnitName(focused.GetType),
+                x_Fields +4*PixelWidth, 6.5);
+      // -- terrain of unit's location
+      WriteText(lang.GetTerrainName(m_Map.tiles[focused.GetPosX,focused.GetPosY].GetType),
+                x_Fields +4*PixelWidth, 6.0);
+
+    end;//if Focused unit present
+
+  end;//if America view
+
+  //show the text messages, if present
+  DrawMessage;
+
+  glutSwapBuffers();
+end;//TGui.Draw
+
+procedure TGui.DrawColonyView;
+var i,j: Integer;
+begin
+  //draw border
+  glBegin(GL_QUADS);
+    glColor3f(0.0, 0.0, 0.0);
     glVertex2f(0.0, y_Fields);
     glVertex2f(x_Fields+ BarWidth*PixelWidth, y_Fields);
     glVertex2f(x_Fields+ BarWidth*PixelWidth, y_Fields+BorderWidth);
     glVertex2f(0.0, y_Fields+BorderWidth);
-
-    //horizontal bar between minimap & rest of bar
-    glVertex2f(x_Fields, y_Fields - 2*BorderWidth -2*PixelWidth*MiniMap_y_Fields);
-    glVertex2f(x_Fields, y_Fields - 3*BorderWidth -2*PixelWidth*MiniMap_y_Fields);
-    glVertex2f(x_Fields+ BarWidth*PixelWidth,
-               y_Fields - 3*BorderWidth -2*PixelWidth*MiniMap_y_Fields);
-    glVertex2f(x_Fields+ BarWidth*PixelWidth,
-               y_Fields - 2*BorderWidth -2*PixelWidth*MiniMap_y_Fields);
-  glEnd;//borders
-
-  //draw the real map
-  for i:= OffsetX to OffSetX +x_Fields-1 do
-    for j:= OffSetY to OffsetY +y_Fields-1 do
+  glEnd;
+  //border around field map
+  glLineWidth(2.0);
+  glBegin(GL_LINE_STRIP);
+    glVertex2f(cWindowWidth*PixelWidth-5.0, y_Fields);
+    glVertex2f(cWindowWidth*PixelWidth-5.0, y_Fields-5.0);
+    glVertex2f(cWindowWidth*PixelWidth, y_Fields-5.0);
+  glEnd;
+  //draw fields
+  for i:= -1 to 1 do
+    for j:= -1 to 1 do
     begin
-      if m_TerrainTexNames[m_Map.tiles[i,j].m_Type]=0 then
+      //draw terrain
+      if m_TerrainTexNames[m_Map.tiles[i+cur_colony.GetPosX,j+cur_colony.GetPosY].m_Type]=0 then
       begin
         glBegin(GL_QUADS);
-          case m_Map.tiles[i,j].m_Type of
-            ttArctic: glColor3f(1.0, 1.0, 1.0);//white
-            ttSea: glColor3f(0.0, 0.0, 1.0);//blue
-            ttOpenSea: glColor3f(0.3, 0.3, 1.0);//lighter blue
-            ttHills, ttMountains: glColor3f(0.5, 0.0, 0.0);
-          else
-            glColor3f(0.3, 1.0, 0.3);//some greenish stuff
-          end;//case
-          glVertex2f(i-OffsetX, -j+y_Fields+OffsetY);//j: f(j)=-j+y_Fields+OffsetY
-          glVertex2f(i-OffsetX, -j-1+y_Fields+OffsetY);//j+1
-          glVertex2f(i-OffsetX+1, -j-1+y_Fields+OffsetY);//j+1
-          glVertex2f(i-OffsetX+1, -j+y_Fields+OffsetY);//j
+        case m_Map.tiles[i,j].m_Type of
+          ttArctic: glColor3f(1.0, 1.0, 1.0);//white
+          ttSea: glColor3f(0.0, 0.0, 1.0);//blue
+          ttOpenSea: glColor3f(0.3, 0.3, 1.0);//lighter blue
+          ttHills, ttMountains: glColor3f(0.5, 0.0, 0.0);
+        else
+          glColor3f(0.3, 1.0, 0.3);//some greenish stuff
+        end;//case
+          glVertex2f(i+x_Fields+2.0, y_Fields-3.0-j);//lower left corner
+          glVertex2f(i+x_Fields+3.0, y_Fields-3.0-j);
+          glVertex2f(i+x_Fields+3.0, y_Fields-2.0-j);
+          glVertex2f(i+x_Fields+2.0, y_Fields-2.0-j);
         glEnd;
       end//if-then
       else begin
         glEnable(GL_TEXTURE_2D);
-        glBindTexture(GL_TEXTURE_2D, m_TerrainTexNames[m_Map.tiles[i,j].m_Type]);
+        glBindTexture(GL_TEXTURE_2D, m_TerrainTexNames[m_Map.tiles[i+cur_colony.GetPosX,j+cur_colony.GetPosY].m_Type]);
         glBegin(GL_QUADS);
           glColor3f(1.0, 1.0, 1.0);
-          glTexCoord2f(0.0, 1.0);
-          glVertex2f(i-OffsetX, -j+y_Fields+OffsetY);//j: f(j)=-j+y_Fields+OffsetY
           glTexCoord2f(0.0, 0.0);
-          glVertex2f(i-OffsetX, -j-1+y_Fields+OffsetY);//j+1
+          glVertex2f(i+x_Fields+2.0, y_Fields-3.0-j);//lower left corner
           glTexCoord2f(1.0, 0.0);
-          glVertex2f(i-OffsetX+1, -j-1+y_Fields+OffsetY);//j+1
+          glVertex2f(i+x_Fields+3.0, y_Fields-3.0-j);
           glTexCoord2f(1.0, 1.0);
-          glVertex2f(i-OffsetX+1, -j+y_Fields+OffsetY);//j
+          glVertex2f(i+x_Fields+3.0, y_Fields-2.0-j);
+          glTexCoord2f(0.0, 1.0);
+          glVertex2f(i+x_Fields+2.0, y_Fields-2.0-j);
         glEnd;
         glDisable(GL_TEXTURE_2D);
-      end;//else branch
-
-      //check for unit and draw unit icon, if present
-      tempUnit:= dat.GetFirstUnitInXY(i,j);
-      if (tempUnit<>nil) then
-      begin
-        if (m_UnitTexNames[tempUnit.GetType]<>0) then
+      end;//else
+      //draw units working there
+      if cur_colony.GetUnitInField(i,j)<>nil then
+        if m_UnitTexNames[cur_colony.GetUnitInField(i,j).GetType]<>0 then
         begin
           glEnable(GL_TEXTURE_2D);
           glEnable(GL_ALPHA_TEST);
-          glBindTexture(GL_TEXTURE_2D, m_UnitTexNames[tempUnit.GetType]);
-          glBegin(GL_QUADS);
+          glBindTexture(GL_TEXTURE_2D, m_UnitTexNames[cur_colony.GetUnitInField(i,j).GetType]);
+          glBegin(GL_TEXTURE_2D);
             glColor3f(1.0, 1.0, 1.0);
-            glTexCoord2f(0.0, 1.0);
-            glVertex2f(i-OffsetX, -j+y_Fields+OffsetY);//j: f(j)=-j+y_Fields+OffsetY
             glTexCoord2f(0.0, 0.0);
-            glVertex2f(i-OffsetX, -j-1+y_Fields+OffsetY);//j+1
+            glVertex2f(i+x_Fields+2.0, y_Fields-3.0-j);//lower left corner
             glTexCoord2f(1.0, 0.0);
-            glVertex2f(i-OffsetX+1, -j-1+y_Fields+OffsetY);//j+1
+            glVertex2f(i+x_Fields+3.0, y_Fields-3.0-j);
             glTexCoord2f(1.0, 1.0);
-            glVertex2f(i-OffsetX+1, -j+y_Fields+OffsetY);//j
+            glVertex2f(i+x_Fields+3.0, y_Fields-2.0-j);
+            glTexCoord2f(0.0, 1.0);
+            glVertex2f(i+x_Fields+2.0, y_Fields-2.0-j);
           glEnd;
+          glDisable(GL_ALPHA_TEST);
           glDisable(GL_TEXTURE_2D);
         end;//if
-      end;//if
-      
-      //check for colony and draw icon, if present
-      tempColony:= dat.GetColonyInXY(i,j);
-      if tempColony<>nil then
-      begin
-        if (m_ColonyTexNames[0]<>0) then
-        begin
-          glEnable(GL_TEXTURE_2D);
-          glEnable(GL_ALPHA_TEST);
-          glBindTexture(GL_TEXTURE_2D, m_ColonyTexNames[0]);
-          glBegin(GL_QUADS);
-            glColor3f(1.0, 1.0, 1.0);
-            glTexCoord2f(0.0, 1.0);
-            glVertex2f(i-OffsetX, -j+y_Fields+OffsetY);//j: f(j)=-j+y_Fields+OffsetY
-            glTexCoord2f(0.0, 0.0);
-            glVertex2f(i-OffsetX, -j-1+y_Fields+OffsetY);//j+1
-            glTexCoord2f(1.0, 0.0);
-            glVertex2f(i-OffsetX+1, -j-1+y_Fields+OffsetY);//j+1
-            glTexCoord2f(1.0, 1.0);
-            glVertex2f(i-OffsetX+1, -j+y_Fields+OffsetY);//j
-          glEnd;
-          glDisable(GL_TEXTURE_2D);
-        end;//if
-      end;//if
     end;//for
-  //end of map
+  DrawColonyTitleBar;
+  DrawGoodsBar;
+end;//proc DrawColonyView
 
-  //draw the MiniMap
-
-  //draw border (as a rectangle larger than minimap)
-  glBegin(GL_QUADS);
-    glColor3ub(157, 86, 20);
-    glVertex2f(x_Fields+ 22*PixelWidth, y_Fields);
-    glVertex2f(x_Fields+ 22*PixelWidth,
-               y_Fields-2*BorderWidth - Minimap_y_Fields*2*PixelWidth);
-    glVertex2f(x_Fields+ (BarWidth-22)*PixelWidth,
-               y_Fields-2*BorderWidth - Minimap_y_Fields*2*PixelWidth);
-    glVertex2f(x_Fields+ (BarWidth-22)*PixelWidth, y_Fields);
-  glEnd;
-
-  //draw the actual minimap
-  glBegin(GL_QUADS);
-    for i:=0 to MiniMap_x_Fields-1 do
-      for j:= MiniMapOffset_Y to MiniMapOffset_Y +MiniMap_y_Fields-1 do
-      begin
-        glColor3ubv(@cMapColour[m_Map.tiles[i,j].m_Type,0]);
-        glVertex3f(x_Fields + (24+2*i)*PixelWidth,
-                   y_Fields-BorderWidth - (j-MinimapOffset_Y)*2*PixelWidth, 0.1);
-        glVertex3f(x_Fields + (24+2*i)*PixelWidth,
-                   y_Fields-BorderWidth - (j-MinimapOffset_Y+1)*2*PixelWidth, 0.1);
-        glVertex3f(x_Fields + (26+2*i)*PixelWidth,
-                   y_Fields-BorderWidth - (j-MinimapOffset_Y+1)*2*PixelWidth, 0.1);
-        glVertex3f(x_Fields + (26+2*i)*PixelWidth,
-                   y_Fields-BorderWidth - (j-MinimapOffset_Y)*2*PixelWidth, 0.1);
-      end;//for
-  glEnd;//MiniMap
-  glColor3ubv(@cMenuTextColour[0]);
-  DrawMenuBar;
-  //display side bar information
-  // - season and year
-  WriteText(lang.GetSeason(dat.IsAutumn)+' '+IntToStr(dat.GetYear),
-            x_Fields + 4*PixelWidth,
-            y_Fields - 3*BorderWidth -2*PixelWidth*MiniMap_y_Fields- 16*PixelWidth);
-  // - info about focused unit
-  if focused<>nil then
-  begin
-    if m_UnitTexNames[focused.GetType]<>0 then
-    begin
-      //draw unit icon
-      glEnable(GL_TEXTURE_2D);
-      glEnable(GL_ALPHA_TEST);
-      glBindTexture(GL_TEXTURE_2D, m_UnitTexNames[focused.GetType]);
-      glBegin(GL_QUADS);
-        glColor3f(1.0, 1.0, 1.0);
-        glTexCoord2f(0.0, 0.0);
-        glVertex2f(x_Fields + 4*PixelWidth, 7.0);
-        glTexCoord2f(1.0, 0.0);
-        glVertex2f(x_Fields + 36*PixelWidth, 7.0);
-        glTexCoord2f(1.0, 1.0);
-        glVertex2f(x_Fields + 36*PixelWidth, 8.0);
-        glTexCoord2f(0.0, 1.0);
-        glVertex2f(x_Fields + 4*PixelWidth, 8.0);
-      glEnd;
-      glDisable(GL_TEXTURE_2D);
-    end;//if Icon present
-    // -- moves of unit
-    glColor3ubv(@cMenuTextColour[0]);
-    WriteText(lang.GetMoves+': '+IntToStr(focused.MovesLeft),
-              x_Fields +40*PixelWidth, 7.5);
-    // -- location of unit
-    WriteText(lang.GetLocation+': '+IntToStr(focused.GetPosX)+','+IntToStr(focused.GetPosY),
-              x_Fields +40*PixelWidth, 7.0);
-    // -- type of unit
-    WriteText(lang.GetUnitName(focused.GetType),
-              x_Fields +4*PixelWidth, 6.5);
-    // -- terrain of unit's location
-    WriteText(lang.GetTerrainName(m_Map.tiles[focused.GetPosX,focused.GetPosY].GetType),
-              x_Fields +4*PixelWidth, 6.0);
-
-  end;//if Focused unit present
-
+procedure TGui.DrawMessage;
+var i, msg_lines, msg_opts: Integer;
+begin
   //show message, where neccessary
   if msg.txt<>'' then
   begin
@@ -907,7 +1028,7 @@ begin
         //draw box
         glBegin(GL_QUADS);
           glColor3f(0.83, 0.66, 0.39);
-          //we have one more line, due to input...  
+          //we have one more line, due to input...
           glVertex2f(2.0, 5.25 -0.25*msg_lines);
           glVertex2f(18.0, 5.25 -0.25*msg_lines);
           glVertex2f(18.0, 6.75 +0.25*msg_lines);
@@ -979,9 +1100,7 @@ begin
         WriteText(' '+msg.options[i-1], 2.5, 6.0+0.25*(msg_lines+msg_opts)-(i+msg_lines)*0.5);
     end;//if
   end;//if
-
-  glutSwapBuffers();
-end; //TGui.Draw
+end; //TGui.DrawMessage
 
 procedure TGui.CenterOn(const x, y: Integer);
 begin
@@ -1141,7 +1260,7 @@ begin
     if cur_colony.GetNation.IsEuropean then s:= s+IntToStr(TEuropeanNation(cur_colony.GetNation).GetGold)+'°'
     else s:= s+' -1°';
     glColor3ubv(@cMenuTextColour[0]);
-    WriteText(s, 0.1, 12.0+5.0*PixelWidth);
+    WriteText(s, ((cWindowWidth-8*length(s)) div 2)*PixelWidth, 12.0+5.0*PixelWidth);
   end;//if
 end;//proc
 
@@ -1200,7 +1319,7 @@ begin
   temp^.txt:= msg_txt;
   SetLength(temp^.options, length(opts));
   for i:= 0 to High(opts) do temp^.options[i]:= copy(Trim(opts[i]),1,59);
-  //maximum caption is half the line long (i.e. 30 characters) 
+  //maximum caption is half the line long (i.e. 30 characters)
   temp^.inputCaption:= copy(Trim(inCaption),1, 30);
   temp^.inputText:= Trim(inText);
   temp^.cbRec:= cbRec;
