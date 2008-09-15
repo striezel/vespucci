@@ -68,6 +68,10 @@ type
       function IsWater: Boolean;
 
       function GetGoodProduction(const AGood: TGoodType): Byte;
+      //for colony base fields
+      function GetColonyFood: Byte;
+      function GetColonyGoodType: TGoodType;
+      function GetColonyGoodAmount: Byte;
       //defense bonus for terrain, in percent. Maximum is 150, so Byte will do.
       function GetDefenceBonus: Byte;
 
@@ -600,5 +604,45 @@ begin
   if m_Type<>ttOpenSea then
     m_Special:= true;
 end;
+
+//functions for colony base field
+function TTerrain.GetColonyFood: Byte;
+begin
+  case m_Type of
+    ttArctic: Result:= 2;
+    ttPlains, ttGrassland, ttPrairie, ttSavannah, ttMarsh, ttSwamp, ttTundra: Result:= 5;
+    ttDesert, ttScrubForest: Result:= 3;
+    ttBoreal, ttWetland: Result:= 4;
+    ttBroadleaf, ttMixedForest, ttConiferForest, ttRainForest, ttTropicalForest, ttHills: Result:= 4;
+  else
+    Result:= 0;//ttSea, ttOpenSea, ttMountains
+  end;//case
+end;//func
+
+function TTerrain.GetColonyGoodType: TGoodType;
+begin
+  case m_Type of
+    ttPlains, ttPrairie: Result:= gtCotton;
+    ttGrassland, ttMarsh: Result:= gtTobacco;
+    ttSavannah, ttSwamp, ttRainForest: Result:= gtSugar;
+    ttDesert, ttTundra, ttHills: Result:= gtOre;
+    ttBoreal, ttWetland, ttScrubForest, ttBroadleaf, ttMixedForest, ttConiferForest, ttTropicalForest: Result:= gtFur;
+  else
+    Result:= gtFood; //ttArctic, ttSea, ttOpenSea, ttMountains
+  end;//case
+end;//func
+
+function TTerrain.GetColonyGoodAmount: Byte;
+begin
+  case m_Type of
+    ttPlains, ttMarsh, ttSwamp, ttDesert, ttTundra, ttWetland, ttScrubForest, ttBroadleaf: Result:= 3;
+    ttGrassland, ttPrairie, ttSavannah, ttBoreal, ttMixedForest: Result:= 4;
+    ttConiferForest, ttTropicalForest: Result:= 3;
+    ttRainForest: Result:= 2;
+    ttHills: Result:= 5;
+  else
+    Result:= 0;//ttArctic, ttSea, ttOpenSea, ttMountains
+  end;//case
+end;//func
 
 end.

@@ -34,14 +34,14 @@ type
       procedure ConstructNextLevel(const bt: TBuildingType);
       function GetProduction(const bt: TBuildingType; const ut: TUnitType): Integer;
       procedure NewRound(const AMap: TMap);
-
+      function GetUnitInField(const x_shift, y_shift: Integer): TUnit;
     private
       m_Name: string;
       Store: array[TGoodType] of Word; //max. is 300, a word should do it;
       Buildings: array[TBuildingType] of Byte;
-      UnitsInBuilding: array [btArmory..btBlacksmith] of array [0..2] of PUnit;
+      UnitsInBuilding: array [btArmory..btBlacksmith] of array [0..2] of TUnit;
       UnitsInFields: array[-1..1] of array [-1..1] of record
-                                                        u: PUnit;
+                                                        u: TUnit;
                                                         GoesFor: TGoodType;
                                                       end;//rec
   end;//class
@@ -101,8 +101,27 @@ begin
 end;//create
 
 destructor TColony.Destroy;
+var i,j: Integer;
 begin
   //what shall we do?
+  //set Units in fields free
+  for i:= -1 to 1 do
+    for j:= -1 to 1 do
+      if UnitsInFields[i,j].u<>nil then
+      begin
+        UnitsInFields[i,j].u.WarpToXY(GetPosX, GetPosY, nil);
+        UnitsInFields[i,j].u.SetLocation(ulAmerica);
+        UnitsInFields[i,j].u:= nil;
+      end;//func
+  //set units in buildings free
+  for i:= Ord(btArmory) to Ord(btBlacksmith) do
+    for j:= 0 to 2 do
+      if UnitsInBuilding[TBuildingType(i),j]<>nil then
+      begin
+        UnitsInBuilding[TBuildingType(i),j].WarpToXY(GetPosX, GetPosY, nil);
+        UnitsInBuilding[TBuildingType(i),j].SetLocation(ulAmerica);
+        UnitsInBuilding[TBuildingType(i),j]:= nil;
+      end;//func
   inherited Destroy;
 end;//destruc
 
@@ -168,34 +187,38 @@ end;//func
 procedure TColony.NewRound(const AMap: TMap);
 var i,j, prod: Integer;
 begin
-  //calculate production of units in surrounding fields
   if AMap<>nil then
   begin
+    //calculate production of units in surrounding fields
     for i:= -1 to 1 do
       for j:= -1 to 1 do
         if (UnitsInFields[i,j].u<>nil) then
           if ((self.PosX+i>=0) and (self.PosX+i<cMap_X) and (self.PosY+j>=0) and (self.PosY+j<cMap_Y)) then
             Store[UnitsInFields[i,j].GoesFor]:= Store[UnitsInFields[i,j].GoesFor] +
              AMap.tiles[self.PosX+i, self.PosY+j].GetGoodProduction(UnitsInFields[i,j].GoesFor);
+    //calculate production in base (=central) field
+    Store[gtFood]:= Store[gtFood]+AMap.tiles[PosX, PosY].GetColonyFood;
+    Store[AMap.tiles[PosX, PosY].GetColonyGoodType]:=
+          Store[AMap.tiles[PosX, PosY].GetColonyGoodType] +AMap.tiles[PosX, PosY].GetColonyGoodAmount;
   end;//if
   //calculate production of all buildings
   //church first
   prod:= 0;
   for i:=0 to 2 do
     if UnitsInBuilding[btChurch][i]<>nil then
-      prod:=prod+GetProduction(btChurch, UnitsInBuilding[btChurch][i]^.GetType);
+      prod:=prod+GetProduction(btChurch, UnitsInBuilding[btChurch][i].GetType);
   Store[gtCross]:= Store[gtCross]+prod;
   //town hall second
   prod:= 0;
   for i:=0 to 2 do
     if UnitsInBuilding[btTownHall][i]<>nil then
-      prod:=prod+GetProduction(btTownHall, UnitsInBuilding[btTownHall][i]^.GetType);
+      prod:=prod+GetProduction(btTownHall, UnitsInBuilding[btTownHall][i].GetType);
   Store[gtLibertyBell]:= Store[gtLibertyBell]+prod;
   //carpenter third
   prod:= 0;
   for i:=0 to 2 do
     if UnitsInBuilding[btCarpenter][i]<>nil then
-      prod:=prod+GetProduction(btCarpenter, UnitsInBuilding[btCarpenter][i]^.GetType);
+      prod:=prod+GetProduction(btCarpenter, UnitsInBuilding[btCarpenter][i].GetType);
   if Store[gtWood]<prod then prod:= Store[gtWood];
   Store[gtWood]:= Store[gtWood]-prod;
   Store[gtHammer]:= Store[gtHammer]+prod;
@@ -203,7 +226,7 @@ begin
   prod:= 0;
   for i:=0 to 2 do
     if UnitsInBuilding[btBlacksmith][i]<>nil then
-      prod:=prod+GetProduction(btBlacksmith, UnitsInBuilding[btBlacksmith][i]^.GetType);
+      prod:=prod+GetProduction(btBlacksmith, UnitsInBuilding[btBlacksmith][i].GetType);
   if Store[gtOre]<prod then prod:= Store[gtOre];
   Store[gtOre]:= Store[gtOre]-prod;
   Store[gtTool]:= Store[gtTool]+prod;
@@ -211,7 +234,7 @@ begin
   prod:= 0;
   for i:=0 to 2 do
     if UnitsInBuilding[btArmory][i]<>nil then
-      prod:=prod+GetProduction(btArmory, UnitsInBuilding[btArmory][i]^.GetType);
+      prod:=prod+GetProduction(btArmory, UnitsInBuilding[btArmory][i].GetType);
   if Store[gtTool]<prod then prod:= Store[gtTool];
   Store[gtTool]:= Store[gtTool]-prod;
   Store[gtMusket]:= Store[gtMusket]+prod;
@@ -219,7 +242,7 @@ begin
   prod:= 0;
   for i:=0 to 2 do
     if UnitsInBuilding[btFurTrader][i]<>nil then
-      prod:=prod+GetProduction(btFurTrader, UnitsInBuilding[btFurTrader][i]^.GetType);
+      prod:=prod+GetProduction(btFurTrader, UnitsInBuilding[btFurTrader][i].GetType);
   if Store[gtFur]<prod then prod:= Store[gtFur];
   Store[gtFur]:= Store[gtFur]-prod;
   Store[gtCoat]:= Store[gtCoat]+prod;
@@ -227,7 +250,7 @@ begin
   prod:= 0;
   for i:=0 to 2 do
     if UnitsInBuilding[btWeaver][i]<>nil then
-      prod:=prod+GetProduction(btWeaver, UnitsInBuilding[btWeaver][i]^.GetType);
+      prod:=prod+GetProduction(btWeaver, UnitsInBuilding[btWeaver][i].GetType);
   if Store[gtCotton]<prod then prod:= Store[gtCotton];
   Store[gtCotton]:= Store[gtCotton]-prod;
   Store[gtCloth]:= Store[gtCloth]+prod;
@@ -235,7 +258,7 @@ begin
   prod:= 0;
   for i:=0 to 2 do
     if UnitsInBuilding[btTobacconist][i]<>nil then
-      prod:=prod+GetProduction(btTobacconist, UnitsInBuilding[btTobacconist][i]^.GetType);
+      prod:=prod+GetProduction(btTobacconist, UnitsInBuilding[btTobacconist][i].GetType);
   if Store[gtTobacco]<prod then prod:= Store[gtTobacco];
   Store[gtTobacco]:= Store[gtTobacco]-prod;
   Store[gtCigar]:= Store[gtCigar]+prod;
@@ -243,7 +266,7 @@ begin
   prod:= 0;
   for i:=0 to 2 do
     if UnitsInBuilding[btDistiller][i]<>nil then
-      prod:=prod+GetProduction(btDistiller, UnitsInBuilding[btDistiller][i]^.GetType);
+      prod:=prod+GetProduction(btDistiller, UnitsInBuilding[btDistiller][i].GetType);
   if Store[gtSugar]<prod then prod:= Store[gtSugar];
   Store[gtSugar]:= Store[gtSugar]-prod;
   Store[gtRum]:= Store[gtRum]+prod;
@@ -254,5 +277,12 @@ begin
          and (Store[TGoodType(i)]>(1+buildings[btWarehouse])*100)) then
       Store[TGoodType(i)]:= (1+buildings[btWarehouse])*100;
 end;//func
+
+function TColony.GetUnitInField(const x_shift, y_shift: Integer): TUnit;
+begin
+  if (abs(x_shift)>1) or (abs(y_shift)>1) then Result:= nil
+  else Result:= UnitsInFields[x_shift, y_shift].u;
+end;//func
+
 
 end.
