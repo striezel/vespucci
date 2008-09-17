@@ -8,13 +8,13 @@ uses
 type
   TSettlement = class
     public
-      constructor Create(const X, Y: Integer; const ANation: TNation);
+      constructor Create(const X, Y: Integer; const ANation: Integer);
       destructor Destroy;
-      function GetNation: TNation;
+      function GetNation: Integer;
       function GetPosX: Integer;
       function GetPosY: Integer;
     protected
-      m_Nation: TNation;
+      m_Nation: Integer;
       PosX, PosY: Integer;
   end;//class
   PSettlement = ^TSettlement;
@@ -23,7 +23,7 @@ implementation
 
 // **** TSettlement functions ****
 
-constructor TSettlement.Create(const X, Y: Integer; const ANation: TNation);
+constructor TSettlement.Create(const X, Y: Integer; const ANation: Integer);
 begin
   //no settlements outside of range or at border row/column (index: 0) allowed
   if X>0 then PosX:= X else PosX:= 1;
@@ -36,7 +36,7 @@ begin
   inherited Destroy;
 end;//destruc
 
-function TSettlement.GetNation: TNation;
+function TSettlement.GetNation: Integer;
 begin
   Result:= m_Nation;
 end;//func

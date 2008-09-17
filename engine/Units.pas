@@ -3,7 +3,7 @@ unit Units;
 interface
 
 uses
-  Nation, Goods, Map, Classes;
+  Goods, Map, Classes;
 
 const
   UNIT_ITEM_NONE: Byte = 0;
@@ -498,8 +498,7 @@ end;//proc
 
 //loading ans saving functions, return true on success
 function TUnit.SaveToStream(var fs: TFileStream): Boolean;
-var b_written, i: Integer;
-    count: Byte;
+var i: Integer;
 begin
   if fs=nil then
   begin

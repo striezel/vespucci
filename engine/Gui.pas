@@ -681,8 +681,7 @@ begin
       if focused=nil then cur_colony:= dat.GetColonyInXY(pos_x, pos_y);
       //if not player's colony, set back to nil
       if cur_colony<>nil then
-        if cur_colony.GetNation<>nil then
-          if cur_colony.GetNation.GetCount<>dat.player_nation then cur_colony:= nil;
+        if cur_colony.GetNation<>dat.player_nation then cur_colony:= nil;
       glutPostRedisplay;
     end;//if
   end;//if
@@ -1342,6 +1341,7 @@ end;//proc
 
 procedure TGui.DrawColonyTitleBar;
 var s: string;
+    temp_nat: TNation;
 begin
   {$IFDEF DEBUG_CODE}
     WriteLn('Entered TGui.DrawColonyTitleBar');
@@ -1349,7 +1349,12 @@ begin
   if cur_colony<>nil then
   begin
     s:= cur_colony.GetName +'.  '+lang.GetSeason(dat.IsAutumn)+', '+IntToStr(dat.GetYear)+'. Gold: ';
-    if cur_colony.GetNation.IsEuropean then s:= s+IntToStr(TEuropeanNation(cur_colony.GetNation).GetGold)+'°'
+    temp_nat:= dat.GetNation(cur_colony.GetNation);
+    if temp_nat<>nil then
+    begin
+      if temp_nat.IsEuropean then s:= s+IntToStr(TEuropeanNation(temp_nat).GetGold)+'°'
+      else s:= s+' -1°';
+    end//if
     else s:= s+' -1°';
     glColor3ubv(@cMenuTextColour[0]);
     WriteText(s, ((cWindowWidth-8*length(s)) div 2)*PixelWidth, 12.0+5.0*PixelWidth);

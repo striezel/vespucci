@@ -183,7 +183,7 @@ begin
     for i:=Colony_max+1 to High(m_Colonies) do
       m_Colonies[i]:= nil;
   end;//if
-  m_Colonies[Colony_max+1]:= TColony.Create(x, y, GetNation(num_nation), AName);
+  m_Colonies[Colony_max+1]:= TColony.Create(x, y, num_nation, AName);
   Colony_max:= Colony_max+1;
   Result:= m_Colonies[Colony_max];
 end;//func
@@ -226,20 +226,19 @@ begin
   //call NewRound method for every colony
   for i:= 0 to Colony_max do
     if m_Colonies[i]<>nil then
-      if m_Colonies[i].GetNation<>nil then
-        if (m_Colonies[i].GetNation.GetCount=num_Nation) then
+      if (m_Colonies[i].GetNation=num_Nation) then
+      begin
+        //we should try to get a valid map instead of just nil in next line
+        m_Colonies[i].NewRound(AMap);
+        //following should be implemented in TColony and not here
+        if m_Colonies[i].GetStore(gtFood)>=200 then
         begin
-          //we should try to get a valid map instead of just nil in next line
-          m_Colonies[i].NewRound(AMap);
-          //following should be implemented in TColony and not here
-          if m_Colonies[i].GetStore(gtFood)>=200 then
-          begin
-            //time for new inhabitant
-            m_Colonies[i].RemoveFromStore(gtFood, 200);
-            //creates new unit and sets its location to America
-            NewUnit(utColonist, num_nation, m_Colonies[i].GetPosX, m_Colonies[i].GetPosY).SetLocation(ulAmerica);
-          end;//if
+          //time for new inhabitant
+          m_Colonies[i].RemoveFromStore(gtFood, 200);
+          //creates new unit and sets its location to America
+          NewUnit(utColonist, num_nation, m_Colonies[i].GetPosX, m_Colonies[i].GetPosY).SetLocation(ulAmerica);
         end;//if
+      end;//if
 end;//func
 
 end.
