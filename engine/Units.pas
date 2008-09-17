@@ -3,13 +3,15 @@ unit Units;
 interface
 
 uses
-  Nation, Goods, Map;
+  Nation, Goods, Map, Classes;
 
 const
   UNIT_ITEM_NONE: Byte = 0;
   UNIT_TOOL_MASK: Byte = 7;
   UNIT_HORSE_BIT: Byte = 8;
   UNIT_MUSKET_BIT: Byte = 16;
+  
+  cUnitFileHeader = 'VUD';
 
 type
   TUnitType = (utCriminal, utServant, utColonist,
@@ -38,14 +40,14 @@ type
   TUnit = class
     public
       MovesLeft: Integer;
-      constructor Create(const TypeOfUnit: TUnitType; const ANation: PNation; X: Integer=1; Y: Integer=1);
+      constructor Create(const TypeOfUnit: TUnitType; const ANation: Integer; X: Integer=1; Y: Integer=1);
       destructor Destroy;
       procedure NewRound;
       function Move(const direction: TDirection; const AMap: TMap): Boolean;
       function WarpToXY(const x, y: Byte; AMap: TMap): Boolean;
       function GetPosX: Integer;
       function GetPosY: Integer;
-      function GetNation: PNation;
+      function GetNation: Integer;
       function GetType: TUnitType;
       procedure ChangeType(const newType: TUnitType);
       function GetLocation: TUnitLocation;
@@ -69,11 +71,13 @@ type
       procedure GiveHorses(const has: Boolean = True);
       function HasMuskets: Boolean;
       procedure GiveMuskets(const has: Boolean = True);
+      function SaveToStream(var fs: TFileStream): Boolean;
+      function LoadFromStream(var fs: TFileStream): Boolean;
     private
       PosX, PosY: Integer;
       UnitType: TUnitType;
       m_location: TUnitLocation;
-      Nation: PNation;
+      m_Nation: Integer;
       //stores items like horses, muskets, tools
       items: Byte;
       //stores passengers (on ships)
@@ -153,7 +157,7 @@ end;//proc
 // *TUnit methods*
 // ***************
 
-constructor TUnit.Create(const TypeOfUnit: TUnitType; const ANation: PNation; X: Integer=1; Y: Integer=1);
+constructor TUnit.Create(const TypeOfUnit: TUnitType; const ANation: Integer; X: Integer=1; Y: Integer=1);
 var i: Integer;
 begin
   UnitType:= TypeOfUnit;
@@ -161,7 +165,7 @@ begin
   PosY:= Y;
   m_location:= ulAmerica;
   MovesLeft:= MovesPerRound;
-  Nation:= ANation;
+  m_Nation:= ANation;
   items:= 0;
   AI_Task:= nil;
   if TypeOfUnit = utPioneer then GiveTools(100)
@@ -235,7 +239,7 @@ begin
         PosX:= newX;
         PosY:= newY;
       end;//if
-      if ((AMap<>nil) and (Nation<>nil)) then AMap.DiscoverSurroundingTiles(newX, newX, Nation^.GetCount, UnitType=utScout);
+      if ((AMap<>nil) and (m_Nation<>0)) then AMap.DiscoverSurroundingTiles(newX, newX, m_Nation, UnitType=utScout);
       Result:= True;
     end//if
     else Result:= False;
@@ -249,8 +253,8 @@ begin
     PosX:= x;
     PosY:= y;
     Result:= True;
-    if ((AMap<>nil) and (self.Nation<>nil)) then
-      AMap.DiscoverSurroundingTiles(x,y, Nation^.GetCount, UnitType=utScout);
+    if ((AMap<>nil) and (m_Nation<>0)) then
+      AMap.DiscoverSurroundingTiles(x,y, m_Nation, UnitType=utScout);
   end;
 end;//func
 
@@ -264,9 +268,9 @@ begin
   Result:= PosY;
 end;
 
-function TUnit.GetNation: PNation;
+function TUnit.GetNation: Integer;
 begin
-  Result:= Nation;
+  Result:= m_Nation;
 end;//func
 
 function TUnit.GetType: TUnitType;
@@ -491,6 +495,60 @@ begin
   if has then items:= (items or UNIT_MUSKET_BIT)
   else items:= (items and (not UNIT_MUSKET_BIT));
 end;//proc
+
+//loading ans saving functions, return true on success
+function TUnit.SaveToStream(var fs: TFileStream): Boolean;
+var b_written, i: Integer;
+    count: Byte;
+begin
+  if fs=nil then
+  begin
+    Result:= False;
+    Exit;
+  end;//if
+  Result:= fs.Write(MovesLeft, sizeof(MovesLeft))=sizeof(MovesLeft);
+  Result:= Result and (fs.Write(PosX, sizeof(PosX))=sizeof(PosX));
+  Result:= Result and (fs.Write(PosY, sizeof(PosY))=sizeof(PosY));
+  Result:= Result and (fs.Write(UnitType, sizeof(TUnitType))=sizeof(TUnitType));
+  Result:= Result and (fs.Write(m_location, sizeof(TUnitLocation))=sizeof(TUnitLocation));
+  Result:= Result and (fs.Write(m_Nation, sizeof(Integer))=sizeof(Integer));
+  Result:= Result and (fs.Write(items, sizeof(items))=sizeof(items));
+  //save cargo
+  for i:= 0 to 5 do
+  begin
+    Result:= Result and (fs.Write(cargo_load[i].amount, sizeof(Byte))=1);
+    Result:= Result and (fs.Write(cargo_load[i].which, sizeof(TGoodType))=sizeof(TGoodType));
+  end;//func
+  //********* save passengers and tasks needs to be done yet! *********
+end;//func
+
+function TUnit.LoadFromStream(var fs: TFileStream): Boolean;
+var i: Integer;
+begin
+  if (fs=nil) then
+  begin
+    Result:= False;
+    Exit;
+  end;
+  Result:= (fs.Read(MovesLeft, sizeof(MovesLeft))=sizeof(MovesLeft));
+  Result:= Result and (fs.Read(PosX, sizeof(PosX))=sizeof(PosX));
+  Result:= Result and (fs.Read(PosY, sizeof(PosY))=sizeof(PosY));
+  Result:= Result and (fs.Read(UnitType, sizeof(TUnitType))=sizeof(TUnitType));
+  Result:= Result and (fs.Read(m_location, sizeof(TUnitLocation))=sizeof(TUnitLocation));
+  Result:= Result and (fs.Read(m_Nation, sizeof(Integer))=sizeof(Integer));
+  Result:= Result and (fs.Write(items, sizeof(items))=sizeof(items));
+  //cargo load
+  for i:= 0 to 5 do
+  begin
+    Result:= Result and (fs.Write(cargo_load[i].amount, sizeof(Byte))=1);
+    Result:= Result and (fs.Write(cargo_load[i].which, sizeof(TGoodType))=sizeof(TGoodType));
+  end;//func
+  //passengers are not yet saved, and thus not loaded
+  for i:= 0 to 5 do
+    passengers[i]:= nil;
+  //same for tasks
+  AI_Task:= nil;
+end;//func
 
 //**** AI-related functions ****
 
