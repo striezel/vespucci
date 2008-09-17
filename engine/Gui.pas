@@ -159,6 +159,8 @@ const
   KEY_NUMPAD8 = 56;
   KEY_NUMPAD9 = 57;
 
+{$DEFINE DEBUG_CODE 1}
+
 type
   TShortStrArr = array of ShortString;
   PQueueElem = ^TQueueElem;
@@ -296,6 +298,9 @@ var i: Integer;
     err_str: string;
     Ship, passenger: TUnit;
 begin
+  {$IFDEF DEBUG_CODE}
+    WriteLn('Entered TGui.Create');
+  {$ENDIF}
   inherited Create;
   mouse_x:= 0;
   mouse_y:= 0;
@@ -422,11 +427,17 @@ begin
          +cSpace60
          +'  Viele Sachen sind noch nicht implementiert, Vespucci be-  '
          +'  findet sich gerade am Anfang der Entwicklungsphase.');
+  {$IFDEF DEBUG_CODE}
+    WriteLn('Leaving TGui.Create');
+  {$ENDIF}
 end;//constructor
 
 destructor TGui.Destroy;
 var i: Integer;
 begin
+  {$IFDEF DEBUG_CODE}
+    WriteLn('Entered TGui.Destroy');
+  {$ENDIF}
   m_Map.Destroy;
   lang.Destroy;
   dat.Destroy;
@@ -438,6 +449,9 @@ begin
   for i:= Ord(Low(TUnitType)) to Ord(High(TUnitType)) do
     if m_UnitTexNames[TUnitType(i)]<> 0 then glDeleteTextures(1, @m_UnitTexNames[TUnitType(i)]);
   inherited Destroy;
+  {$IFDEF DEBUG_CODE}
+    WriteLn('Leaving TGui.Destroy');
+  {$ENDIF}
 end;//destructor
 
 procedure TGui.KeyFunc(Key: Byte; x, y: LongInt; Special: Boolean = False);
@@ -446,6 +460,9 @@ var tempUnit: TUnit;
     temp_x, temp_y: Byte;
     direc: TDirection;
 begin
+  {$IFDEF DEBUG_CODE}
+    WriteLn('Entered TGui.KeyFunc');
+  {$ENDIF}
   //react on message
   if msg.txt<>'' then
   begin
@@ -538,6 +555,9 @@ begin
          end;
     //T is for testing only
     'T': begin
+           {$IFDEF DEBUG_CODE}
+             ShowMessageSimple('DEBUG: Paramstr(0): '+ Paramstr(0)+cSpace60+ 'ParamCount: '+ IntToStr(ParamCount));
+           {$ENDIF}
            ShowMessageSimple('Dies ist ein Test./ This is a test.');
            ShowMessageSimple('Nummer zwei.');
            ShowMessageOptions('Nummer drei.', ToShortStrArr('1', '2', '3'), cEmptyCallback);
@@ -623,11 +643,17 @@ begin
         CenterOn(focused.GetPosX, focused.GetPosY);
     end;//if
   end;//else
+  {$IFDEF DEBUG_CODE}
+    WriteLn('Leaving TGui.KeyFunc');
+  {$ENDIF}
 end;//proc
 
 procedure TGui.MouseFunc(const button, state, x,y: LongInt);
 var pos_x, pos_y: Integer;
 begin
+  {$IFDEF DEBUG_CODE}
+    WriteLn('Entered TGui.MouseFunc');
+  {$ENDIF}
   if msg.txt<>'' then Exit;
   if (cur_colony<>nil) then
   begin
@@ -637,6 +663,9 @@ begin
       cur_colony:= nil;
       glutPostRedisplay;
     end;//if
+    {$IFDEF DEBUG_CODE}
+    WriteLn('Exiting TGui.MouseFunc');
+  {$ENDIF}
     Exit;
   end;
   //handle mouse events here
@@ -657,6 +686,9 @@ begin
       glutPostRedisplay;
     end;//if
   end;//if
+  {$IFDEF DEBUG_CODE}
+    WriteLn('Leaving TGui.MouseFunc');
+  {$ENDIF}
 end;//proc
 
 procedure TGui.MouseMoveFunc(const x,y: LongInt);
@@ -667,12 +699,21 @@ end;//func
 
 procedure TGui.Resize(Width, Height: LongInt);
 begin
+  {$IFDEF DEBUG_CODE}
+    WriteLn('Entered TGuiResize');
+  {$ENDIF}
   if ((Width<>cWindowWidth) or (Height<>cWindowHeight)) then
     glutReshapeWindow(cWindowWidth, cWindowHeight);
+  {$IFDEF DEBUG_CODE}
+    WriteLn('Leaving TGui.Resize');
+  {$ENDIF}
 end;//proc
 
 procedure TGui.InitGLUT;
 begin
+  {$IFDEF DEBUG_CODE}
+    WriteLn('Entered TGui.InitGLUT');
+  {$ENDIF}
   WriteLn('glEnable-like stuff');
    // Enable backface culling
   glEnable(GL_CULL_FACE);
@@ -695,6 +736,9 @@ var i, j: Integer;
     tempUnit: TUnit;
     tempColony: TColony;
 begin
+  {$IFDEF DEBUG_CODE}
+    WriteLn('Entered TGui.Draw');
+  {$ENDIF}
   glLoadIdentity;
   glViewport(0,0, cWindowWidth, cWindowHeight);
   glOrtho(0.0, 20.0, -0.5, 12.5, -1.0, 1.0);
@@ -902,11 +946,17 @@ begin
   DrawMessage;
 
   glutSwapBuffers();
+  {$IFDEF DEBUG_CODE}
+    WriteLn('Leaving TGui.Draw');
+  {$ENDIF}
 end;//TGui.Draw
 
 procedure TGui.DrawColonyView;
 var i,j: Integer;
 begin
+  {$IFDEF DEBUG_CODE}
+    WriteLn('Entered TGui.DrawColonyView');
+  {$ENDIF}
   //draw border
   glBegin(GL_QUADS);
     glColor3f(0.0, 0.0, 0.0);
@@ -929,8 +979,11 @@ begin
       //draw terrain
       if m_TerrainTexNames[m_Map.tiles[i+cur_colony.GetPosX,j+cur_colony.GetPosY].m_Type]=0 then
       begin
+        {$IFDEF DEBUG_CODE}
+          WriteLn('TGui.DrawColonyView: Trying to draw flat terrain in ',i,',',j);
+        {$ENDIF}
         glBegin(GL_QUADS);
-        case m_Map.tiles[i,j].m_Type of
+        case m_Map.tiles[i+cur_colony.GetPosX,j+cur_colony.GetPosY].m_Type of
           ttArctic: glColor3f(1.0, 1.0, 1.0);//white
           ttSea: glColor3f(0.0, 0.0, 1.0);//blue
           ttOpenSea: glColor3f(0.3, 0.3, 1.0);//lighter blue
@@ -984,11 +1037,17 @@ begin
     end;//for
   DrawColonyTitleBar;
   DrawGoodsBar;
+  {$IFDEF DEBUG_CODE}
+    WriteLn('Leaving TGui.DrawColonyView');
+  {$ENDIF}
 end;//proc DrawColonyView
 
 procedure TGui.DrawMessage;
 var i, msg_lines, msg_opts: Integer;
 begin
+  {$IFDEF DEBUG_CODE}
+    WriteLn('Entered TGui.DrawMessage');
+  {$ENDIF}
   //show message, where neccessary
   if msg.txt<>'' then
   begin
@@ -1100,10 +1159,16 @@ begin
         WriteText(' '+msg.options[i-1], 2.5, 6.0+0.25*(msg_lines+msg_opts)-(i+msg_lines)*0.5);
     end;//if
   end;//if
+  {$IFDEF DEBUG_CODE}
+    WriteLn('Leaving TGui.MouseFunc');
+  {$ENDIF}
 end; //TGui.DrawMessage
 
 procedure TGui.CenterOn(const x, y: Integer);
 begin
+  {$IFDEF DEBUG_CODE}
+    WriteLn('Entered TGui.CenterOn(',x,',',y,')');
+  {$ENDIF}
   OffSetX:= x-7;
   if OffSetX<0 then OffsetX:= 0
   else if (OffSetX>cMap_X-x_Fields) then OffsetX:= cMap_X-x_Fields;
@@ -1125,39 +1190,60 @@ procedure TGui.WriteText(const msg_txt: string; const x, y: Single);
    GLUT_BITMAP_TIMES_ROMAN_10 }
 var i: Integer;
 begin
+  {$IFDEF DEBUG_CODE}
+    WriteLn('Entered TGui.WriteText');
+  {$ENDIF}
   glRasterPos3f(x, y, 0.2);
   for i:= 1 to length(msg_txt) do
     if (Ord(msg_txt[i]) >=32){ and (Ord(msg_txt[i]) <=127)} then
     begin
       glutBitmapCharacter(GLUT_BITMAP_8_BY_13, Ord(msg_txt[i]));
     end;
+  {$IFDEF DEBUG_CODE}
+    WriteLn('Leaving TGui.WriteText');
+  {$ENDIF}
 end;//proc
 
 procedure TGui.WriteHelvetica12(const msg_txt: string; const x, y: Single);
 var i: Integer;
 begin
+  {$IFDEF DEBUG_CODE}
+    WriteLn('Entered TGui.WriteHelvetica12');
+  {$ENDIF}
   glRasterPos3f(x, y, 0.2);
   for i:= 1 to length(msg_txt) do
     if (Ord(msg_txt[i]) >=32){ and (Ord(msg_txt[i]) <=127)} then
     begin
       glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, Ord(msg_txt[i]));
     end;
+  {$IFDEF DEBUG_CODE}
+    WriteLn('Leaving TGui.WriteHelvetica12');
+  {$ENDIF}
 end;//proc
 
 procedure TGui.DrawMenuBar;
 var s: string;
     i: Integer;
 begin
+  {$IFDEF DEBUG_CODE}
+    WriteLn('Entered TGui.DrawMenuBar');
+  {$ENDIF}
   s:= lang.GetMenuLabel(mcGame);
   for i:= Ord(Succ(mcGame)) to Ord(High(TMenuCategory)) do
     s:= s+'  '+lang.GetMenuLabel(TMenuCategory(i));
   WriteText(s, 0.1, 12.0+5.0*PixelWidth);
+  {$IFDEF DEBUG_CODE}
+    WriteLn('Leaving TGui.DrawMenuBar');
+  {$ENDIF}
 end;//proc
 
 procedure TGui.DrawGoodsBar;
 var i, j, str_width: Integer;
     price_str: string;
 begin
+  {$IFDEF DEBUG_CODE}
+    WriteLn('Entered TGui.DrawGoodsBar');
+  {$ENDIF}
   //background
   glBegin(GL_QUADS);
     glColor3ub(76, 100, 172);
@@ -1249,11 +1335,17 @@ begin
     glColor3ub(255, 255, 255);
     WriteText(price_str, i*PixelWidth, 53*PixelWidth -0.5)
   end;//func
+  {$IFDEF DEBUG_CODE}
+    WriteLn('Leaving TGui.DrawGoodsBar');
+  {$ENDIF}
 end;//proc
 
 procedure TGui.DrawColonyTitleBar;
 var s: string;
 begin
+  {$IFDEF DEBUG_CODE}
+    WriteLn('Entered TGui.DrawColonyTitleBar');
+  {$ENDIF}
   if cur_colony<>nil then
   begin
     s:= cur_colony.GetName +'.  '+lang.GetSeason(dat.IsAutumn)+', '+IntToStr(dat.GetYear)+'. Gold: ';
@@ -1262,6 +1354,9 @@ begin
     glColor3ubv(@cMenuTextColour[0]);
     WriteText(s, ((cWindowWidth-8*length(s)) div 2)*PixelWidth, 12.0+5.0*PixelWidth);
   end;//if
+  {$IFDEF DEBUG_CODE}
+    WriteLn('Leaving TGui.DrawColonyTitleBar');
+  {$ENDIF}
 end;//proc
 
 function TGui.InMenu: Boolean;
@@ -1315,6 +1410,9 @@ procedure TGui.EnqueueNewMessage(const msg_txt: AnsiString; const opts: TShortSt
 var temp: PQueueElem;
     i: Integer;
 begin
+  {$IFDEF DEBUG_CODE}
+    WriteLn('Entered TGui.EnqueueNewMessage');
+  {$ENDIF}
   New(temp);
   temp^.txt:= msg_txt;
   SetLength(temp^.options, length(opts));
@@ -1333,11 +1431,17 @@ begin
     msg_queue.last^.next:= temp;
     msg_queue.last:= temp;
   end;//else
+  {$IFDEF DEBUG_CODE}
+    WriteLn('Leaving TGui.EnqueueNewMessage');
+  {$ENDIF}
 end;//proc
 
 procedure TGui.ShowMessageSimple(const msg_txt: AnsiString);
 var null_opts: TShortStrArr;
 begin
+  {$IFDEF DEBUG_CODE}
+    WriteLn('Entered TGui.ShowMessageSimple');
+  {$ENDIF}
   if msg.txt='' then
   begin
     msg.txt:= Trim(msg_txt);
@@ -1351,11 +1455,17 @@ begin
     SetLength(null_opts, 0);
     EnqueueNewMessage(msg_txt, null_opts, '', '', cEmptyCallback);
   end;//else
+  {$IFDEF DEBUG_CODE}
+    WriteLn('Leaving TGui.ShowMessageSimple');
+  {$ENDIF}
 end;//proc
 
 procedure TGui.ShowMessageOptions(const msg_txt: AnsiString; const opts: TShortStrArr; cbRec: TCallbackRec);
 var i: Integer;
 begin
+  {$IFDEF DEBUG_CODE}
+    WriteLn('Entered TGui.ShowMessageOptions');
+  {$ENDIF}
   if msg.txt='' then
   begin
     msg.txt:= Trim(msg_txt)+cSpace60;
@@ -1371,11 +1481,17 @@ begin
     //enqueue new message
     EnqueueNewMessage(Trim(msg_txt)+cSpace60, opts, '', '', cbRec);
   end;//else
+  {$IFDEF DEBUG_CODE}
+    WriteLn('Leaving TGui.ShowMessageOptions');
+  {$ENDIF}
 end;//proc
 
 procedure TGui.ShowMessageInput(const msg_txt: AnsiString; const inCaption: ShortString; const inDefault: ShortString; cbRec: TCallbackRec);
 var null_opts: TShortStrArr;
 begin
+  {$IFDEF DEBUG_CODE}
+    WriteLn('Entered TGui.ShowMessageInput');
+  {$ENDIF}
   if msg.txt='' then
   begin
     msg.txt:= Trim(msg_txt)+cSpace60;
@@ -1391,12 +1507,18 @@ begin
     SetLength(null_opts, 0);
     EnqueueNewMessage(Trim(msg_txt)+cSpace60, null_opts, inCaption, inDefault, cbRec);
   end;//else
+  {$IFDEF DEBUG_CODE}
+    WriteLn('Leaving TGui.ShowMessageInput');
+  {$ENDIF}
 end;//func
 
 procedure TGui.GetNextMessage;
 var i: Integer;
     temp: PQueueElem;
 begin
+  {$IFDEF DEBUG_CODE}
+    WriteLn('Entered TGui.GetNextMessage');
+  {$ENDIF}
   //save last selection before anything else
   if ((length(msg.options)>1) or (msg.inputCaption<>'')) then
   begin
@@ -1433,6 +1555,9 @@ begin
     msg.inputText:= '';
     msg.cbRec:= cEmptyCallback;
   end;//else branch
+  {$IFDEF DEBUG_CODE}
+    WriteLn('Leaving TGui.GetNextMessage');
+  {$ENDIF}
 end;//proc
 
 end.

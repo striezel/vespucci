@@ -18,6 +18,7 @@ const
   terrain_img_path = img_path+'terrain'+path_delimiter;
   unit_img_path = img_path+'units'+path_delimiter;
   colony_img_path = img_path+'colony'+path_delimiter;
+  save_path = data_path+'saves'+path_delimiter;
 
 type
   TData = class
@@ -137,7 +138,7 @@ begin
     for i:=Unit_max+1 to High(m_Units) do
       m_Units[i]:= nil;
   end;//if
-  m_Units[Unit_max+1]:= TUnit.Create(TypeOfUnit, GetNationPointer(ANation), X, Y);
+  m_Units[Unit_max+1]:= TUnit.Create(TypeOfUnit, ANation, X, Y);
   Unit_max:= Unit_max+1;
   Result:= m_Units[Unit_max];
 end;//proc
@@ -164,7 +165,7 @@ begin
   for i:= 0 to Unit_max do
     if m_Units[i]<>nil then
     begin
-      if ((m_Units[i].MovesLeft>0) and (m_Units[i].GetNation^.GetCount=num_Nation) and (m_Units[i].GetLocation=ulAmerica)) then
+      if ((m_Units[i].MovesLeft>0) and (m_Units[i].GetNation=num_Nation) and (m_Units[i].GetLocation=ulAmerica)) then
       begin
         Result:= m_Units[i];
         break;
@@ -206,8 +207,8 @@ begin
   Result:= True;
   for i:= x-2 to x+2 do
     for j:= y-2 to y+2 do
-      if ((x>=0) and (y>=0)) then
-        if GetColonyInXY(x,y)<>nil then
+      if ((i>=0) and (j>=0)) then
+        if GetColonyInXY(i,j)<>nil then
         begin
           Result:= False;
           Exit; //maybe simple "break;" won't do - we are in a "double loop"
@@ -220,7 +221,7 @@ begin
   //call NewRound method for every unit of that nation
   for i:= 0 to Unit_max do
     if m_Units[i]<>nil then
-      if (m_Units[i].GetNation^.GetCount=num_Nation) then
+      if (m_Units[i].GetNation=num_Nation) then
         m_Units[i].NewRound;
   //call NewRound method for every colony
   for i:= 0 to Colony_max do
