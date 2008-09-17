@@ -3,7 +3,7 @@ unit Colony;
 interface
 
 uses
-  Nation, Settlement, Goods, Units, Map, Classes;
+  Settlement, Goods, Units, Map, Classes;
 
 type
   TBuildingType = (btFort, //Einpfählung, Fort, Festung

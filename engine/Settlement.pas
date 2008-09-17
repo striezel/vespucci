@@ -2,9 +2,6 @@ unit Settlement;
 
 interface
 
-uses
-  Nation;
-
 type
   TSettlement = class
     public

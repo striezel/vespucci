@@ -3,7 +3,7 @@ unit Data;
 interface
 
 uses
-  Nation, Language, Units, Colony, Map, Goods;
+  Nation, Language, Units, Colony, Map, Goods, Classes, SysUtils, Helper;
 
 const
 {$IFDEF Win32}
@@ -19,6 +19,9 @@ const
   unit_img_path = img_path+'units'+path_delimiter;
   colony_img_path = img_path+'colony'+path_delimiter;
   save_path = data_path+'saves'+path_delimiter;
+  
+  cDataFileHeader = 'VDD';
+  cColonyFileHeader = 'VCD';
 
 type
   TData = class
@@ -51,6 +54,7 @@ type
               function FreeForSettlement(const x,y:Byte): Boolean;
               //others
               procedure NewRound(const num_Nation: Integer; AMap: TMap);
+              function SaveData(const n: Word; AMap: TMap): Boolean;
           end;//class
 
 implementation
@@ -239,6 +243,85 @@ begin
           NewUnit(utColonist, num_nation, m_Colonies[i].GetPosX, m_Colonies[i].GetPosY).SetLocation(ulAmerica);
         end;//if
       end;//if
+end;//func
+
+function TData.SaveData(const n: Word; AMap: TMap): Boolean;
+var fs: TFileStream;
+    i, temp: Integer;
+begin
+  { files:
+      data<n>.vdd - simple data
+      map<n>.vmd - map itself
+      units<n>.vud - all units
+      colony.vcd - all colonies
+  }
+  if AMap=nil then
+  begin
+    Result:= False;
+    Exit;
+  end;//if
+  
+  fs:= nil;
+  try
+    fs:= TFileStream.Create(save_path + 'data'+IntToStr(n)+'.vdd', fmCreate or fmShareDenyNone);
+  except
+    if fs<>nil then fs.Free;
+    Result:= False;
+    Exit;
+  end;//tryxcept
+
+  Result:= (fs.Write(cDataFileHeader, sizeof(cDataFileHeader))=sizeof(cDataFileHeader));
+  Result:= Result and (fs.Write(Year, sizeof(Year))=sizeof(Year));
+  Result:= Result and (fs.Write(Autumn, sizeof(Autumn))=sizeof(Autumn));
+  Result:= Result and (fs.Write(player_nation, sizeof(player_nation))=sizeof(player_nation));
+  fs.Free;
+  fs:= nil;
+  //map
+  if AMap<>nil then
+  begin
+    Result:= Result and AMap.SaveToFile(save_path + 'map'+IntToStr(n)+'.vmd');
+  end//if
+  else begin
+    //no map specified
+    Result:= False;
+    Exit;
+  end;//func
+
+  //units
+  temp:= 0;
+  for i:=0 to Unit_max do
+    if m_Units[i]<>nil then temp:= temp+1;
+  try
+    fs:= TFileStream.Create(save_path + 'units'+IntToStr(n)+'.vud', fmCreate or fmShareDenyNone);
+  except
+    if fs<>nil then fs.Free;
+    Result:= False;
+    Exit;
+  end;//tryxcept
+  Result:= Result and (fs.Write(cUnitFileHeader, sizeof(cUnitFileHeader))=sizeof(cUnitFileHeader));
+  Result:= Result and (fs.Write(temp, sizeof(Integer))=sizeof(Integer));
+  for i:= 0 to Unit_max do
+    if m_Units[i]<>nil then Result:= Result and m_Units[i].SaveToStream(fs);
+  fs.Free;
+  fs:= nil;
+  
+  //colonies
+  temp:= 0;
+  for i:=0 to Colony_max do
+    if m_Colonies[i]<>nil then temp:= temp+1;
+  try
+    fs:= TFileStream.Create(save_path + 'colony'+IntToStr(n)+'.vcd', fmCreate or fmShareDenyNone);
+  except
+    if fs<>nil then fs.Free;
+    Result:= False;
+    Exit;
+  end;//tryxcept
+  Result:= Result and (fs.Write(cColonyFileHeader, sizeof(cColonyFileHeader))=sizeof(cColonyFileHeader));
+  Result:= Result and (fs.Write(temp, sizeof(Integer))=sizeof(Integer));
+  for i:= 0 to Colony_max do
+    if m_Colonies[i]<>nil then Result:= Result and m_Colonies[i].SaveToStream(fs);
+  fs.Free;
+  fs:= nil;
 end;//func
 
 end.
