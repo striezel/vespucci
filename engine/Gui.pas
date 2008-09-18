@@ -140,6 +140,7 @@ const
 
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
   cMenuHighColour : array [0..2] of Byte = (255, 20, 20);
+  cWoodenColour: array [0..2] of GLfloat = (0.83, 0.66, 0.39);
 
   //Keys
   KEY_BACKSPACE = 8;
@@ -159,7 +160,7 @@ const
   KEY_NUMPAD8 = 56;
   KEY_NUMPAD9 = 57;
 
-{$DEFINE DEBUG_CODE 1}
+{PlaceTheDollarSignHereDEFINE DEBUG_CODE 1}
 
 type
   PQueueElem = ^TQueueElem;
@@ -174,6 +175,7 @@ type
     private
       mouse_x, mouse_y: Integer;
       menu_cat: TMenuCategory;
+      selected_menu_option: Integer;
       OffsetX, OffsetY: Integer;
       MiniMapOffset_Y: Integer;
       cur_colony: TColony;
@@ -208,10 +210,14 @@ type
       procedure DrawColonyTitleBar;
       procedure DrawMessage;
       procedure DrawColonyView;
+      procedure DrawMenu;
       procedure GetSquareAtMouse(var sq_x, sq_y: Integer);
       function  GetGoodAtMouse: TGoodType;
+      function  GetMenuCategoryAtMouse: TMenuCategory;
       procedure EnqueueNewMessage(const msg_txt: AnsiString; const opts: TShortStrArr; const inCaption, inText: ShortString; cbRec: TCallbackRec);
       procedure GetNextMessage;//de-facto dequeue
+      procedure HandleMenuSelection(const categ: TMenuCategory; const selected: Integer);
+      function  GetMenuStartX(const categ: TMenuCategory): GLfloat;
     public
       m_Map: TMap;
       constructor Create;
@@ -275,6 +281,7 @@ begin
   end;
   m_Map.GenerateSpecials;
   menu_cat:= mcNone;
+  selected_menu_option:= 1;
   cur_colony:= nil;
   europe:= nil;
   focused:= nil;
@@ -458,6 +465,34 @@ begin
     Exit;//to prevent other things, keys can do to your units. We have
          // a message window, so display it, until space is hit.
   end;//if
+  
+  //keys if menu is active
+  if InMenu then
+  begin
+    case Key of
+      GLUT_KEY_UP, KEY_NUMPAD8: begin
+                                  selected_menu_option:= selected_menu_option-1;
+                                  if selected_menu_option<1 then selected_menu_option:= lang.GetOptionCount(menu_cat);
+                                end;//case UP, 8
+      GLUT_KEY_DOWN, KEY_NUMPAD2: begin
+                                  selected_menu_option:= selected_menu_option+1;
+                                  if selected_menu_option>lang.GetOptionCount(menu_cat) then selected_menu_option:= 1;
+                                end;//case DOWN, 2
+      GLUT_KEY_LEFT, KEY_NUMPAD4: begin
+                                    if menu_cat<>mcGame then menu_cat:= Pred(menu_cat) else menu_cat:= mcTrade;
+                                  end;//left
+      GLUT_KEY_RIGHT, KEY_NUMPAD6: begin
+                                     if menu_cat<>mcTrade then menu_cat:= Succ(menu_cat) else menu_cat:= mcGame;
+                                   end;//right
+      KEY_ESCAPE: menu_cat:= mcNone;
+      KEY_RETURN, KEY_SPACE: begin
+                               HandleMenuSelection(menu_cat, selected_menu_option);
+                               menu_cat:= mcNone;
+                               selected_menu_option:=1;
+                             end;//Enter, Leertaste
+    end;//case
+    Exit; //better here ;)
+  end;//if InMenu
 
   //"general" keys
   if Key=KEY_ESCAPE then
@@ -618,9 +653,9 @@ begin
     end;//if
     {$IFDEF DEBUG_CODE}
     WriteLn('Exiting TGui.MouseFunc');
-  {$ENDIF}
+    {$ENDIF}
     Exit;
-  end;
+  end;//if colony
   //handle mouse events here
   if ((button=GLUT_LEFT) and (state=GLUT_UP) and (europe=nil) and (cur_colony=nil)) then
   begin
@@ -636,7 +671,11 @@ begin
       if cur_colony<>nil then
         if cur_colony.GetNation<>dat.player_nation then cur_colony:= nil;
       glutPostRedisplay;
-    end;//if
+    end//if pos_x<>-1
+    else begin
+      menu_cat:= GetMenuCategoryAtMouse;
+      WriteLn('GUI got category: ', Ord(menu_cat));
+    end;//else
   end;//if
   {$IFDEF DEBUG_CODE}
     WriteLn('Leaving TGui.MouseFunc');
@@ -891,6 +930,9 @@ begin
                 x_Fields +4*PixelWidth, 6.0);
 
     end;//if Focused unit present
+    
+    //draw menu, if present
+    DrawMenu;
 
   end;//if America view
 
@@ -993,6 +1035,50 @@ begin
     WriteLn('Leaving TGui.DrawColonyView');
   {$ENDIF}
 end;//proc DrawColonyView
+
+procedure TGui.DrawMenu;
+var count, i, max_len, temp: Integer;
+    offset: GLfloat;
+begin
+  if menu_cat<>mcNone then
+  begin
+    max_len:= length(lang.GetMenuLabel(menu_cat))-2;
+    count:= lang.GetOptionCount(menu_cat);
+    for i:= 1 to count do
+    begin
+      temp:= length(lang.GetMenuOption(menu_cat, i));
+      if temp>max_len then max_len:= temp;
+    end;//for
+    offset:= GetMenuStartX(menu_cat);
+    //draw box
+    glBegin(GL_QUADS);
+      glColor3fv(@cWoodenColour[0]);
+      glVertex2f(offset, y_Fields-count*0.5);//lower left
+      glVertex2f(offset+ max_len*8*PixelWidth + 1.0, y_Fields-count*0.5);
+      glVertex2f(offset+ max_len*8*PixelWidth + 1.0, y_Fields);
+      glVertex2f(offset, y_Fields);
+    //draw highlighted option box
+      glColor3f(0.83*0.8, 0.66*0.8, 0.39*0.8);
+      glVertex2f(offset+ 0.25, y_Fields-selected_menu_option*0.5);
+      glVertex2f(offset+ max_len*8*PixelWidth + 0.75, y_Fields-selected_menu_option*0.5);
+      glVertex2f(offset+ max_len*8*PixelWidth + 0.75, y_Fields+0.5-selected_menu_option*0.5);
+      glVertex2f(offset+ 0.25, y_Fields+0.5-selected_menu_option*0.5);
+    glEnd;
+    //draw border lines
+    glLineWidth(2.0);
+    glBegin(GL_LINE_LOOP);
+      glColor3f(0.0, 0.0, 0.0);
+      glVertex2f(offset, y_Fields-count*0.5);//lower left
+      glVertex2f(offset+ max_len*8*PixelWidth + 1.0, y_Fields-count*0.5);
+      glVertex2f(offset+ max_len*8*PixelWidth + 1.0, y_Fields);
+      glVertex2f(offset, y_Fields);
+    glEnd;
+    //now put the text
+    glColor3ubv(@cMenuTextColour[0]);
+    for i:= 1 to count do
+      WriteText(lang.GetMenuOption(menu_cat, i), 0.5+offset, 3*PixelWidth+ y_Fields-i*0.5);
+  end;//if
+end;//proc DrawMenu
 
 procedure TGui.DrawMessage;
 var i, msg_lines, msg_opts: Integer;
@@ -1517,5 +1603,55 @@ begin
     WriteLn('Leaving TGui.GetNextMessage');
   {$ENDIF}
 end;//proc
+
+procedure TGui.HandleMenuSelection(const categ: TMenuCategory; const selected: Integer);
+var temp_cb: TCallbackRec;
+begin
+  case categ of
+    mcGame: begin
+              case selected of
+                1: ; //save
+                2: ; //load
+                3: begin
+                     temp_cb._type:= CBT_EXIT;
+                     temp_cb.cbExit:= @CBF_Exit;
+                     ShowMessageOptions('Vespucci beenden?', ToShortStrArr('Nein', 'Ja'), temp_cb);
+                   end;//3 of mcGame
+              end;//case
+            end;//mcGame
+  end;//if
+end;//proc
+
+function TGui.GetMenuStartX(const categ: TMenuCategory): GLfloat;
+var temp_str: string;
+    i: Integer;
+begin
+  //also see TGui.DrawMenuBar for further info on how these values are calculated
+  if (categ in [mcNone, mcGame]) then Result:= 0.0
+  else begin
+    temp_str:= '';
+    for i:= Ord(mcGame) to Ord(Pred(categ)) do
+      temp_str:= temp_str+lang.GetMenuLabel(TMenuCategory(i))+'  ';
+    Result:= length(temp_str)*8*PixelWidth;
+  end;//else
+end;//func
+
+function TGui.GetMenuCategoryAtMouse: TMenuCategory;
+var temp_str: string;
+    i: Integer;
+begin
+  if (mouse_y>16) then Result:= mcNone
+  else begin
+    temp_str:= '';
+    Result:= mcGame;
+    for i:= Ord(mcGame) to Ord(Pred(High(TMenuCategory))) do
+    begin
+      temp_str:= temp_str+lang.GetMenuLabel(TMenuCategory(i))+'  ';
+      if mouse_x>length(temp_str)*8 then Result:= TMenuCategory(i+1);
+    end;//func
+    temp_str:= temp_str+lang.GetMenuLabel(High(TMenuCategory));
+    if mouse_x>length(temp_str)*8 then Result:= mcNone;
+  end;//else
+end;//func
 
 end.
