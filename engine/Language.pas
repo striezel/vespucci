@@ -26,8 +26,11 @@ type
       procedure InitialValues;
     public
       constructor Create;
+      //menu related
       function GetOptionCount(const categ: TMenuCategory): Integer;
       function GetMenuLabel(const categ: TMenuCategory): string;
+      function GetMenuOption(const categ: TMenuCategory; const option: Byte): string;
+      //general stuff
       function GetGoodName(const AGood: TGoodType): string;
       function GetNationName(const NationNum: Integer): string;
       function GetTerrainName(const ATerrain: TTerrainType): string;
@@ -62,6 +65,27 @@ begin
   for i:= Ord(Low(TMenuCategory)) to Ord(High(TMenuCategory)) do
     for j:= 1 to 10 do
       MenuOptions[TMenuCategory(i), j]:= '';
+  //present options
+  // -- Spiel
+  MenuOptions[mcGame, 1]:= 'Speichern';
+  MenuOptions[mcGame, 2]:= 'Laden';
+  MenuOptions[mcGame, 3]:= 'Spiel beenden';
+  // -- Ansicht
+  MenuOptions[mcView, 1]:= 'Europa-Status';
+  MenuOptions[mcView, 2]:= 'Ansicht zentrieren';
+  // -- Befehle
+  MenuOptions[mcOrders, 1]:= 'Befestigen';
+  MenuOptions[mcOrders, 2]:= 'Keine Befehle';
+  MenuOptions[mcOrders, 3]:= 'Einheit auflösen';
+  // -- Berichte
+  MenuOptions[mcReports, 1]:= 'Wirtschaftsbericht';
+  MenuOptions[mcReports, 2]:= 'Koloniebericht';
+  MenuOptions[mcReports, 3]:= 'Flottenbericht';
+  // -- Handel
+  MenuOptions[mcTrade, 1]:= 'Handelsroute festlegen';
+  MenuOptions[mcTrade, 2]:= 'Handelsroute ändern';
+  MenuOptions[mcTrade, 3]:= 'Handelsroute löschen';
+
   //goods
   GoodNames[gtFood]:= 'Nahrungsmittel';
   GoodNames[gtSugar]:= 'Zuckerrohr';
@@ -181,7 +205,6 @@ function TLanguage.GetOptionCount(const categ: TMenuCategory): Integer;
 var i: Integer;
 begin
   Result:= 0;
-  i:=1;
   for i:=1 to 10 do
   begin
    if MenuOptions[categ][i]<>'' then Result:= i else break;
@@ -191,6 +214,12 @@ end;//func
 function TLanguage.GetMenuLabel(const categ: TMenuCategory): string;
 begin
   Result:= Menu[categ];
+end;//func
+
+function TLanguage.GetMenuOption(const categ: TMenuCategory; const option: Byte): string;
+begin
+  if (option in [1..10]) then Result:= MenuOptions[categ, option]
+  else Result:= '';
 end;//func
 
 function TLanguage.GetGoodName(const AGood: TGoodType): string;
