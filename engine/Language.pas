@@ -11,6 +11,10 @@ type
     private
       Menu: array[TMenuCategory] of string;
       MenuOptions: array [TMenuCategory] of array [1..10] of string;
+      menu_helpers: array [TMenuCategory] of record
+                                               max_len: Integer;
+                                               count:  Integer;
+                                             end;//rec
       GoodNames: array[TGoodType] of string;
       NationNames: array[cMin_Nations..cMaxIndian] of string;
       TerrainNames: array[TTerrainType] of string;
@@ -19,17 +23,23 @@ type
       //others (Maybe we should introduce a structure for them, too.)
       Location: string;
       Moves: string;
+      Empty: string;
+      Nothing: string;
       //for landfall message box
       Landfall: array[0..2] of string;
       //for building new colonies
       BuildColony: array[0..4] of string;
       procedure InitialValues;
+      procedure SetMenuHelpers;
+      function privGetOptionCount(const categ: TMenuCategory): Integer;
     public
       constructor Create;
       //menu related
       function GetOptionCount(const categ: TMenuCategory): Integer;
       function GetMenuLabel(const categ: TMenuCategory): string;
       function GetMenuOption(const categ: TMenuCategory; const option: Byte): string;
+      //menu helper
+      function GetMaxLen(const categ: TMenuCategory): Integer;
       //general stuff
       function GetGoodName(const AGood: TGoodType): string;
       function GetNationName(const NationNum: Integer): string;
@@ -39,6 +49,8 @@ type
       //others
       function GetLocation: string;
       function GetMoves: string;
+      function GetEmpty: string;
+      function GetNothing: string;
       function GetLandfall(const which: Byte): string;
       function GetBuildColony(const which: Byte): string;
       function SaveToFile(const FileName: string): Boolean;
@@ -186,6 +198,8 @@ begin
   //others
   Location:= 'Ort';
   Moves:= 'Züge';
+  Empty:= 'leer';
+  Nothing:= 'nichts';
   //landfall
   Landfall[0]:= 'Sollen wir an Land gehen, Eure Exzellenz, und die Schiffe zurücklassen?';
   Landfall[1]:= 'Bei den Schiffen bleiben';
@@ -199,9 +213,28 @@ begin
   BuildColony[3]:= 'Dieses Land liegt für eine neue Kolonie zu nah an einer     '
                   +'schon bestehenden Kolonie, Eure Exzellenz.';
   BuildColony[4]:= 'Kolonien können nicht in den Bergen gebaut werden, Eure Exzellenz.';
+
+  SetMenuHelpers;
 end;//proc
 
-function TLanguage.GetOptionCount(const categ: TMenuCategory): Integer;
+procedure TLanguage.SetMenuHelpers;
+var i, j, temp: Integer;
+begin
+  for i:= Ord(Low(TMenuCategory)) to Ord(High(TMenuCategory)) do
+  begin
+    menu_helpers[TMenuCategory(i)].count:= privGetOptionCount(TMenuCategory(i));
+    //determine max len
+    menu_helpers[TMenuCategory(i)].max_len:= length(GetMenuLabel(TMenuCategory(i)))-2;
+    for j:= 1 to menu_helpers[TMenuCategory(i)].count do
+    begin
+      temp:= length(GetMenuOption(TMenuCategory(i), j));
+      if temp>menu_helpers[TMenuCategory(i)].max_len then
+        menu_helpers[TMenuCategory(i)].max_len:= temp;
+    end;//for
+  end;//for
+end;//func
+
+function TLanguage.privGetOptionCount(const categ: TMenuCategory): Integer;
 var i: Integer;
 begin
   Result:= 0;
@@ -209,6 +242,11 @@ begin
   begin
    if MenuOptions[categ][i]<>'' then Result:= i else break;
   end;//for
+end;//func
+
+function TLanguage.GetOptionCount(const categ: TMenuCategory): Integer;
+begin
+  Result:= menu_helpers[categ].count;
 end;//func
 
 function TLanguage.GetMenuLabel(const categ: TMenuCategory): string;
@@ -220,6 +258,11 @@ function TLanguage.GetMenuOption(const categ: TMenuCategory; const option: Byte)
 begin
   if (option in [1..10]) then Result:= MenuOptions[categ, option]
   else Result:= '';
+end;//func
+
+function TLanguage.GetMaxLen(const categ: TMenuCategory): Integer;
+begin
+  Result:= menu_helpers[categ].max_len;
 end;//func
 
 function TLanguage.GetGoodName(const AGood: TGoodType): string;
@@ -257,6 +300,16 @@ end;//func
 function TLanguage.GetMoves: string;
 begin
   Result:= Moves;
+end;//func
+
+function TLanguage.GetEmpty: string;
+begin
+  Result:= Empty;
+end;//func
+
+function TLanguage.GetNothing: string;
+begin
+  Result:= Nothing;
 end;//func
 
 function TLanguage.GetLandfall(const which: Byte): string;
@@ -306,6 +359,8 @@ begin
   WriteLn(dat, '[Others]');
   WriteLn(dat, Location);
   WriteLn(dat, Moves);
+  WriteLn(dat, Empty);
+  WriteLn(dat, Nothing);
   WriteLn;
   WriteLn(dat, '[Landfall]');
   for i:=0 to 2 do
@@ -394,14 +449,16 @@ begin
       else if str1='[Others]' then
       begin
         i:= 0;
-        while (i<=1) and not Eof(dat) do
+        while (i<=3) and not Eof(dat) do
         begin
           ReadLn(dat, str1);
           str1:= Trim(str1);
           if str1<>'' then
           begin
             if i=0 then Location:= str1
-            else Moves:= str1;
+            else if i=1 then Moves:= str1
+            else if i=2 then Empty:= str1
+            else Nothing:= str1;
           end;//if
           i:= i+1;
         end;//while
@@ -431,6 +488,7 @@ begin
     end;//while
     CloseFile(dat);
     Result:= True;
+    SetMenuHelpers;
   end;//else
 end;//func
 

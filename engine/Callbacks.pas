@@ -10,6 +10,8 @@ const
   CBT_EXIT = 1;
   CBT_LANDFALL = 2;
   CBT_BUILD_COLONY = 3;
+  CBT_SAVE_GAME = 4;
+  CBT_LOAD_GAME = 5;
 
 type
   TExitCallback = procedure (const option: Integer);
@@ -30,6 +32,14 @@ type
                         AMap: TMap;
                         AData: TData;
                       end;//rec
+  TSaveGameData = record
+                    AData: TData;
+                    AMap: TMap;
+                  end;//rec
+  TLoadGameData = record
+                    AData: TData;
+                    AMap: TMap;
+                  end;//rec
 
   TCallbackRec = record
                    option: Integer;
@@ -40,6 +50,8 @@ type
                      1: (cbExit: TExitCallback);
                      2: (Landfall: TLandfallData);
                      3: (BuildColony: TBuildColonyData);
+                     4: (SaveGame: TSaveGameData);
+                     5: (LoadGame: TLoadGameData);
                  end;//rec
 
 const
@@ -77,6 +89,22 @@ begin
   end;//if
 end;//func
 
+function CBF_SaveGame(const option: Integer; AMap: TMap; AData: TData): Boolean;
+var err_str: string;
+begin
+  err_str:= 'not saved.';
+  if (option>0) and (option<65536) then
+  begin
+    if ((AMap<>nil) and (AData<>nil)) then
+    begin
+      Result:= AData.SaveData(option, AMap, err_str);
+    end//if
+    else Result:= False;
+  end//if
+  else Result:= False;
+  WriteLn('SaveGame errors: '+err_str);
+end;//func
+
 procedure HandleCallback(const cbRec: TCallbackRec);
 begin
   case cbRec._type of
@@ -89,6 +117,8 @@ begin
                         cbRec.BuildColony.num_nation, cbRec.inputText,
                         cbRec.BuildColony.founder, cbRec.BuildColony.AMap,
                         cbRec.BuildColony.AData);
+    CBT_SAVE_GAME: CBF_SaveGame(cbRec.option, cbRec.SaveGame.AMap, cbRec.SaveGame.AData);
+    CBT_LOAD_GAME: ; //not implemented yet
   end;//case
 end;//proc
 
