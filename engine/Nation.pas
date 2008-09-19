@@ -68,6 +68,7 @@ type
 
       function IsIndian: Boolean; override;
       function IsEuropean: Boolean; override;
+      function GetLeaderName: string;
 
       //tax rate for this nation in percent
       function GetTaxRate: Byte;
@@ -172,6 +173,11 @@ end;//func
 function TEuropeanNation.IsEuropean: Boolean;
 begin
   Result:= True;
+end;//func
+
+function TEuropeanNation.GetLeaderName: string;
+begin
+  Result:= m_Leader;
 end;//func
 
 function TEuropeanNation.GetTaxRate: Byte;

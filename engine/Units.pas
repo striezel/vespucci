@@ -535,12 +535,12 @@ begin
   Result:= Result and (fs.Read(UnitType, sizeof(TUnitType))=sizeof(TUnitType));
   Result:= Result and (fs.Read(m_location, sizeof(TUnitLocation))=sizeof(TUnitLocation));
   Result:= Result and (fs.Read(m_Nation, sizeof(Integer))=sizeof(Integer));
-  Result:= Result and (fs.Write(items, sizeof(items))=sizeof(items));
+  Result:= Result and (fs.Read(items, sizeof(items))=sizeof(items));
   //cargo load
   for i:= 0 to 5 do
   begin
-    Result:= Result and (fs.Write(cargo_load[i].amount, sizeof(Byte))=1);
-    Result:= Result and (fs.Write(cargo_load[i].which, sizeof(TGoodType))=sizeof(TGoodType));
+    Result:= Result and (fs.Read(cargo_load[i].amount, sizeof(Byte))=1);
+    Result:= Result and (fs.Read(cargo_load[i].which, sizeof(TGoodType))=sizeof(TGoodType));
   end;//func
   //passengers are not yet saved, and thus not loaded
   for i:= 0 to 5 do

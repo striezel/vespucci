@@ -9,7 +9,7 @@ uses
 const
   x_Fields = 15;
   y_Fields = 12;
-  FieldWidth = 32;
+  FieldWidth = 32; //width of field in pixels
   BarWidth = 160; //bar width in px
 
   PixelWidth = 0.03125; // =1/32, i.e. 1px
@@ -160,7 +160,7 @@ const
   KEY_NUMPAD8 = 56;
   KEY_NUMPAD9 = 57;
 
-{PlaceTheDollarSignHereDEFINE DEBUG_CODE 1}
+{PlaceDollarSignHereDEFINE DEBUG_CODE 1}
 
 type
   PQueueElem = ^TQueueElem;
@@ -181,7 +181,6 @@ type
       cur_colony: TColony;
       europe: PEuropeanNation;
       focused: TUnit;
-      lang: TLanguage;
       dat: TData;
       //text messages
       msg: record
@@ -214,6 +213,7 @@ type
       procedure GetSquareAtMouse(var sq_x, sq_y: Integer);
       function  GetGoodAtMouse: TGoodType;
       function  GetMenuCategoryAtMouse: TMenuCategory;
+      procedure GetMenuSelectionAtMouse(var cat: TMenuCategory; var sel_option: Integer);
       procedure EnqueueNewMessage(const msg_txt: AnsiString; const opts: TShortStrArr; const inCaption, inText: ShortString; cbRec: TCallbackRec);
       procedure GetNextMessage;//de-facto dequeue
       procedure HandleMenuSelection(const categ: TMenuCategory; const selected: Integer);
@@ -265,18 +265,24 @@ begin
   mouse_y:= 0;
   OffsetX:= 0; OffsetY:= 0;
   MiniMapOffset_Y:= 0;
+  dat:= TData.Create;
+  Ship:= dat.NewUnit(utCaravel, cNationEngland, 36, 13);
+  WriteLn('First caravel created.');
+  passenger:= dat.NewUnit(utColonist, cNationEngland, 36, 13);
+  passenger.GiveTools(100);
+  Ship.LoadUnit(passenger);
   m_Map:= TMap.Create;
-  if FileExists(america_map_path) then
+  if FileExists(dat.GetPathBase+america_map_path) then
   begin
-    if m_Map.LoadFromFile(america_map_path) then
-      WriteLn('Map "'+america_map_path+'" successfully loaded.')
+    if m_Map.LoadFromFile(dat.GetPathBase+america_map_path) then
+      WriteLn('Map "'+dat.GetPathBase+america_map_path+'" successfully loaded.')
     else begin
-      WriteLn('Couldn''t load map file "'+america_map_path+'" properly. Using generation routine instead.');
+      WriteLn('Couldn''t load map file "'+dat.GetPathBase+america_map_path+'" properly. Using generation routine instead.');
       m_Map.Generate(0.7);
     end;
   end
   else begin
-    WriteLn('Couldn''t find map file "'+america_map_path+'". Using generation routine instead.');
+    WriteLn('Couldn''t find map file "'+dat.GetPathBase+america_map_path+'". Using generation routine instead.');
     m_Map.Generate(0.7);
   end;
   m_Map.GenerateSpecials;
@@ -293,15 +299,8 @@ begin
   msg.inputText:= '';
   msg_queue.first:= nil;
   msg_queue.last:= nil;
-  //language
-  lang:= TLanguage.Create;
+
   ptrGui:= @self;
-  dat:= TData.Create(lang);
-  Ship:= dat.NewUnit(utCaravel, cNationEngland, 36, 13);
-  WriteLn('First caravel created.');
-  passenger:= dat.NewUnit(utColonist, cNationEngland, 36, 13);
-  passenger.GiveTools(100);
-  Ship.LoadUnit(passenger);
   {//wait until we have texture for regulars
   passenger:= dat.NewUnit(utRegular, cNationEngland, 36, 13);
   Ship.LoadUnit(passenger);}
@@ -311,7 +310,7 @@ begin
   for i:= Ord(Low(TTerrainType)) to Ord(High(TTerrainType)) do
   begin
     m_TerrainTexNames[TTerrainType(i)]:= 0;
-    if ReadBitmapToArr32RGB(terrain_img_path+cTerrainTexNames[TTerrainType(i)], tempTex, err_str) then
+    if ReadBitmapToArr32RGB(dat.GetPathBase+terrain_img_path+cTerrainTexNames[TTerrainType(i)], tempTex, err_str) then
     begin
       //change order of color components from blue, green, red (as in file) to
       //  red, green, blue (as needed for GL)
@@ -327,7 +326,7 @@ begin
   for i:= Ord(Low(TGoodType)) to Ord(High(TGoodType)) do
   begin
     m_GoodTexNames[TGoodType(i)]:= 0;
-    if ReadBitmapToArr32RGB(good_img_path+cGoodTexNames[TGoodType(i)], tempTex, err_str) then
+    if ReadBitmapToArr32RGB(dat.GetPathBase+good_img_path+cGoodTexNames[TGoodType(i)], tempTex, err_str) then
     begin
       //change order of color components from blue, green, red (as in file) to
       //  red, green, blue (as needed for GL)
@@ -344,7 +343,7 @@ begin
   for i:= Ord(Low(TUnitType)) to Ord(High(TUnitType)) do
   begin
     m_UnitTexNames[TUnitType(i)]:= 0;
-    if ReadBitmapToArr32RGB(unit_img_path+cUnitTexNames[TUnitType(i)], tempTex, err_str) then
+    if ReadBitmapToArr32RGB(dat.GetPathBase+unit_img_path+cUnitTexNames[TUnitType(i)], tempTex, err_str) then
     begin
       //change order of color components from blue, green, red (as in file) to
       //  red, green, blue (as needed for GL)
@@ -359,7 +358,7 @@ begin
   end;//for
   //colony textures
   m_ColonyTexNames[0]:= 0;
-  if ReadBitmapToArr32RGB(colony_img_path+cColonyTexNames[0], tempTex, err_str) then
+  if ReadBitmapToArr32RGB(dat.GetPathBase+colony_img_path+cColonyTexNames[0], tempTex, err_str) then
   begin
     //change order of color components from blue, green, red (as in file) to
     //  red, green, blue (as needed for GL)
@@ -399,7 +398,6 @@ begin
     WriteLn('Entered TGui.Destroy');
   {$ENDIF}
   m_Map.Destroy;
-  lang.Destroy;
   dat.Destroy;
   //free textures
   for i:= Ord(Low(TTerrainType)) to Ord(High(TTerrainType)) do
@@ -472,11 +470,11 @@ begin
     case Key of
       GLUT_KEY_UP, KEY_NUMPAD8: begin
                                   selected_menu_option:= selected_menu_option-1;
-                                  if selected_menu_option<1 then selected_menu_option:= lang.GetOptionCount(menu_cat);
+                                  if selected_menu_option<1 then selected_menu_option:= dat.GetLang.GetOptionCount(menu_cat);
                                 end;//case UP, 8
       GLUT_KEY_DOWN, KEY_NUMPAD2: begin
                                   selected_menu_option:= selected_menu_option+1;
-                                  if selected_menu_option>lang.GetOptionCount(menu_cat) then selected_menu_option:= 1;
+                                  if selected_menu_option>dat.GetLang.GetOptionCount(menu_cat) then selected_menu_option:= 1;
                                 end;//case DOWN, 2
       GLUT_KEY_LEFT, KEY_NUMPAD4: begin
                                     if menu_cat<>mcGame then menu_cat:= Pred(menu_cat) else menu_cat:= mcTrade;
@@ -510,10 +508,10 @@ begin
          if focused<>nil then
          begin
            if (focused.IsShip or m_Map.tiles[focused.GetPosX, focused.GetPosY].IsWater) then
-             ShowMessageSimple(lang.GetBuildColony(2))
+             ShowMessageSimple(dat.GetLang.GetBuildColony(2))
            else begin
              if m_Map.tiles[focused.GetPosX, focused.GetPosY].GetType=ttMountains then
-               ShowMessageSimple(lang.GetBuildColony(4))
+               ShowMessageSimple(dat.GetLang.GetBuildColony(4))
              else begin
                if dat.FreeForSettlement(focused.GetPosX, focused.GetPosY) then
                begin
@@ -525,11 +523,11 @@ begin
                  temp_cb.BuildColony.founder:= focused;
                  temp_cb.BuildColony.AMap:= m_Map;
                  temp_cb.BuildColony.AData:= dat;
-                 ShowMessageInput(lang.GetBuildColony(0), lang.GetBuildColony(1), 'Plymouth', temp_cb);
+                 ShowMessageInput(dat.GetLang.GetBuildColony(0), dat.GetLang.GetBuildColony(1), 'Plymouth', temp_cb);
                  focused:= nil;
                end
                else
-                 ShowMessageSimple(lang.GetBuildColony(3));
+                 ShowMessageSimple(dat.GetLang.GetBuildColony(3));
              end;//else
            end;//if
          end;//if
@@ -619,7 +617,7 @@ begin
         temp_cb.Landfall.x:= temp_x;
         temp_cb.Landfall.y:= temp_y;
         temp_cb.Landfall.AMap:= m_Map;
-        ShowMessageOptions(lang.GetLandfall(0), ToShortStrArr(lang.GetLandfall(1), lang.GetLandfall(2)), temp_cb);
+        ShowMessageOptions(dat.GetLang.GetLandfall(0), ToShortStrArr(dat.GetLang.GetLandfall(1), dat.GetLang.GetLandfall(2)), temp_cb);
       end
       else focused.Move(direc, m_Map);
     end;//if
@@ -638,6 +636,7 @@ end;//proc
 
 procedure TGui.MouseFunc(const button, state, x,y: LongInt);
 var pos_x, pos_y: Integer;
+    temp_cat: TMenuCategory;
 begin
   {$IFDEF DEBUG_CODE}
     WriteLn('Entered TGui.MouseFunc');
@@ -659,6 +658,25 @@ begin
   //handle mouse events here
   if ((button=GLUT_LEFT) and (state=GLUT_UP) and (europe=nil) and (cur_colony=nil)) then
   begin
+    if InMenu then
+    begin
+      GetMenuSelectionAtMouse(temp_cat, pos_x);
+      WriteLn('GUI got selection: cat.: ', Ord(temp_cat), '; sel.: ', pos_x);//for debug
+      if (pos_x=0) and (temp_cat=menu_cat) then menu_cat:= mcNone
+      else if (pos_x=0) then menu_cat:= temp_cat
+      else if (pos_x<>-1) and (temp_cat=menu_cat) then
+      begin
+        HandleMenuSelection(menu_cat, pos_x);
+        menu_cat:= mcNone;
+        selected_menu_option:= 1;
+      end//if
+      else if (pos_x=-1) then
+      begin
+        menu_cat:= mcNone;
+        selected_menu_option:= 1;
+      end;//if
+      Exit;
+    end;//if InMenu
     GetSquareAtMouse(pos_x, pos_y);
     WriteLn('GUI got square: x: ', pos_x, '; y: ', pos_y);//for debug
     if (pos_x<>-1) then
@@ -890,7 +908,7 @@ begin
     DrawMenuBar;
     //display side bar information
     // - season and year
-    WriteText(lang.GetSeason(dat.IsAutumn)+' '+IntToStr(dat.GetYear),
+    WriteText(dat.GetLang.GetSeason(dat.IsAutumn)+' '+IntToStr(dat.GetYear),
               x_Fields + 4*PixelWidth,
               y_Fields - 3*BorderWidth -2*PixelWidth*MiniMap_y_Fields- 16*PixelWidth);
     // - info about focused unit
@@ -917,16 +935,16 @@ begin
       end;//if Icon present
       // -- moves of unit
       glColor3ubv(@cMenuTextColour[0]);
-      WriteText(lang.GetMoves+': '+IntToStr(focused.MovesLeft),
+      WriteText(dat.GetLang.GetMoves+': '+IntToStr(focused.MovesLeft),
                 x_Fields +40*PixelWidth, 7.5);
       // -- location of unit
-      WriteText(lang.GetLocation+': '+IntToStr(focused.GetPosX)+','+IntToStr(focused.GetPosY),
+      WriteText(dat.GetLang.GetLocation+': '+IntToStr(focused.GetPosX)+','+IntToStr(focused.GetPosY),
                 x_Fields +40*PixelWidth, 7.0);
       // -- type of unit
-      WriteText(lang.GetUnitName(focused.GetType),
+      WriteText(dat.GetLang.GetUnitName(focused.GetType),
                 x_Fields +4*PixelWidth, 6.5);
       // -- terrain of unit's location
-      WriteText(lang.GetTerrainName(m_Map.tiles[focused.GetPosX,focused.GetPosY].GetType),
+      WriteText(dat.GetLang.GetTerrainName(m_Map.tiles[focused.GetPosX,focused.GetPosY].GetType),
                 x_Fields +4*PixelWidth, 6.0);
 
     end;//if Focused unit present
@@ -1037,18 +1055,13 @@ begin
 end;//proc DrawColonyView
 
 procedure TGui.DrawMenu;
-var count, i, max_len, temp: Integer;
+var count, i, max_len: Integer;
     offset: GLfloat;
 begin
   if menu_cat<>mcNone then
   begin
-    max_len:= length(lang.GetMenuLabel(menu_cat))-2;
-    count:= lang.GetOptionCount(menu_cat);
-    for i:= 1 to count do
-    begin
-      temp:= length(lang.GetMenuOption(menu_cat, i));
-      if temp>max_len then max_len:= temp;
-    end;//for
+    max_len:= dat.GetLang.GetMaxLen(menu_cat);
+    count:= dat.GetLang.GetOptionCount(menu_cat);
     offset:= GetMenuStartX(menu_cat);
     //draw box
     glBegin(GL_QUADS);
@@ -1076,7 +1089,7 @@ begin
     //now put the text
     glColor3ubv(@cMenuTextColour[0]);
     for i:= 1 to count do
-      WriteText(lang.GetMenuOption(menu_cat, i), 0.5+offset, 3*PixelWidth+ y_Fields-i*0.5);
+      WriteText(dat.GetLang.GetMenuOption(menu_cat, i), 0.5+offset, 3*PixelWidth+ y_Fields-i*0.5);
   end;//if
 end;//proc DrawMenu
 
@@ -1266,9 +1279,9 @@ begin
   {$IFDEF DEBUG_CODE}
     WriteLn('Entered TGui.DrawMenuBar');
   {$ENDIF}
-  s:= lang.GetMenuLabel(mcGame);
+  s:= dat.GetLang.GetMenuLabel(mcGame);
   for i:= Ord(Succ(mcGame)) to Ord(High(TMenuCategory)) do
-    s:= s+'  '+lang.GetMenuLabel(TMenuCategory(i));
+    s:= s+'  '+dat.GetLang.GetMenuLabel(TMenuCategory(i));
   WriteText(s, 0.1, 12.0+5.0*PixelWidth);
   {$IFDEF DEBUG_CODE}
     WriteLn('Leaving TGui.DrawMenuBar');
@@ -1358,7 +1371,7 @@ begin
   end;//else if
   if GetGoodAtMouse<>gtCross then
   begin
-    price_str:= lang.GetGoodName(GetGoodAtMouse);
+    price_str:= dat.GetLang.GetGoodName(GetGoodAtMouse);
     str_width:= 8*length(price_str);
     //use "i" as temporary var to store the pixel count where the text begins
     if (str_width+mouse_x<cWindowWidth) then i:= mouse_x
@@ -1387,7 +1400,7 @@ begin
   {$ENDIF}
   if cur_colony<>nil then
   begin
-    s:= cur_colony.GetName +'.  '+lang.GetSeason(dat.IsAutumn)+', '+IntToStr(dat.GetYear)+'. Gold: ';
+    s:= cur_colony.GetName +'.  '+dat.GetLang.GetSeason(dat.IsAutumn)+', '+IntToStr(dat.GetYear)+'. Gold: ';
     temp_nat:= dat.GetNation(cur_colony.GetNation);
     if temp_nat<>nil then
     begin
@@ -1606,11 +1619,20 @@ end;//proc
 
 procedure TGui.HandleMenuSelection(const categ: TMenuCategory; const selected: Integer);
 var temp_cb: TCallbackRec;
+    str_arr: TShortStrArr;
 begin
   case categ of
     mcGame: begin
               case selected of
-                1: ; //save
+                1: begin //save
+                     temp_cb._type:= CBT_SAVE_GAME;
+                     temp_cb.SaveGame.AData:= dat;
+                     temp_cb.SaveGame.AMap:= m_Map;
+                     str_arr:= dat.GetSaveSlots;
+                     ShowMessageOptions('Choose a save game slot.',
+                                        ToShortStrArr(dat.GetLang.GetNothing, str_arr),
+                                        temp_cb);
+                   end;//save
                 2: ; //load
                 3: begin
                      temp_cb._type:= CBT_EXIT;
@@ -1619,7 +1641,13 @@ begin
                    end;//3 of mcGame
               end;//case
             end;//mcGame
-  end;//if
+    mcView: begin
+              case selected of
+                1: ; //europe
+                2: if focused<>nil then CenterOn(focused.GetPosX, focused.GetPosY); //center view
+              end;//case
+            end;//mcView
+  end;//case
 end;//proc
 
 function TGui.GetMenuStartX(const categ: TMenuCategory): GLfloat;
@@ -1631,7 +1659,7 @@ begin
   else begin
     temp_str:= '';
     for i:= Ord(mcGame) to Ord(Pred(categ)) do
-      temp_str:= temp_str+lang.GetMenuLabel(TMenuCategory(i))+'  ';
+      temp_str:= temp_str+dat.GetLang.GetMenuLabel(TMenuCategory(i))+'  ';
     Result:= length(temp_str)*8*PixelWidth;
   end;//else
 end;//func
@@ -1646,12 +1674,33 @@ begin
     Result:= mcGame;
     for i:= Ord(mcGame) to Ord(Pred(High(TMenuCategory))) do
     begin
-      temp_str:= temp_str+lang.GetMenuLabel(TMenuCategory(i))+'  ';
+      temp_str:= temp_str+dat.GetLang.GetMenuLabel(TMenuCategory(i))+'  ';
       if mouse_x>length(temp_str)*8 then Result:= TMenuCategory(i+1);
     end;//func
-    temp_str:= temp_str+lang.GetMenuLabel(High(TMenuCategory));
+    temp_str:= temp_str+dat.GetLang.GetMenuLabel(High(TMenuCategory));
     if mouse_x>length(temp_str)*8 then Result:= mcNone;
   end;//else
 end;//func
+
+procedure TGui.GetMenuSelectionAtMouse(var cat: TMenuCategory; var sel_option: Integer);
+begin
+  if mouse_y<16 then
+  begin
+    cat:= GetMenuCategoryAtMouse;
+    sel_option:=0;
+  end//if
+  else begin
+    //get selected option
+    sel_option:= mouse_y div 16;
+    if ((mouse_x>=GetMenuStartX(menu_cat)*FieldWidth) and 
+       (mouse_x<=GetMenuStartX(menu_cat)*FieldWidth+dat.GetLang.GetMaxLen(menu_cat)*8+FieldWidth)
+       and (sel_option<=dat.GetLang.GetOptionCount(menu_cat))) then
+      cat:= menu_cat
+    else begin
+      cat:= mcNone;
+      sel_option:= -1;
+    end;//else
+  end;//else
+end;//proc
 
 end.

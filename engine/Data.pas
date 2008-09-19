@@ -35,9 +35,14 @@ type
               //the colonies
               m_Colonies: array of TColony;
               Colony_max: Integer;
+              //language
+              lang: TLanguage;
+              //relative path
+              base_dir: string;
+              function GetSaveInfo(const n: Word): string;
             public
               player_nation: Integer;
-              constructor Create(var aLang: TLanguage);
+              constructor Create;
               destructor Destroy;
               function GetYear: Integer;
               function IsAutumn: Boolean;
@@ -54,29 +59,34 @@ type
               function FreeForSettlement(const x,y:Byte): Boolean;
               //others
               procedure NewRound(const num_Nation: Integer; AMap: TMap);
-              function SaveData(const n: Word; AMap: TMap): Boolean;
+              function SaveData(const n: Word; AMap: TMap; var err: string): Boolean;
+              function GetSaveSlots: TShortStrArr;
+              function GetPathBase: string;
+              function GetLang: TLanguage;
           end;//class
 
 implementation
 
-constructor TData.Create(var aLang: TLanguage);
+constructor TData.Create;
 var i: Integer;
 begin
   player_nation:= cNationEngland;
   Year:= 1492;
   Autumn:= False;
-  Nations[cNationEngland]:= TEuropeanNation.Create(cNationEngland, aLang.GetNationName(cNationEngland), 'Walter Raleigh');
-  Nations[cNationFrance]:= TEuropeanNation.Create(cNationFrance, aLang.GetNationName(cNationFrance), 'Jacques Cartier');
-  Nations[cNationSpain]:= TEuropeanNation.Create(cNationSpain, aLang.GetNationName(cNationSpain), 'Christoph Columbus');
-  Nations[cNationHolland]:= TEuropeanNation.Create(cNationHolland, aLang.GetNationName(cNationHolland), 'Michiel De Ruyter');
+  lang:= TLanguage.Create;
+  Nations[cNationEngland]:= TEuropeanNation.Create(cNationEngland, lang.GetNationName(cNationEngland), 'Walter Raleigh');
+  Nations[cNationFrance]:= TEuropeanNation.Create(cNationFrance, lang.GetNationName(cNationFrance), 'Jacques Cartier');
+  Nations[cNationSpain]:= TEuropeanNation.Create(cNationSpain, lang.GetNationName(cNationSpain), 'Christoph Columbus');
+  Nations[cNationHolland]:= TEuropeanNation.Create(cNationHolland, lang.GetNationName(cNationHolland), 'Michiel De Ruyter');
   for i:= cMinIndian to cMaxIndian do
-      Nations[i]:= TIndianNation.Create(i, aLang.GetNationName(i));
+      Nations[i]:= TIndianNation.Create(i, lang.GetNationName(i));
   //units
   SetLength(m_Units, 0);
   Unit_max:= -1;
   //colonies
   SetLength(m_Colonies, 0);
   Colony_max:= -1;
+  base_dir:= '';
 end;//construc
 
 destructor TData.Destroy;
@@ -90,6 +100,7 @@ begin
   for i:= Colony_max downto 0 do
     if m_Colonies[i]<>nil then m_Colonies[i].Destroy;
   SetLength(m_Colonies, 0);
+  lang.Destroy;
 end;//destruc
 
 function TData.GetYear: Integer;
@@ -245,9 +256,10 @@ begin
       end;//if
 end;//func
 
-function TData.SaveData(const n: Word; AMap: TMap): Boolean;
+function TData.SaveData(const n: Word; AMap: TMap; var err: string): Boolean;
 var fs: TFileStream;
     i, temp: Integer;
+    temp_str: string;
 begin
   { files:
       data<n>.vdd - simple data
@@ -257,71 +269,185 @@ begin
   }
   if AMap=nil then
   begin
+    err:= 'TData.SaveData: no map supplied.';
     Result:= False;
     Exit;
   end;//if
-  
+  err:= 'no error';
+  if not DirectoryExists(GetPathBase+save_path) then
+    if not ForceDirectories(GetPathBase+save_path) then
+    begin
+      err:= 'TData.SaveData: could not create directory "'+GetPathBase+save_path+'" for saves.';
+      Result:= False;
+      Exit;
+    end;//if
+
   fs:= nil;
   try
-    fs:= TFileStream.Create(save_path + 'data'+IntToStr(n)+'.vdd', fmCreate or fmShareDenyNone);
+    fs:= TFileStream.Create(GetPathBase+save_path +'data'+IntToStr(n)+'.vdd', fmCreate or fmShareDenyNone);
   except
     if fs<>nil then fs.Free;
+    err:= 'TData.SaveData: could not create file "'+GetPathBase+save_path +'data'+IntToStr(n)+'.vdd'+'".';
     Result:= False;
     Exit;
   end;//tryxcept
 
-  Result:= (fs.Write(cDataFileHeader, sizeof(cDataFileHeader))=sizeof(cDataFileHeader));
+  Result:= (fs.Write(cDataFileHeader[1], sizeof(cDataFileHeader))=sizeof(cDataFileHeader));
   Result:= Result and (fs.Write(Year, sizeof(Year))=sizeof(Year));
   Result:= Result and (fs.Write(Autumn, sizeof(Autumn))=sizeof(Autumn));
   Result:= Result and (fs.Write(player_nation, sizeof(player_nation))=sizeof(player_nation));
+  //write player's name
+  temp_str:= TEuropeanNation(GetNation(player_nation)).GetLeaderName;
+  temp:= length(temp_str);
+  Result:= Result and (fs.Write(temp, sizeof(Integer))=sizeof(Integer));
+  Result:= Result and (fs.Write(temp_str[1], temp)=temp);
   fs.Free;
   fs:= nil;
+  if not Result then
+  begin
+    err:= 'TData.SaveData: Error while writing data file "'+GetPathBase+save_path +'data'+IntToStr(n)+'.vdd';
+    Exit;
+  end;//if
+
   //map
   if AMap<>nil then
   begin
-    Result:= Result and AMap.SaveToFile(save_path + 'map'+IntToStr(n)+'.vmd');
+    Result:= Result and AMap.SaveToFile(GetPathBase+save_path +'map'+IntToStr(n)+'.vmd');
   end//if
   else begin
     //no map specified
     Result:= False;
     Exit;
   end;//func
+  if not Result then
+  begin
+    err:= 'TData.SaveData: Error while writing map file "'+GetPathBase+save_path +'map'+IntToStr(n)+'.vmd';
+    Exit;
+  end;//if
+
 
   //units
   temp:= 0;
   for i:=0 to Unit_max do
     if m_Units[i]<>nil then temp:= temp+1;
   try
-    fs:= TFileStream.Create(save_path + 'units'+IntToStr(n)+'.vud', fmCreate or fmShareDenyNone);
+    fs:= TFileStream.Create(GetPathBase+save_path +'units'+IntToStr(n)+'.vud', fmCreate or fmShareDenyNone);
   except
     if fs<>nil then fs.Free;
     Result:= False;
     Exit;
   end;//tryxcept
-  Result:= Result and (fs.Write(cUnitFileHeader, sizeof(cUnitFileHeader))=sizeof(cUnitFileHeader));
+  Result:= Result and (fs.Write(cUnitFileHeader[1], sizeof(cUnitFileHeader))=sizeof(cUnitFileHeader));
   Result:= Result and (fs.Write(temp, sizeof(Integer))=sizeof(Integer));
   for i:= 0 to Unit_max do
     if m_Units[i]<>nil then Result:= Result and m_Units[i].SaveToStream(fs);
   fs.Free;
   fs:= nil;
+  if not Result then
+  begin
+    err:= 'TData.SaveData: Error while writing unit file "'+GetPathBase+save_path +'units'+IntToStr(n)+'.vud';
+    Exit;
+  end;//if
   
   //colonies
   temp:= 0;
   for i:=0 to Colony_max do
     if m_Colonies[i]<>nil then temp:= temp+1;
   try
-    fs:= TFileStream.Create(save_path + 'colony'+IntToStr(n)+'.vcd', fmCreate or fmShareDenyNone);
+    fs:= TFileStream.Create(GetPathBase+save_path +'colony'+IntToStr(n)+'.vcd', fmCreate or fmShareDenyNone);
   except
     if fs<>nil then fs.Free;
     Result:= False;
     Exit;
   end;//tryxcept
-  Result:= Result and (fs.Write(cColonyFileHeader, sizeof(cColonyFileHeader))=sizeof(cColonyFileHeader));
+  Result:= Result and (fs.Write(cColonyFileHeader[1], sizeof(cColonyFileHeader))=sizeof(cColonyFileHeader));
   Result:= Result and (fs.Write(temp, sizeof(Integer))=sizeof(Integer));
   for i:= 0 to Colony_max do
     if m_Colonies[i]<>nil then Result:= Result and m_Colonies[i].SaveToStream(fs);
   fs.Free;
   fs:= nil;
+  if not Result then
+    err:= 'TData.SaveData: Error while writing colony file "'+GetPathBase+save_path +'colony'+IntToStr(n)+'.vcd';
+end;//func
+
+function TData.GetSaveInfo(const n: Word): string;
+var fs: TFileStream;
+    status, temp_Autumn: Boolean;
+    temp_str: string;
+    temp_Year, temp_nation, temp_len: Integer;
+begin
+  if ((n=0) or not FileExists(GetPathBase+save_path +'data'+IntToStr(n)+'.vdd')) then
+    Result:= '('+lang.GetEmpty+')'
+  else begin
+    fs:= nil;
+    status:= True;
+    try
+      fs:= TFileStream.Create(GetPathBase+save_path +'data'+IntToStr(n)+'.vdd', fmOpenRead or fmShareDenyNone);
+    except
+      Result:= '('+lang.GetEmpty+')';
+      if fs<>nil then fs.Free;
+      Exit;
+    end;//tryxcept
+    temp_str:= cDataFileHeader;
+    status:= (fs.Read(temp_str[1], sizeof(cDataFileHeader))=sizeof(cDataFileHeader));
+    if not status or (temp_str<>cDataFileHeader) then
+    begin
+      fs.Free;
+      Exit;
+    end;//if
+    status:= status and (fs.Read(temp_Year, sizeof(temp_Year))=sizeof(temp_Year));
+    status:= status and (fs.Read(temp_Autumn, sizeof(temp_Autumn))=sizeof(temp_Autumn));
+    status:= status and (fs.Read(temp_Nation, sizeof(player_nation))=sizeof(player_nation));
+    //read player's name
+    status:= status and (fs.Read(temp_len, sizeof(Integer))=sizeof(Integer));
+    temp_str:= SpaceString(temp_len);
+    status:= status and (fs.Read(temp_str[1], temp_len)=temp_len);
+    fs.Free;
+    fs:= nil;
+    if status then
+      Result:= temp_str+', '+lang.GetNationName(temp_nation)+', '
+              +lang.GetSeason(temp_Autumn)+' '+IntToStr(temp_Year)
+    else Result:='('+lang.GetEmpty+')';
+  end;//else
+end;//func
+
+function TData.GetSaveSlots: TShortStrArr;
+var i: Integer;
+begin
+  {data<n>.vdd - simple data
+      map<n>.vmd - map itself
+      units<n>.vud - all units
+      colony.vcd - all colonies}
+
+  SetLength(Result, 10);
+  for i:=1 to 10 do
+  begin
+    if (FileExists(GetPathBase+save_path +'data'+IntToStr(i)+'.vdd') and FileExists(GetPathBase+save_path +'map'+IntToStr(i)+'.vmd') and FileExists(GetPathBase+save_path +'units'+IntToStr(i)+'.vud') and FileExists(GetPathBase+save_path +'colony'+IntToStr(i)+'.vcd')) then
+    Result[i-1]:= GetSaveInfo(i)
+    else Result[i-1]:= '('+lang.GetEmpty+')';
+  end;//for
+end;//func
+
+function TData.GetPathBase: string;
+var i: Integer;
+begin
+  if base_dir='' then
+  begin
+    base_dir:= ParamStr(0);
+    i:= length(base_dir);
+    while i>=1 do
+    begin
+      if base_dir[i]=path_delimiter then break;
+      i:= i-1;
+    end;//while
+    base_dir:= copy(base_dir, 1, i);
+  end;//if
+  Result:= base_dir;
+end;//func
+
+function TData.GetLang: TLanguage;
+begin
+  Result:= lang;
 end;//func
 
 end.
