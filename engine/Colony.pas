@@ -3,7 +3,7 @@ unit Colony;
 interface
 
 uses
-  Settlement, Goods, Units, Map, Classes;
+  Settlement, Goods, Units, Map, Classes, Helper;
 
 type
   TBuildingType = (btFort, //Einpfählung, Fort, Festung
@@ -29,17 +29,23 @@ type
       constructor Create(const X, Y: Integer; const ANation: Integer; const AName: string);
       destructor Destroy;
       function GetName: string;
+      procedure SetName(const new_name: string);
       function GetStore(const AGood: TGoodType): Word;
       function RemoveFromStore(const AGood: TGoodType; const amount: Byte): Byte;
       procedure AddToStore(const AGood: TGoodType; const amount: Byte);
+      //try to avoid SetStore, use RemoveFromStore or AddToStore instead
+      procedure SetStore(const AGood: TGoodType; const new_amount: Word);
       function GetMaxLevel(const bt: TBuildingType): Byte;
+      procedure SetBuildingLevel(const bt: TBuildingType; const new_level: Byte);
       procedure ConstructNextLevel(const bt: TBuildingType);
       function GetProduction(const bt: TBuildingType; const ut: TUnitType): Integer;
       procedure NewRound(const AMap: TMap);
       function GetUnitInField(const x_shift, y_shift: Integer): TUnit;
+      procedure SetUnitInField(const x_shift, y_shift: Integer; const AUnit: TUnit; const AGood: TGoodType=gtFood);
+      function GetUnitInBuilding(const bt: TBuildingType; const place: Byte): TUnit;
+      procedure SetUnitInBuilding(const bt: TBuildingType; const place: Byte; const AUnit: TUnit);
       function GetInhabitants: Word;
       function SaveToStream(var fs: TFileStream): Boolean;
-      function LoadFromStream(var fs: TFileStream): Boolean;
     private
       m_Name: string;
       Store: array[TGoodType] of Word; //max. is 300, a word should do it;
@@ -135,6 +141,11 @@ begin
   Result:= m_Name;
 end;//func
 
+procedure TColony.SetName(const new_name: string);
+begin
+  if Trim(new_name)<>'' then m_Name:= Trim(new_name);
+end;//func
+
 function TColony.GetStore(const AGood: TGoodType): Word;
 begin
   Result:= Store[AGood];
@@ -160,6 +171,11 @@ begin
   Store[AGood]:= Store[AGood]+amount;
 end;//func
 
+procedure TColony.SetStore(const AGood: TGoodType; const new_amount: Word);
+begin
+  Store[AGood]:= new_amount;
+end;//proc
+
 function TColony.GetMaxLevel(const bt: TBuildingType): Byte;
 begin
   case bt of
@@ -167,6 +183,12 @@ begin
     btWarehouse, btPress, btCarpenter, btChurch: Result:= 2;
   else Result:= 3;
   end;//case
+end;//func
+
+procedure TColony.SetBuildingLevel(const bt: TBuildingType; const new_level: Byte);
+begin
+  if new_level>GetMaxLevel(bt) then Buildings[bt]:= GetMaxLevel(bt)
+  else Buildings[bt]:= new_level;
 end;//func
 
 procedure TColony.ConstructNextLevel(const bt: TBuildingType);
@@ -317,6 +339,45 @@ begin
   else Result:= UnitsInFields[x_shift, y_shift].u;
 end;//func
 
+procedure TColony.SetUnitInField(const x_shift, y_shift: Integer; const AUnit: TUnit; const AGood: TGoodType=gtFood);
+begin
+  if (abs(x_shift)>1) or (abs(y_shift)>1) then Exit
+  else begin
+    //remove old unit
+    if UnitsInFields[x_shift, y_shift].u<>nil then
+    begin
+      UnitsInFields[x_shift, y_shift].u.WarpToXY(GetPosX, GetPosY, nil);
+      UnitsInFields[x_shift, y_shift].u.SetLocation(ulAmerica);
+    end;//if
+    //place new unit
+    UnitsInFields[x_shift, y_shift].u:= AUnit;
+    UnitsInFields[x_shift, y_shift].GoesFor:= AGood;
+    if AUnit<>nil then UnitsInFields[x_shift, y_shift].u.SetLocation(ulInColony);
+  end;//else
+end;//proc
+
+function TColony.GetUnitInBuilding(const bt: TBuildingType; const place: Byte): TUnit;
+begin
+  if ((place>2) or (not (bt in [btArmory..btBlacksmith]))) then Result:= nil
+  else Result:= UnitsInBuilding[bt, place];
+end;//func
+
+procedure TColony.SetUnitInBuilding(const bt: TBuildingType; const place: Byte; const AUnit: TUnit);
+begin
+  if ((place>2) or (not (bt in [btArmory..btBlacksmith]))) then Exit
+  else begin
+    //remove old unit
+    if UnitsInBuilding[bt, place]<>nil then
+    begin
+      UnitsInBuilding[bt, place].WarpToXY(GetPosX, GetPosY, nil);
+      UnitsInBuilding[bt, place].SetLocation(ulAmerica);
+    end;//if
+    //place new unit
+    UnitsInBuilding[bt, place]:= AUnit;
+    if AUnit<>nil then UnitsInBuilding[bt, place].SetLocation(ulInColony);
+  end;//else
+end;//proc
+
 function TColony.GetInhabitants: Word;
 var i, j: Integer;
 begin
@@ -330,7 +391,9 @@ begin
 end;//func
 
 function TColony.SaveToStream(var fs: TFileStream): Boolean;
-var i: Integer;
+var i,j: Integer;
+    field_count, temp_b: Byte;
+    bt: TBuildingType;
 begin
   if fs=nil then
   begin
@@ -350,43 +413,40 @@ begin
   //buildings
   for i:= Ord(Low(TBuildingType)) to Ord(High(TBuildingType)) do
     Result:= Result and (fs.Write(Buildings[TBuildingType(i)], sizeof(Byte))=sizeof(Byte));
-  //*** units in buildings and units in fields are not saved yet ***
-end;//func
-
-function TColony.LoadFromStream(var fs: TFileStream): Boolean;
-var i, j: Integer;
-begin
-  if fs=nil then
-  begin
-    Result:= False;
-    Exit;
-  end;//if
-  Result:= (fs.Read(m_Nation, sizeof(Integer))=sizeof(Integer));
-  Result:= Result and (fs.Read(PosX, sizeof(Integer))=sizeof(Integer));
-  Result:= Result and (fs.Read(PosY, sizeof(Integer))=sizeof(Integer));
-  //name
-  Result:= Result and (fs.Read(i, sizeof(Integer))=sizeof(Integer));
-  if (not Result) or ((i<1)) then Exit;
-  SetLength(m_Name, i);
-  Result:= Result and (fs.Read(m_Name[1], i)=i);
-  //store
-  for i:= Ord(Low(TGoodType)) to Ord(High(TGoodType)) do
-    Result:= Result and (fs.Read(Store[TGoodType(i)], sizeof(Word))=sizeof(Word));
-  //buildings
-  for i:= Ord(Low(TBuildingType)) to Ord(High(TBuildingType)) do
-    Result:= Result and (fs.Read(Buildings[TBuildingType(i)], sizeof(Byte))=sizeof(Byte));
-  //*** units in buildings and units in fields are not saved yet, thus not loaded ***
-  //buildings
-  for i:= Ord(btArmory) to Ord(btBlacksmith) do
-    for j:= 0 to 2 do
-      UnitsInBuilding[TBuildingType(i),j]:= nil;
-  //fields
+  //save units in fields
+  //-- count them
+  field_count:= 0;
   for i:= -1 to 1 do
     for j:= -1 to 1 do
-    begin
-      UnitsInFields[i,j].u:= nil;
-      UnitsInFields[i,j].GoesFor:= gtFood;
-    end;//for
+      if UnitsInFields[i,j].u<>nil then field_count:= field_count+1;
+  Result:= Result and (fs.Write(field_count, sizeof(Byte))=sizeof(Byte));
+  // -- save them
+  for i:= -1 to 1 do
+    for j:= -1 to 1 do
+      if UnitsInFields[i,j].u<>nil then
+      begin
+        Result:= Result and (fs.Write(i, sizeof(Integer))=sizeof(Integer));
+        Result:= Result and (fs.Write(j, sizeof(Integer))=sizeof(Integer));
+        Result:= Result and UnitsInFields[i,j].u.SaveToStream(fs);
+        Result:= Result and (fs.Write(UnitsInFields[i,j].GoesFor, sizeof(TGoodType))=sizeof(TGoodType));
+      end;//for
+  //save units in buildings
+  // -- count them
+  field_count:= 0;
+  for i:= Ord(btArmory) to Ord(btBlacksmith) do
+    for j:= 0 to 2 do
+      if UnitsInBuilding[TBuildingType(i), j]<>nil then field_count:= field_count+1;
+  Result:= Result and (fs.Write(field_count, sizeof(Byte))=sizeof(Byte));
+  // -- save them
+  for i:= Ord(btArmory) to Ord(btBlacksmith) do
+    for temp_b:= 0 to 2 do
+      if UnitsInBuilding[TBuildingType(i), temp_b]<>nil then
+      begin
+        bt:= TBuildingType(i);
+        Result:= Result and (fs.Write(bt, sizeof(TBuildingType))=sizeof(TBuildingType));
+        Result:= Result and (fs.Write(temp_b, sizeof(Byte))=sizeof(Byte));
+        Result:= Result and UnitsInBuilding[TBuildingType(i),temp_b].SaveToStream(fs);
+      end;//if
 end;//func
 
 end.

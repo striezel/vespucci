@@ -23,6 +23,7 @@ type
   function ToShortStrArr(const s1, s2, s3, s4, s5: ShortString): TShortStrArr; overload;
   function ToShortStrArr(const s1: ShortString; const arr: TShortStrArr): TShortStrArr; overload;
   function SpaceString(const len: Byte): string;
+  function Trim(const str1: string): string;
 
 implementation
 
@@ -77,8 +78,7 @@ end;//func
 
 function SpaceString(const len: Byte): string;
 begin
-  Result:= '';
-  if ((len and 128)<>0) then Result:= Result+cSpace128;
+  if ((len and 128)<>0) then Result:= cSpace128 else Result:= '';
   if ((len and 64)<>0) then Result:= Result+cSpace64;
   if ((len and 32)<>0) then Result:= Result+cSpace32;
   if ((len and 16)<>0) then Result:= Result+cSpace16;
@@ -87,5 +87,20 @@ begin
   if ((len and 2)<>0) then Result:= Result+cSpace02;
   if ((len and 1)<>0) then Result:= Result+cSpace01;
 end;//func
+
+function Trim(const str1: string): string;
+var
+  i, len: Integer;
+begin
+  len:= length(str1);
+  i:= 1;
+  while (i<=len) and (str1[i] <= ' ') do Inc(i);
+  if i>len then Result:= ''
+  else begin
+    while str1[len] <= ' ' do Dec(len);
+    Result := copy(str1, i, len-i+1);
+  end;//else
+end;//func
+
 
 end.
