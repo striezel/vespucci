@@ -8,8 +8,10 @@ type
       constructor Create(const X, Y: Integer; const ANation: Integer);
       destructor Destroy;
       function GetNation: Integer;
+      procedure ChangeNation(const new_nation: Integer);
       function GetPosX: Integer;
       function GetPosY: Integer;
+      procedure SetPosition(const x,y: Integer);
     protected
       m_Nation: Integer;
       PosX, PosY: Integer;
@@ -38,6 +40,11 @@ begin
   Result:= m_Nation;
 end;//func
 
+procedure TSettlement.ChangeNation(const new_nation: Integer);
+begin
+  if new_nation>=0 then m_Nation:= new_nation;
+end;//proc
+
 function TSettlement.GetPosX: Integer;
 begin
   Result:= PosX;
@@ -47,5 +54,11 @@ function TSettlement.GetPosY: Integer;
 begin
   Result:= PosY;
 end;//func
+
+procedure TSettlement.SetPosition(const x,y: Integer);
+begin
+  if x>0 then PosX:= x else PosX:= 1;
+  if y>0 then PosY:= y else PosY:= 1;
+end;//proc
 
 end.

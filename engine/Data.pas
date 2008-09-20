@@ -19,9 +19,10 @@ const
   unit_img_path = img_path+'units'+path_delimiter;
   colony_img_path = img_path+'colony'+path_delimiter;
   save_path = data_path+'saves'+path_delimiter;
-  
+
   cDataFileHeader = 'VDD';
   cColonyFileHeader = 'VCD';
+  cUnitFileHeader = 'VUD';
 
 type
   TData = class
@@ -40,6 +41,9 @@ type
               //relative path
               base_dir: string;
               function GetSaveInfo(const n: Word): string;
+              //loading routines (maybe save routines shuold be here, too?)
+              function LoadUnitFromStream(var AUnit: TUnit; var fs: TFileStream): Boolean;
+              function LoadColonyFromStream(var AColony: TColony; var fs: TFileStream): Boolean;
             public
               player_nation: Integer;
               constructor Create;
@@ -348,7 +352,7 @@ begin
     err:= 'TData.SaveData: Error while writing unit file "'+GetPathBase+save_path +'units'+IntToStr(n)+'.vud';
     Exit;
   end;//if
-  
+
   //colonies
   temp:= 0;
   for i:=0 to Colony_max do
@@ -368,6 +372,149 @@ begin
   fs:= nil;
   if not Result then
     err:= 'TData.SaveData: Error while writing colony file "'+GetPathBase+save_path +'colony'+IntToStr(n)+'.vcd';
+end;//func
+
+function TData.LoadUnitFromStream(var AUnit: TUnit; var fs: TFileStream): Boolean;
+var i, px, py: Integer;
+    count: Byte;
+    temp_unit: TUnit;
+    ut: TUnitType;
+    ul: TUnitLocation;
+    gt: TGoodType;
+begin
+  if ((fs=nil) or (AUnit=nil)) then
+  begin
+    Result:= False;
+    Exit;
+  end;
+  Result:= (fs.Read(AUnit.MovesLeft, sizeof(AUnit.MovesLeft))=sizeof(AUnit.MovesLeft));
+  Result:= Result and (fs.Read(px, sizeof(Integer))=sizeof(Integer));
+  Result:= Result and (fs.Read(py, sizeof(Integer))=sizeof(Integer));
+  Result:= Result and AUnit.WarpToXY(px, py, nil);
+  Result:= Result and (fs.Read(ut, sizeof(TUnitType))=sizeof(TUnitType));
+  AUnit.ChangeType(ut);
+  Result:= Result and (fs.Read(ul, sizeof(TUnitLocation))=sizeof(TUnitLocation));
+  AUnit.SetLocation(ul);
+  Result:= Result and (fs.Read(i, sizeof(Integer))=sizeof(Integer));
+  AUnit.ChangeNation(i);
+  Result:= Result and (fs.Read(count, sizeof(Byte))=sizeof(Byte));
+  AUnit.ChangeAllItems(count);
+  //cargo load
+  for i:= 0 to 5 do
+  begin
+    Result:= Result and (fs.Read(count, sizeof(Byte))=sizeof(Byte));
+    Result:= Result and (fs.Read(gt, sizeof(TGoodType))=sizeof(TGoodType));
+    AUnit.SetCargo(i, count, gt);
+  end;//func
+  //load passengers
+  AUnit.DropAllPassengers;
+  count:= 0;
+  Result:= Result and (fs.Read(count, sizeof(Byte))=sizeof(Byte));
+  if count>6 then
+  begin
+    Result:= False;
+    Exit;
+  end;//func
+  for i:= 0 to count-1 do
+  begin
+    temp_unit:= NewUnit(utCriminal, cNationEngland, 1,1);
+    Result:= Result and LoadUnitFromStream(temp_unit, fs);
+    Result:= Result and AUnit.LoadUnit(temp_unit);
+  end;//for
+  //tasks are not yet saved, and thus not loaded
+  AUnit.SetTask(nil);
+end;//func
+
+function TData.LoadColonyFromStream(var AColony: TColony; var fs: TFileStream): Boolean;
+var i, j, f_x, f_y: Integer;
+    bt: TBuildingType;
+    gt: TGoodType;
+    count, temp_b: Byte;
+    temp_unit: TUnit;
+    temp_str: string;
+    temp_Word: Word;
+begin
+  if ((fs=nil) or (AColony=nil)) then
+  begin
+    Result:= False;
+    Exit;
+  end;//if
+  Result:= (fs.Read(i, sizeof(Integer))=sizeof(Integer));
+  AColony.ChangeNation(i);
+  Result:= Result and (fs.Read(f_x, sizeof(Integer))=sizeof(Integer));
+  Result:= Result and (fs.Read(f_y, sizeof(Integer))=sizeof(Integer));
+  AColony.SetPosition(f_x, f_y);
+  //name
+  Result:= Result and (fs.Read(i, sizeof(Integer))=sizeof(Integer));
+  if (not Result) or ((i<1)) then
+  begin
+    Result:= False;
+    Exit;
+  end;//if
+  temp_str:= SpaceString(i);
+  Result:= Result and (fs.Read(temp_str[1], i)=i);
+  AColony.SetName(temp_str);
+  //store
+  for i:= Ord(Low(TGoodType)) to Ord(High(TGoodType)) do
+  begin
+    Result:= Result and (fs.Read(temp_Word, sizeof(Word))=sizeof(Word));
+    AColony.SetStore(TGoodType(i), temp_Word);
+  end;//for
+  //buildings
+  for i:= Ord(Low(TBuildingType)) to Ord(High(TBuildingType)) do
+  begin
+    Result:= Result and (fs.Read(temp_b, sizeof(Byte))=sizeof(Byte));
+    AColony.SetBuildingLevel(TBuildingType(i), temp_b);
+  end;//for
+  //*** units in buildings and units in fields are not saved yet, thus not loaded ***
+  //fields
+  for i:= -1 to 1 do
+    for j:= -1 to 1 do
+      AColony.SetUnitInField(i,j, nil, gtFood);
+  //load fields
+  // -- count
+  Result:= Result and (fs.Read(count, sizeof(Byte))=sizeof(Byte));
+  if count>8 then
+  begin
+    Result:= False;
+    Exit;
+  end;//if
+  for i:= 1 to count do
+  begin
+    Result:= Result and (fs.Read(f_x, sizeof(Integer))=sizeof(Integer));
+    Result:= Result and (fs.Read(f_y, sizeof(Integer))=sizeof(Integer));
+    if ((abs(f_x)>1) or (abs(f_y)>1) or (AColony.GetUnitInField(f_x,f_y)<>nil)) then
+    begin
+      //invalid x/y-values or unit in field is already present
+      Result:= False;
+      Exit;
+    end;//func
+    temp_unit:= NewUnit(utCriminal, cNationEngland, 1,1);
+    Result:= Result and LoadUnitFromStream(temp_unit, fs);
+    Result:= Result and (fs.Read(gt, sizeof(TGoodType))=sizeof(TGoodType));
+    AColony.SetUnitInField(f_x,f_y, temp_unit, gt);
+  end;//func
+  //buildings
+  for i:= Ord(btArmory) to Ord(btBlacksmith) do
+    for j:= 0 to 2 do
+      AColony.SetUnitInBuilding(TBuildingType(i),j,nil);
+  //load units in buildings
+  // -- count
+  Result:= Result and (fs.Read(count, sizeof(Byte))=sizeof(Byte));
+  for i:= 1 to count do
+  begin
+    temp_unit:= NewUnit(utCriminal, cNationEngland, 1,1);
+    Result:= Result and (fs.Read(bt, sizeof(TBuildingType))=sizeof(TBuildingType));
+    Result:= Result and (fs.Read(temp_b, sizeof(Byte))=sizeof(Byte));
+    if (not (bt in [btArmory..btBlacksmith])) or (temp_b>2) or (AColony.GetUnitInBuilding(bt, temp_b)<>nil) then
+    begin
+      Result:= False;
+      Exit;
+    end;//if
+    temp_unit:= NewUnit(utCriminal, cNationEngland, 1,1);
+    Result:= Result and LoadUnitFromStream(temp_unit, fs);
+    AColony.SetUnitInBuilding(bt, temp_b, temp_unit);
+  end;//for
 end;//func
 
 function TData.GetSaveInfo(const n: Word): string;

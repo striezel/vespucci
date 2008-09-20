@@ -463,7 +463,7 @@ begin
     Exit;//to prevent other things, keys can do to your units. We have
          // a message window, so display it, until space is hit.
   end;//if
-  
+
   //keys if menu is active
   if InMenu then
   begin
@@ -948,7 +948,7 @@ begin
                 x_Fields +4*PixelWidth, 6.0);
 
     end;//if Focused unit present
-    
+
     //draw menu, if present
     DrawMenu;
 
@@ -1629,11 +1629,19 @@ begin
                      temp_cb.SaveGame.AData:= dat;
                      temp_cb.SaveGame.AMap:= m_Map;
                      str_arr:= dat.GetSaveSlots;
-                     ShowMessageOptions('Choose a save game slot.',
+                     ShowMessageOptions('Choose a save game slot to save the game.',
                                         ToShortStrArr(dat.GetLang.GetNothing, str_arr),
                                         temp_cb);
                    end;//save
-                2: ; //load
+                2: begin //load
+                     temp_cb._type:= CBT_LOAD_GAME;
+                     temp_cb.LoadGame.AData:= dat;
+                     temp_cb.LoadGame.AMap:= m_Map;
+                     str_arr:= dat.GetSaveSlots;
+                     ShowMessageOptions('Choose a save game slot to load a game.',
+                                        ToShortStrArr(dat.GetLang.GetNothing, str_arr),
+                                        temp_cb);
+                   end;//load
                 3: begin
                      temp_cb._type:= CBT_EXIT;
                      temp_cb.cbExit:= @CBF_Exit;
@@ -1692,7 +1700,7 @@ begin
   else begin
     //get selected option
     sel_option:= mouse_y div 16;
-    if ((mouse_x>=GetMenuStartX(menu_cat)*FieldWidth) and 
+    if ((mouse_x>=GetMenuStartX(menu_cat)*FieldWidth) and
        (mouse_x<=GetMenuStartX(menu_cat)*FieldWidth+dat.GetLang.GetMaxLen(menu_cat)*8+FieldWidth)
        and (sel_option<=dat.GetLang.GetOptionCount(menu_cat))) then
       cat:= menu_cat

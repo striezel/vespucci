@@ -10,8 +10,6 @@ const
   UNIT_TOOL_MASK: Byte = 7;
   UNIT_HORSE_BIT: Byte = 8;
   UNIT_MUSKET_BIT: Byte = 16;
-  
-  cUnitFileHeader = 'VUD';
 
 type
   TUnitType = (utCriminal, utServant, utColonist,
@@ -48,6 +46,7 @@ type
       function GetPosX: Integer;
       function GetPosY: Integer;
       function GetNation: Integer;
+      procedure ChangeNation(const new_nation: Integer);
       function GetType: TUnitType;
       procedure ChangeType(const newType: TUnitType);
       function GetLocation: TUnitLocation;
@@ -55,6 +54,8 @@ type
       function IsShip: Boolean;
       function MovesPerRound: Integer;
       function AttackStrength: Integer;
+      function GetTask: TTask;
+      procedure SetTask(const new_task: TTask);
       //functions for loading/ unloading freigth or passengers and checking freigth status
       function FreightCapacity: Byte;
       function FreeCapacity: Byte;
@@ -64,6 +65,7 @@ type
       function UnloadGood(const AGood: TGoodType; const num: Byte): Byte;
       function LoadUnit(AUnit: TUnit): Boolean;
       function UnloadUnit(const AType: TUnitType; const x,y: Byte; AMap: TMap): Boolean;
+      procedure DropAllPassengers;
       //item functions
       function GetToolAmount: Byte;
       procedure GiveTools(const amount: Byte);
@@ -71,8 +73,9 @@ type
       procedure GiveHorses(const has: Boolean = True);
       function HasMuskets: Boolean;
       procedure GiveMuskets(const has: Boolean = True);
+      procedure ChangeAllItems(const new_items: Byte);
       function SaveToStream(var fs: TFileStream): Boolean;
-      function LoadFromStream(var fs: TFileStream): Boolean;
+      procedure SetCargo(const slot: Byte; const new_amount: Byte; const AGood: TGoodType);
     private
       PosX, PosY: Integer;
       UnitType: TUnitType;
@@ -273,6 +276,11 @@ begin
   Result:= m_Nation;
 end;//func
 
+procedure TUnit.ChangeNation(const new_nation: Integer);
+begin
+  m_Nation:= new_nation;
+end;//proc
+
 function TUnit.GetType: TUnitType;
 begin
   Result:= UnitType;
@@ -333,6 +341,17 @@ begin
   else Result:= 1;
   end;//case
 end;//func
+
+function TUnit.GetTask: TTask;
+begin
+  Result:= AI_Task;
+end;//func
+
+procedure TUnit.SetTask(const new_task: TTask);
+begin
+  if AI_Task<>nil then AI_Task.Destroy;
+  AI_Task:= new_task;
+end;//proc
 
 function TUnit.FreightCapacity: Byte;
 begin
@@ -461,6 +480,20 @@ begin
   end;//for
 end;//func
 
+procedure TUnit.DropAllPassengers;
+var slot: Byte;
+begin
+  for slot:= 0 to 5 do
+  begin
+    if passengers[slot]<>nil then
+    begin
+      passengers[slot].SetLocation(ulAmerica);
+      passengers[slot].WarpToXY(PosX, PosY, nil);
+      passengers[slot]:= nil;
+    end;//if
+  end;//for
+end;//proc
+
 function TUnit.GetToolAmount: Byte;
 begin
   Result:= (items and UNIT_TOOL_MASK)*20;
@@ -496,9 +529,16 @@ begin
   else items:= (items and (not UNIT_MUSKET_BIT));
 end;//proc
 
-//loading ans saving functions, return true on success
+procedure TUnit.ChangeAllItems(const new_items: Byte);
+begin
+  items:= new_items;
+end;//proc
+
+{ saving function, returns true on success.
+  Loading function is part of TData (to keep data integrity).}
 function TUnit.SaveToStream(var fs: TFileStream): Boolean;
 var i: Integer;
+    pass_count: Byte;
 begin
   if fs=nil then
   begin
@@ -515,38 +555,26 @@ begin
   //save cargo
   for i:= 0 to 5 do
   begin
-    Result:= Result and (fs.Write(cargo_load[i].amount, sizeof(Byte))=1);
+    Result:= Result and (fs.Write(cargo_load[i].amount, sizeof(Byte))=sizeof(Byte));
     Result:= Result and (fs.Write(cargo_load[i].which, sizeof(TGoodType))=sizeof(TGoodType));
   end;//func
-  //********* save passengers and tasks needs to be done yet! *********
+  //save passengers
+  pass_count:= EmbarkedPassengers;
+  Result:= Result and (fs.Write(pass_count, sizeof(Byte))=sizeof(Byte));
+  for i:= 0 to 5 do
+    if passengers[i]<>nil then
+      Result:= Result and passengers[i].SaveToStream(fs);
+  //********* save tasks needs to be done yet! *********
 end;//func
 
-function TUnit.LoadFromStream(var fs: TFileStream): Boolean;
-var i: Integer;
+//only used during loading routine
+procedure TUnit.SetCargo(const slot: Byte; const new_amount: Byte; const AGood: TGoodType);
 begin
-  if (fs=nil) then
-  begin
-    Result:= False;
-    Exit;
-  end;
-  Result:= (fs.Read(MovesLeft, sizeof(MovesLeft))=sizeof(MovesLeft));
-  Result:= Result and (fs.Read(PosX, sizeof(PosX))=sizeof(PosX));
-  Result:= Result and (fs.Read(PosY, sizeof(PosY))=sizeof(PosY));
-  Result:= Result and (fs.Read(UnitType, sizeof(TUnitType))=sizeof(TUnitType));
-  Result:= Result and (fs.Read(m_location, sizeof(TUnitLocation))=sizeof(TUnitLocation));
-  Result:= Result and (fs.Read(m_Nation, sizeof(Integer))=sizeof(Integer));
-  Result:= Result and (fs.Read(items, sizeof(items))=sizeof(items));
-  //cargo load
-  for i:= 0 to 5 do
-  begin
-    Result:= Result and (fs.Read(cargo_load[i].amount, sizeof(Byte))=1);
-    Result:= Result and (fs.Read(cargo_load[i].which, sizeof(TGoodType))=sizeof(TGoodType));
-  end;//func
-  //passengers are not yet saved, and thus not loaded
-  for i:= 0 to 5 do
-    passengers[i]:= nil;
-  //same for tasks
-  AI_Task:= nil;
+  if ((FreightCapacity=0) or (slot>5) or (new_amount>100)) then Exit
+  else begin
+    cargo_load[slot].amount:= new_amount;
+    cargo_load[slot].which:= AGood;
+  end;//else
 end;//func
 
 //**** AI-related functions ****
