@@ -178,6 +178,7 @@ type
       selected_menu_option: Integer;
       OffsetX, OffsetY: Integer;
       MiniMapOffset_Y: Integer;
+      Wooden_Mode: Boolean;
       cur_colony: TColony;
       europe: PEuropeanNation;
       focused: TUnit;
@@ -239,6 +240,7 @@ type
       function InMenu: Boolean;
       function InColony: Boolean;
       function InEurope: Boolean;
+      function InWoodenMode: Boolean;
       function GetFocusedUnit: TUnit;
   end;//class TGui
   PGui = ^TGui;
@@ -264,6 +266,7 @@ begin
   mouse_x:= 0;
   mouse_y:= 0;
   OffsetX:= 0; OffsetY:= 0;
+  Wooden_Mode:= True;
   MiniMapOffset_Y:= 0;
   dat:= TData.Create;
   Ship:= dat.NewUnit(utCaravel, cNationEngland, 36, 13);
@@ -386,6 +389,7 @@ begin
          +cSpace60
          +'  Viele Sachen sind noch nicht implementiert, Vespucci be-  '
          +'  findet sich gerade am Anfang der Entwicklungsphase.');
+  Wooden_Mode:= False;
   {$IFDEF DEBUG_CODE}
     WriteLn('Leaving TGui.Create');
   {$ENDIF}
@@ -759,6 +763,19 @@ begin
   if InColony then
   begin
     DrawColonyView;
+  end//if
+  else if InWoodenMode then
+  begin
+    //draw border
+    glBegin(GL_QUADS);
+      glColor3f(0.0, 0.0, 0.0);
+      glVertex2f(0.0, y_Fields);
+      glVertex2f(x_Fields+ BarWidth*PixelWidth, y_Fields);
+      glVertex2f(x_Fields+ BarWidth*PixelWidth, y_Fields+BorderWidth);
+      glVertex2f(0.0, y_Fields+BorderWidth);
+    glEnd;
+    DrawMenuBar;
+    DrawMenu;
   end//if
   else begin
     //draw the normal america view with map and stuff
@@ -1431,6 +1448,11 @@ begin
   Result:= europe<>nil;
 end;//func
 
+function TGui.InWoodenMode: Boolean;
+begin
+  Result:= Wooden_Mode;
+end;//func
+
 function TGui.GetFocusedUnit: TUnit;
 begin
   Result:= focused;
@@ -1572,6 +1594,7 @@ end;//func
 procedure TGui.GetNextMessage;
 var i: Integer;
     temp: PQueueElem;
+    local_bool: Boolean;
 begin
   {$IFDEF DEBUG_CODE}
     WriteLn('Entered TGui.GetNextMessage');
@@ -1583,7 +1606,18 @@ begin
     msg.cbRec.option:= msg.selected_option;
     msg.cbRec.inputText:= msg.inputText;
     //handle callbacks
-    HandleCallback(msg.cbRec);
+    local_bool:= HandleCallback(msg.cbRec);
+    if (msg.cbRec._type=CBT_LOAD_GAME) then
+    begin
+      if not local_bool then
+      begin
+        ShowMessageSimple('Error while loading game data! The loaded data might produce'
+                         +'unpredictable errors, so we have to quit the current game.  '
+                         +'Try to either restart the game or load another game.');
+        Wooden_Mode:= True;
+      end//if
+      else Wooden_Mode:= False;
+    end;//if
   end;
   //now the main work
   if msg_queue.first<>nil then

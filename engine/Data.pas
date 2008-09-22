@@ -44,6 +44,9 @@ type
               //loading routines (maybe save routines shuold be here, too?)
               function LoadUnitFromStream(var AUnit: TUnit; var fs: TFileStream): Boolean;
               function LoadColonyFromStream(var AColony: TColony; var fs: TFileStream): Boolean;
+              procedure InitializeNations;
+              procedure DeInitColonies;
+              procedure DeInitUnits;
             public
               player_nation: Integer;
               constructor Create;
@@ -64,6 +67,7 @@ type
               //others
               procedure NewRound(const num_Nation: Integer; AMap: TMap);
               function SaveData(const n: Word; AMap: TMap; var err: string): Boolean;
+              function LoadData(const n: Word; AMap: TMap; var err: string): Boolean;
               function GetSaveSlots: TShortStrArr;
               function GetPathBase: string;
               function GetLang: TLanguage;
@@ -78,12 +82,10 @@ begin
   Year:= 1492;
   Autumn:= False;
   lang:= TLanguage.Create;
-  Nations[cNationEngland]:= TEuropeanNation.Create(cNationEngland, lang.GetNationName(cNationEngland), 'Walter Raleigh');
-  Nations[cNationFrance]:= TEuropeanNation.Create(cNationFrance, lang.GetNationName(cNationFrance), 'Jacques Cartier');
-  Nations[cNationSpain]:= TEuropeanNation.Create(cNationSpain, lang.GetNationName(cNationSpain), 'Christoph Columbus');
-  Nations[cNationHolland]:= TEuropeanNation.Create(cNationHolland, lang.GetNationName(cNationHolland), 'Michiel De Ruyter');
-  for i:= cMinIndian to cMaxIndian do
-      Nations[i]:= TIndianNation.Create(i, lang.GetNationName(i));
+  //nations
+  for i:= cMin_Nations to cMaxIndian do
+    Nations[i]:= nil;
+  InitializeNations;
   //units
   SetLength(m_Units, 0);
   Unit_max:= -1;
@@ -98,14 +100,39 @@ var i: Integer;
 begin
   for i:= cMin_Nations to cMaxIndian do
     if Nations[i]<>nil then Nations[i].Destroy;
-  for i:=Unit_max downto 0 do
-    if m_Units[i]<>nil then m_Units[i].Destroy;
-  SetLength(m_Units, 0);
+  DeInitColonies;
+  DeInitUnits;
+  lang.Destroy;
+end;//destruc
+
+procedure TData.InitializeNations;
+var i: Integer;
+begin
+  Nations[cNationEngland]:= TEuropeanNation.Create(cNationEngland, lang.GetNationName(cNationEngland), 'Walter Raleigh');
+  Nations[cNationFrance]:= TEuropeanNation.Create(cNationFrance, lang.GetNationName(cNationFrance), 'Jacques Cartier');
+  Nations[cNationSpain]:= TEuropeanNation.Create(cNationSpain, lang.GetNationName(cNationSpain), 'Christoph Columbus');
+  Nations[cNationHolland]:= TEuropeanNation.Create(cNationHolland, lang.GetNationName(cNationHolland), 'Michiel De Ruyter');
+  for i:= cMinIndian to cMaxIndian do
+    Nations[i]:= TIndianNation.Create(i, lang.GetNationName(i));
+end;//proc
+
+procedure TData.DeInitColonies;
+var i: Integer;
+begin
   for i:= Colony_max downto 0 do
     if m_Colonies[i]<>nil then m_Colonies[i].Destroy;
   SetLength(m_Colonies, 0);
-  lang.Destroy;
-end;//destruc
+  Colony_max:= -1;
+end;//proc
+
+procedure TData.DeInitUnits;
+var i: Integer;
+begin
+  for i:=Unit_max downto 0 do
+    if m_Units[i]<>nil then m_Units[i].Destroy;
+  SetLength(m_Units, 0);
+  Unit_max:= -1;
+end;//proc
 
 function TData.GetYear: Integer;
 begin
@@ -333,12 +360,14 @@ begin
   //units
   temp:= 0;
   for i:=0 to Unit_max do
-    if m_Units[i]<>nil then temp:= temp+1;
+    if m_Units[i]<>nil then
+      if not (m_Units[i].GetLocation in [ulEmbarked, ulInColony]) then temp:= temp+1;
   try
     fs:= TFileStream.Create(GetPathBase+save_path +'units'+IntToStr(n)+'.vud', fmCreate or fmShareDenyNone);
   except
     if fs<>nil then fs.Free;
     Result:= False;
+    err:= 'TData.SaveData: could not create unit file "'+GetPathBase+save_path +'units'+IntToStr(n)+'.vud".';
     Exit;
   end;//tryxcept
   Result:= Result and (fs.Write(cUnitFileHeader[1], sizeof(cUnitFileHeader))=sizeof(cUnitFileHeader));
@@ -372,7 +401,209 @@ begin
   fs:= nil;
   if not Result then
     err:= 'TData.SaveData: Error while writing colony file "'+GetPathBase+save_path +'colony'+IntToStr(n)+'.vcd';
-end;//func
+end;//func SaveData
+
+function TData.LoadData(const n: Word; AMap: TMap; var err: string): Boolean;
+var fs: TFileStream;
+    temp_str: string;
+    i, temp: Integer;
+    temp_nat: TNation;
+    temp_unit: TUnit;
+    temp_colony: TColony;
+begin
+  Result:= False;
+  if AMap=nil then
+  begin
+    err:= 'TData.LoadData: no map supplied.';
+    Exit;
+  end;//if
+  if not DirectoryExists(GetPathBase+save_path) then
+  begin
+    err:= 'TData.LoadData: could not find directory "'+GetPathBase+save_path+'".';
+    Exit;
+  end;//if
+  { files:
+      data<n>.vdd - simple data
+      map<n>.vmd - map itself
+      units<n>.vud - all units
+      colony.vcd - all colonies
+  }
+  if not (FileExists(GetPathBase+save_path+'data'+IntToStr(n)+'.vdd') and 
+         FileExists(GetPathBase+save_path+'map'+IntToStr(n)+'.vmd') and
+         FileExists(GetPathBase+save_path+'units'+IntToStr(n)+'.vud') and
+         FileExists(GetPathBase+save_path+'colony'+IntToStr(n)+'.vcd')) then
+  begin
+    err:= 'TData.LoadData: could not find one or more of the needed files.';
+    Exit;
+  end;//if
+  err:= 'no error';
+
+  //data file
+  try
+    fs:= TFileStream.Create(GetPathBase+save_path +'data'+IntToStr(n)+'.vdd', fmOpenRead or fmShareDenyNone);
+  except
+    if fs<>nil then fs.Free;
+    err:= 'TData.LoadData: could not open file "'+GetPathBase+save_path +'data'+IntToStr(n)+'.vdd'+'" for reading.';
+    Result:= False;
+    Exit;
+  end;//tryxcept
+  
+  temp_str:= cDataFileHeader;
+  Result:= (fs.Read(temp_str[1], sizeof(cDataFileHeader))=sizeof(cDataFileHeader));
+  if temp_str<>cDataFileHeader then
+  begin
+    fs.Free;
+    Result:= False;
+    err:= 'TData.LoadData: invalid data file header.';
+    Exit;
+  end;//if
+  Result:= Result and (fs.Read(Year, sizeof(Year))=sizeof(Year));
+  Result:= Result and (fs.Read(Autumn, sizeof(Autumn))=sizeof(Autumn));
+  Result:= Result and (fs.Read(player_nation, sizeof(player_nation))=sizeof(player_nation));
+  if player_nation<0 then
+  begin
+    err:= 'TData.LoadData: got invalid nation count from data file.';
+    Result:= False;
+    fs.Free;
+    Exit;
+  end;//if
+  //read player's name
+  temp:=0;
+  Result:= Result and (fs.Read(temp, sizeof(Integer))=sizeof(Integer));
+  if (temp<1) or (temp>255) then
+  begin
+    fs.Free;
+    err:= 'TData.LoadData: got invalid string length from data file.';
+    Result:= False;
+    Exit;
+  end;//if
+  temp_str:= SpaceString(temp);
+  Result:= Result and (fs.Read(temp_str[1], temp)=temp);
+  fs.Free;
+  fs:= nil;
+  if not Result then
+  begin
+    err:= 'TData.LoadData: Error while reading data file "'+GetPathBase+save_path +'data'+IntToStr(n)+'.vdd';
+    Exit;
+  end;//if
+  for i:= cMin_Nations to cMaxIndian do
+    if Nations[i]<>nil then
+    begin
+      Nations[i].Destroy;
+      Nations[i]:= nil;
+    end;//if
+  InitializeNations;
+  temp_nat:= GetNation(player_nation);
+  if temp_nat<>nil then
+  begin
+    if temp_nat.IsEuropean then
+      TEuropeanNation(GetNation(player_nation)).ChangeLeaderName(temp_str)
+    else begin
+      err:= 'TData.LoadData: got Indian nation for player.';
+      Result:= False;
+      Exit;
+    end;//else
+  end;//if
+  
+  //load the map
+  if AMap<>nil then Result:= Result and AMap.LoadFromFile(GetPathBase+save_path+'map'+IntToStr(n)+'.vmd')
+  else begin
+    err:= 'TData.LoadData: no map supplied.';
+    Result:= False;
+    Exit;
+  end;//if
+  if not Result then
+  begin
+    err:= 'TData.LoadData: error while loading map from "'+GetPathBase+save_path+'map'+IntToStr(n)+'.vmd".';
+    Exit;
+  end;//if
+  
+  //load units
+  DeInitUnits;
+  
+  try
+    fs:= TFileStream.Create(GetPathBase+save_path +'units'+IntToStr(n)+'.vud', fmOpenRead or fmShareDenyNone);
+  except
+    if fs<>nil then fs.Free;
+    Result:= False;
+    err:= 'TData.LoadData: could not open unit file "'+GetPathBase+save_path +'units'+IntToStr(n)+'.vud" for reading.';
+    Exit;
+  end;//tryxcept
+  temp_str:= cUnitFileHeader;
+  Result:= Result and (fs.Read(temp_str[1], sizeof(cUnitFileHeader))=sizeof(cUnitFileHeader));
+  if temp_str<>cUnitFileHeader then
+  begin
+    Result:= False;
+    fs.Free;
+    err:= 'TData.LoadData: got invalid unit file header.';
+    Exit;
+  end;//if
+  temp:=0;
+  Result:= Result and (fs.Read(temp, sizeof(Integer))=sizeof(Integer));
+  if temp<0 then
+  begin
+    fs.Free;
+    Result:= False;
+    err:= 'TData.LoadData: got invalid unit count.';
+    Exit;
+  end;//if
+  
+  for i:= 1 to temp do
+  begin
+    temp_unit:= NewUnit(utCriminal, cNationEngland, 1,1);
+    Result:= Result and LoadUnitFromStream(temp_unit, fs);
+  end;//for
+  fs.Free;
+  fs:= nil;
+  
+  if not Result then
+  begin
+    err:= 'TData.LoadData: error while reading unit file "'+GetPathBase+save_path +'units'+IntToStr(n)+'.vud".';
+    Exit;
+  end;//if
+  
+  //load colonies
+  DeInitColonies;
+  try
+    fs:= TFileStream.Create(GetPathBase+save_path +'colony'+IntToStr(n)+'.vcd', fmOpenRead or fmShareDenyNone);
+  except
+    if fs<>nil then fs.Free;
+    Result:= False;
+    err:= 'TData.LoadData: could not open colony file "'+GetPathBase+save_path +'colony'+IntToStr(n)+'.vcd".';
+    Exit;
+  end;//tryxcept
+  temp_str:= cColonyFileHeader;
+  Result:= Result and (fs.Read(temp_str[1], sizeof(cColonyFileHeader))=sizeof(cColonyFileHeader));
+  if temp_str<>cColonyFileHeader then
+  begin
+    fs.Free;
+    Result:= False;
+    err:= 'TData.LoadData: invalid colony file header.';
+    Exit;
+  end;//if
+  Result:= Result and (fs.Read(temp, sizeof(Integer))=sizeof(Integer)); //colony count
+  if temp<0 then
+  begin
+    fs.Free;
+    Result:= False;
+    err:= 'TData.LoadData: got invalid colony count.';
+    Exit;
+  end;//if
+  
+  for i:= 1 to temp do
+  begin
+    temp_colony:= NewColony(1,1, cNationEngland, 'new colony '+IntToStr(i));
+    Result:= Result and LoadColonyFromStream(temp_colony, fs);
+  end;//for
+  fs.Free;
+  fs:= nil;
+  
+  if not Result then
+  begin
+    err:= 'TData.LoadData: error while loading colonies.';
+    //Exit;
+  end;//if
+end;//func LoadData
 
 function TData.LoadUnitFromStream(var AUnit: TUnit; var fs: TFileStream): Boolean;
 var i, px, py: Integer;

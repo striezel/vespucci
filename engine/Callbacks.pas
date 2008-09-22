@@ -60,7 +60,7 @@ const
   procedure CBF_Exit(const option: Integer);
   function CBF_Landfall(const option: Integer; AShip: TUnit; const AType: TUnitType; const x,y: Byte; AMap: TMap): Boolean;
 
-  procedure HandleCallback(const cbRec: TCallbackRec);
+  function HandleCallback(const cbRec: TCallbackRec): Boolean;
 
 implementation
 
@@ -105,20 +105,37 @@ begin
   WriteLn('SaveGame errors: '+err_str);
 end;//func
 
-procedure HandleCallback(const cbRec: TCallbackRec);
+function CBF_LoadGame(const option: Integer; AMap: TMap; AData: TData): Boolean;
+var err_str: string;
+begin
+  err_str:= 'not loaded.';
+  if ((option>0) and (option<65536) and (AMap<>nil) and (AData<>nil)) then
+  begin
+    Result:= AData.LoadData(option, AMap, err_str);
+  end//if
+  else Result:= False;
+  WriteLn('LoadGame errors: '+err_str);
+end;//if
+
+function HandleCallback(const cbRec: TCallbackRec): Boolean;
 begin
   case cbRec._type of
-    CBT_ANY: ; //do nothing here
-    CBT_EXIT: cbRec.cbExit(cbRec.option);
-    CBT_LANDFALL: cbRec.Landfall.cbLandfall(cbRec.option, cbRec.Landfall.Ship,
+    CBT_ANY: Result:=True; //do nothing here
+    CBT_EXIT: begin
+                cbRec.cbExit(cbRec.option);
+                Result:= True;
+              end;
+    CBT_LANDFALL: Result:= cbRec.Landfall.cbLandfall(cbRec.option, cbRec.Landfall.Ship,
                     cbRec.Landfall.UType, cbRec.Landfall.x, cbRec.Landfall.y,
                     cbRec.Landfall.AMap);
-    CBT_BUILD_COLONY: CBF_BuildColony(cbRec.BuildColony.x, cbRec.BuildColony.y,
+    CBT_BUILD_COLONY: Result:= CBF_BuildColony(cbRec.BuildColony.x, cbRec.BuildColony.y,
                         cbRec.BuildColony.num_nation, cbRec.inputText,
                         cbRec.BuildColony.founder, cbRec.BuildColony.AMap,
                         cbRec.BuildColony.AData);
-    CBT_SAVE_GAME: CBF_SaveGame(cbRec.option, cbRec.SaveGame.AMap, cbRec.SaveGame.AData);
-    CBT_LOAD_GAME: ; //not implemented yet
+    CBT_SAVE_GAME: Result:= CBF_SaveGame(cbRec.option, cbRec.SaveGame.AMap, cbRec.SaveGame.AData);
+    CBT_LOAD_GAME: Result:= CBF_LoadGame(cbRec.option, cbRec.LoadGame.AMap, cbRec.LoadGame.AData); //not implemented yet
+  else
+    Result:= False; //unknown callback type or type not supported
   end;//case
 end;//proc
 
