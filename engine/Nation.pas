@@ -69,6 +69,7 @@ type
       function IsIndian: Boolean; override;
       function IsEuropean: Boolean; override;
       function GetLeaderName: string;
+      procedure ChangeLeaderName(const NameOfLeader: string);
 
       //tax rate for this nation in percent
       function GetTaxRate: Byte;
@@ -179,6 +180,11 @@ function TEuropeanNation.GetLeaderName: string;
 begin
   Result:= m_Leader;
 end;//func
+
+procedure TEuropeanNation.ChangeLeaderName(const NameOfLeader: string);
+begin
+  if NameOfLeader<>'' then m_Leader:= NameOfLeader;
+end;//proc
 
 function TEuropeanNation.GetTaxRate: Byte;
 begin
