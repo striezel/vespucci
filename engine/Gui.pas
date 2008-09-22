@@ -4,7 +4,7 @@ interface
 
 uses
   Map, Data, GL, GLU, GLUT, Terrain, Language, Colony, Nation, Goods, Units,
-  SysUtils, BitmapReader, Callbacks, Helper;
+  SysUtils, BitmapReader, Callbacks, Helper, ErrorTexture;
 
 const
   x_Fields = 15;
@@ -203,6 +203,8 @@ type
       m_UnitTexNames: array [TUnitType] of GLuint;
       //colony texture "names" ( " " " " )
       m_ColonyTexNames: array [0..0] of GLuint;
+      //Error Texture (yellow sign with black "!" on it)
+      m_ErrorTexName: GLuint;
 
       procedure InitGLUT;
       procedure DrawMenuBar;
@@ -373,6 +375,14 @@ begin
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   end;//if
+  //error texture
+  m_ErrorTexName:= 0;
+  GetAlphaByColor(cErrorTex, AlphaTex);
+  glGenTextures(1, @m_ErrorTexName);
+  glBindTexture(GL_TEXTURE_2D, m_ErrorTexName);
+  glTexImage2D(GL_TEXTURE_2D, 0, 4, 32, 32, 0, GL_RGBA, GL_UNSIGNED_BYTE, @AlphaTex[0].r);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
   //welcome message (German), originally for test reasons only
   ShowMessageSimple(
@@ -507,6 +517,9 @@ begin
       ShowMessageOptions('Vespucci beenden?', ToShortStrArr('Nein', 'Ja'), temp_cb);
     end;//else
   end;//if KEY_ESCAPE
+  
+  if Wooden_Mode then Exit; //rest is only for america view
+  
   case UpCase(char(Key)) of
     'B': //build colony
          if focused<>nil then
@@ -681,8 +694,13 @@ begin
       end;//if
       Exit;
     end;//if InMenu
-    GetSquareAtMouse(pos_x, pos_y);
-    WriteLn('GUI got square: x: ', pos_x, '; y: ', pos_y);//for debug
+    
+    if Wooden_Mode then pos_x:= -1
+    else begin
+      //in america view
+      GetSquareAtMouse(pos_x, pos_y);
+      WriteLn('GUI got square: x: ', pos_x, '; y: ', pos_y);//for debug
+    end;//else
     if (pos_x<>-1) then
     begin
       focused:= dat.GetFirstUnitInXY(pos_x, pos_y);
@@ -921,7 +939,6 @@ begin
                      y_Fields-BorderWidth - (j-MinimapOffset_Y)*2*PixelWidth, 0.1);
         end;//for
     glEnd;//MiniMap
-    glColor3ubv(@cMenuTextColour[0]);
     DrawMenuBar;
     //display side bar information
     // - season and year
@@ -1044,25 +1061,26 @@ begin
       end;//else
       //draw units working there
       if cur_colony.GetUnitInField(i,j)<>nil then
+      begin
+        glEnable(GL_TEXTURE_2D);
+        glEnable(GL_ALPHA_TEST);
         if m_UnitTexNames[cur_colony.GetUnitInField(i,j).GetType]<>0 then
-        begin
-          glEnable(GL_TEXTURE_2D);
-          glEnable(GL_ALPHA_TEST);
-          glBindTexture(GL_TEXTURE_2D, m_UnitTexNames[cur_colony.GetUnitInField(i,j).GetType]);
-          glBegin(GL_TEXTURE_2D);
-            glColor3f(1.0, 1.0, 1.0);
-            glTexCoord2f(0.0, 0.0);
-            glVertex2f(i+x_Fields+2.0, y_Fields-3.0-j);//lower left corner
-            glTexCoord2f(1.0, 0.0);
-            glVertex2f(i+x_Fields+3.0, y_Fields-3.0-j);
-            glTexCoord2f(1.0, 1.0);
-            glVertex2f(i+x_Fields+3.0, y_Fields-2.0-j);
-            glTexCoord2f(0.0, 1.0);
-            glVertex2f(i+x_Fields+2.0, y_Fields-2.0-j);
-          glEnd;
-          glDisable(GL_ALPHA_TEST);
-          glDisable(GL_TEXTURE_2D);
-        end;//if
+          glBindTexture(GL_TEXTURE_2D, m_UnitTexNames[cur_colony.GetUnitInField(i,j).GetType])
+        else glBindTexture(GL_TEXTURE_2D, m_ErrorTexName);
+        glBegin(GL_QUADS);
+          glColor3f(1.0, 1.0, 1.0);
+          glTexCoord2f(0.0, 0.0);
+          glVertex2f(i+x_Fields+2.0, y_Fields-3.0-j);//lower left corner
+          glTexCoord2f(1.0, 0.0);
+          glVertex2f(i+x_Fields+3.0, y_Fields-3.0-j);
+          glTexCoord2f(1.0, 1.0);
+          glVertex2f(i+x_Fields+3.0, y_Fields-2.0-j);
+          glTexCoord2f(0.0, 1.0);
+          glVertex2f(i+x_Fields+2.0, y_Fields-2.0-j);
+        glEnd;
+        glDisable(GL_ALPHA_TEST);
+        glDisable(GL_TEXTURE_2D);
+      end;//if
     end;//for
   DrawColonyTitleBar;
   DrawGoodsBar;
@@ -1296,6 +1314,7 @@ begin
   {$IFDEF DEBUG_CODE}
     WriteLn('Entered TGui.DrawMenuBar');
   {$ENDIF}
+  glColor3ubv(@cMenuTextColour[0]);
   s:= dat.GetLang.GetMenuLabel(mcGame);
   for i:= Ord(Succ(mcGame)) to Ord(High(TMenuCategory)) do
     s:= s+'  '+dat.GetLang.GetMenuLabel(TMenuCategory(i));
@@ -1605,20 +1624,35 @@ begin
     //set last selected option
     msg.cbRec.option:= msg.selected_option;
     msg.cbRec.inputText:= msg.inputText;
-    //handle callbacks
-    local_bool:= HandleCallback(msg.cbRec);
-    if (msg.cbRec._type=CBT_LOAD_GAME) then
+    //check whether we need callbacks
+    if (((msg.cbRec._type in [CBT_LOAD_GAME, CBT_SAVE_GAME]) and (msg.selected_option=0))
+       or ((msg.cbRec._type=CBT_LOAD_GAME) and (dat.GetSaveInfo(msg.selected_option)='('+dat.GetLang.GetEmpty+')'))) then
     begin
-      if not local_bool then
-      begin
-        ShowMessageSimple('Error while loading game data! The loaded data might produce'
-                         +'unpredictable errors, so we have to quit the current game.  '
-                         +'Try to either restart the game or load another game.');
-        Wooden_Mode:= True;
-      end//if
-      else Wooden_Mode:= False;
-    end;//if
-  end;
+      //skip callbacks
+    end
+    else begin
+      //handle callbacks
+      local_bool:= HandleCallback(msg.cbRec);
+
+      case msg.cbRec._type of
+        CBT_LOAD_GAME: begin
+                         if not local_bool then
+                         begin
+                           ShowMessageSimple(dat.GetLang.GetSaveLoad(slsLoadError));
+                           Wooden_Mode:= True;
+                         end//if
+                         else begin
+                           Wooden_Mode:= False;
+                           ShowMessageSimple(dat.GetLang.GetSaveLoad(slsLoadSuccess));
+                         end;//else
+                       end;// CBT_LOAD_GAME
+        CBT_SAVE_GAME: begin
+                         if local_bool then ShowMessageSimple(dat.GetLang.GetSaveLoad(slsSaveSuccess))
+                         else ShowMessageSimple(dat.GetLang.GetSaveLoad(slsSaveError));
+                       end;// CBT_SAVE_GAME
+      end;//case
+    end;//else
+  end;//if
   //now the main work
   if msg_queue.first<>nil then
   begin
@@ -1663,7 +1697,7 @@ begin
                      temp_cb.SaveGame.AData:= dat;
                      temp_cb.SaveGame.AMap:= m_Map;
                      str_arr:= dat.GetSaveSlots;
-                     ShowMessageOptions('Choose a save game slot to save the game.',
+                     ShowMessageOptions(dat.GetLang.GetSaveLoad(slsSaveChoose),
                                         ToShortStrArr(dat.GetLang.GetNothing, str_arr),
                                         temp_cb);
                    end;//save
@@ -1672,7 +1706,7 @@ begin
                      temp_cb.LoadGame.AData:= dat;
                      temp_cb.LoadGame.AMap:= m_Map;
                      str_arr:= dat.GetSaveSlots;
-                     ShowMessageOptions('Choose a save game slot to load a game.',
+                     ShowMessageOptions(dat.GetLang.GetSaveLoad(slsLoadChoose),
                                         ToShortStrArr(dat.GetLang.GetNothing, str_arr),
                                         temp_cb);
                    end;//load

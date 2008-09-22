@@ -82,8 +82,8 @@ begin
       or (y>=cMap_Y-1) or (x=0) or (y=0)) then Exit;
   if founder.WarpToXY(x,y, AMap) then
   begin
-    AData.NewColony(x,y, num_nation, ColName);
-    founder.SetLocation(ulInColony);
+    (AData.NewColony(x,y, num_nation, ColName)).SetUnitInField(-1, -1, founder);
+    //founder.SetLocation(ulInColony);
     AMap.tiles[x,y].CreateRoad;
     Result:= True;
   end;//if

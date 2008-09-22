@@ -7,6 +7,7 @@ uses
 
 type
   TMenuCategory = (mcNone, mcGame, mcView, mcOrders, mcReports, mcTrade);
+  TSaveLoadString = (slsLoadChoose, slsLoadError, slsLoadSuccess, slsSaveChoose, slsSaveError, slsSaveSuccess, slsNoGameLoaded);
   TLanguage = class
     private
       Menu: array[TMenuCategory] of string;
@@ -25,6 +26,8 @@ type
       Moves: string;
       Empty: string;
       Nothing: string;
+      //for messages after saving/loading the game
+      SaveLoad: array[TSaveLoadString] of string;
       //for landfall message box
       Landfall: array[0..2] of string;
       //for building new colonies
@@ -51,6 +54,7 @@ type
       function GetMoves: string;
       function GetEmpty: string;
       function GetNothing: string;
+      function GetSaveLoad(const which: TSaveLoadString): string;
       function GetLandfall(const which: Byte): string;
       function GetBuildColony(const which: Byte): string;
       function SaveToFile(const FileName: string): Boolean;
@@ -200,6 +204,21 @@ begin
   Moves:= 'Züge';
   Empty:= 'leer';
   Nothing:= 'nichts';
+  //save/ load messages
+  SaveLoad[slsLoadChoose]:= 'Wählen Sie den zu ladenden Spielstand.';
+  SaveLoad[slsLoadError]:= 'Fehler beim Laden des Spielstandes! Das geladene Spiel kann '
+                          +'unter Umständen unvorhersehbare Fehler verursachen, daher   '
+                          +'wird das aktuelle Spiel beendet. Versuchen Sie, ein anderes '
+                          +'Spiel neu zu laden oder das Programm erneut zu starten.';
+  SaveLoad[slsLoadSuccess]:= 'Spiel wurde erfolgreich geladen!';
+  SaveLoad[slsSaveChoose]:= 'Wählen Sie den Slot, in welchem das Spiel gespeichert werden'
+                           +'soll.';
+  SaveLoad[slsSaveError]:= 'Fehler beim Speichern des Spieles! Die gespeicherten Daten  '
+                          +'sind möglicherweise unbrauchbar und können beim Versuch,    '
+                          +'diese zu laden, zum Spielabbruch führen.';
+  SaveLoad[slsSaveSuccess]:= 'Das Spiel wurde gespeichert.';
+  SaveLoad[slsNoGameLoaded]:= 'Es ist kein Spiel geladen, welches gespeichert werden       '
+                             +'könnte.';
   //landfall
   Landfall[0]:= 'Sollen wir an Land gehen, Eure Exzellenz, und die Schiffe zurücklassen?';
   Landfall[1]:= 'Bei den Schiffen bleiben';
@@ -312,6 +331,11 @@ begin
   Result:= Nothing;
 end;//func
 
+function TLanguage.GetSaveLoad(const which: TSaveLoadString): string;
+begin
+  Result:= SaveLoad[which];
+end;//func
+
 function TLanguage.GetLandfall(const which: Byte): string;
 begin
   if which>2 then Result:= ''
@@ -339,33 +363,37 @@ begin
   end;//try-xcept
   for i:= Ord(Low(TGoodType)) to Ord(High(TGoodType)) do
     WriteLn(dat, GoodNames[TGoodType(i)]);
-  WriteLn;
+  WriteLn(dat);
   WriteLn(dat, '[Nations]');
   for i:= cMin_Nations to cMaxIndian do
     WriteLn(dat, NationNames[i]);
-  WriteLn;
+  WriteLn(dat);
   WriteLn(dat, '[Terrain]');
   for i:= Ord(Low(TTerrainType)) to Ord(High(TTerrainType)) do
     WriteLn(dat, TerrainNames[TTerrainType(i)]);
-  WriteLn;
+  WriteLn(dat);
   WriteLn(dat, '[Units]');
   for i:= Ord(Low(TUnitType)) to Ord(High(TUnitType)) do
     WriteLn(dat, UnitNames[TUnitType(i)]);
-  WriteLn;
+  WriteLn(dat);
   WriteLn(dat, '[Seasons]');
   WriteLn(dat, Seasons[0]);
   WriteLn(dat, Seasons[1]);
-  WriteLn;
+  WriteLn(dat);
   WriteLn(dat, '[Others]');
   WriteLn(dat, Location);
   WriteLn(dat, Moves);
   WriteLn(dat, Empty);
   WriteLn(dat, Nothing);
-  WriteLn;
+  WriteLn(dat);
+  WriteLn(dat, '[SaveLoad]');
+  for i:= Ord(Low(TSaveLoadString)) to Ord(High(TSaveLoadString)) do
+    WriteLn(dat, SaveLoad[TSaveLoadString(i)]);
+  WriteLn(dat);
   WriteLn(dat, '[Landfall]');
   for i:=0 to 2 do
     WriteLn(dat, Landfall[i]);
-  WriteLn;
+  WriteLn(dat);
   WriteLn(dat, '[BuildColony]');
   for i:=0 to 4 do
     WriteLn(dat, BuildColony[i]);
@@ -460,6 +488,17 @@ begin
             else if i=2 then Empty:= str1
             else Nothing:= str1;
           end;//if
+          i:= i+1;
+        end;//while
+      end//if
+      else if str1='[SaveLoad]' then
+      begin
+        i:= Ord(Low(TSaveLoadString));
+        while (i<=Ord(High(TSaveLoadString))) and not Eof(dat) do
+        begin
+          ReadLn(dat, str1);
+          str1:= Trim(str1);
+          if str1<>'' then SaveLoad[TSaveLoadString(i)]:= str1;
           i:= i+1;
         end;//while
       end//if

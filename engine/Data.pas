@@ -40,7 +40,6 @@ type
               lang: TLanguage;
               //relative path
               base_dir: string;
-              function GetSaveInfo(const n: Word): string;
               //loading routines (maybe save routines shuold be here, too?)
               function LoadUnitFromStream(var AUnit: TUnit; var fs: TFileStream): Boolean;
               function LoadColonyFromStream(var AColony: TColony; var fs: TFileStream): Boolean;
@@ -68,6 +67,7 @@ type
               procedure NewRound(const num_Nation: Integer; AMap: TMap);
               function SaveData(const n: Word; AMap: TMap; var err: string): Boolean;
               function LoadData(const n: Word; AMap: TMap; var err: string): Boolean;
+              function GetSaveInfo(const n: Word): string;
               function GetSaveSlots: TShortStrArr;
               function GetPathBase: string;
               function GetLang: TLanguage;
@@ -428,7 +428,7 @@ begin
       units<n>.vud - all units
       colony.vcd - all colonies
   }
-  if not (FileExists(GetPathBase+save_path+'data'+IntToStr(n)+'.vdd') and 
+  if not (FileExists(GetPathBase+save_path+'data'+IntToStr(n)+'.vdd') and
          FileExists(GetPathBase+save_path+'map'+IntToStr(n)+'.vmd') and
          FileExists(GetPathBase+save_path+'units'+IntToStr(n)+'.vud') and
          FileExists(GetPathBase+save_path+'colony'+IntToStr(n)+'.vcd')) then
@@ -447,7 +447,7 @@ begin
     Result:= False;
     Exit;
   end;//tryxcept
-  
+
   temp_str:= cDataFileHeader;
   Result:= (fs.Read(temp_str[1], sizeof(cDataFileHeader))=sizeof(cDataFileHeader));
   if temp_str<>cDataFileHeader then
@@ -504,7 +504,7 @@ begin
       Exit;
     end;//else
   end;//if
-  
+
   //load the map
   if AMap<>nil then Result:= Result and AMap.LoadFromFile(GetPathBase+save_path+'map'+IntToStr(n)+'.vmd')
   else begin
@@ -517,10 +517,10 @@ begin
     err:= 'TData.LoadData: error while loading map from "'+GetPathBase+save_path+'map'+IntToStr(n)+'.vmd".';
     Exit;
   end;//if
-  
+
   //load units
   DeInitUnits;
-  
+
   try
     fs:= TFileStream.Create(GetPathBase+save_path +'units'+IntToStr(n)+'.vud', fmOpenRead or fmShareDenyNone);
   except
@@ -547,7 +547,7 @@ begin
     err:= 'TData.LoadData: got invalid unit count.';
     Exit;
   end;//if
-  
+
   for i:= 1 to temp do
   begin
     temp_unit:= NewUnit(utCriminal, cNationEngland, 1,1);
@@ -555,13 +555,13 @@ begin
   end;//for
   fs.Free;
   fs:= nil;
-  
+
   if not Result then
   begin
     err:= 'TData.LoadData: error while reading unit file "'+GetPathBase+save_path +'units'+IntToStr(n)+'.vud".';
     Exit;
   end;//if
-  
+
   //load colonies
   DeInitColonies;
   try
@@ -589,7 +589,7 @@ begin
     err:= 'TData.LoadData: got invalid colony count.';
     Exit;
   end;//if
-  
+
   for i:= 1 to temp do
   begin
     temp_colony:= NewColony(1,1, cNationEngland, 'new colony '+IntToStr(i));
@@ -597,7 +597,7 @@ begin
   end;//for
   fs.Free;
   fs:= nil;
-  
+
   if not Result then
   begin
     err:= 'TData.LoadData: error while loading colonies.';
