@@ -222,7 +222,6 @@ type
       procedure HandleMenuSelection(const categ: TMenuCategory; const selected: Integer);
       function  GetMenuStartX(const categ: TMenuCategory): GLfloat;
     public
-      m_Map: TMap;
       constructor Create;
       destructor Destroy;
       procedure KeyFunc(Key: Byte; x, y: LongInt; Special: Boolean = False);
@@ -276,21 +275,6 @@ begin
   passenger:= dat.NewUnit(utColonist, cNationEngland, 36, 13);
   passenger.GiveTools(100);
   Ship.LoadUnit(passenger);
-  m_Map:= TMap.Create;
-  if FileExists(dat.GetPathBase+america_map_path) then
-  begin
-    if m_Map.LoadFromFile(dat.GetPathBase+america_map_path) then
-      WriteLn('Map "'+dat.GetPathBase+america_map_path+'" successfully loaded.')
-    else begin
-      WriteLn('Couldn''t load map file "'+dat.GetPathBase+america_map_path+'" properly. Using generation routine instead.');
-      m_Map.Generate(0.7);
-    end;
-  end
-  else begin
-    WriteLn('Couldn''t find map file "'+dat.GetPathBase+america_map_path+'". Using generation routine instead.');
-    m_Map.Generate(0.7);
-  end;
-  m_Map.GenerateSpecials;
   menu_cat:= mcNone;
   selected_menu_option:= 1;
   cur_colony:= nil;
@@ -411,7 +395,6 @@ begin
   {$IFDEF DEBUG_CODE}
     WriteLn('Entered TGui.Destroy');
   {$ENDIF}
-  m_Map.Destroy;
   dat.Destroy;
   //free textures
   for i:= Ord(Low(TTerrainType)) to Ord(High(TTerrainType)) do
@@ -430,6 +413,7 @@ procedure TGui.KeyFunc(Key: Byte; x, y: LongInt; Special: Boolean = False);
 var tempUnit: TUnit;
     temp_cb: TCallbackRec;
     temp_x, temp_y: Byte;
+    temp_Map: TMap;
     direc: TDirection;
 begin
   {$IFDEF DEBUG_CODE}
@@ -524,10 +508,11 @@ begin
     'B': //build colony
          if focused<>nil then
          begin
-           if (focused.IsShip or m_Map.tiles[focused.GetPosX, focused.GetPosY].IsWater) then
+           temp_Map:= dat.GetMap;
+           if (focused.IsShip or temp_Map.tiles[focused.GetPosX, focused.GetPosY].IsWater) then
              ShowMessageSimple(dat.GetLang.GetBuildColony(2))
            else begin
-             if m_Map.tiles[focused.GetPosX, focused.GetPosY].GetType=ttMountains then
+             if temp_Map.tiles[focused.GetPosX, focused.GetPosY].GetType=ttMountains then
                ShowMessageSimple(dat.GetLang.GetBuildColony(4))
              else begin
                if dat.FreeForSettlement(focused.GetPosX, focused.GetPosY) then
@@ -538,7 +523,7 @@ begin
                  temp_cb.BuildColony.y:= focused.GetPosY;
                  temp_cb.BuildColony.num_nation:= dat.player_nation;
                  temp_cb.BuildColony.founder:= focused;
-                 temp_cb.BuildColony.AMap:= m_Map;
+                 temp_cb.BuildColony.AMap:= temp_Map;
                  temp_cb.BuildColony.AData:= dat;
                  ShowMessageInput(dat.GetLang.GetBuildColony(0), dat.GetLang.GetBuildColony(1), 'Plymouth', temp_cb);
                  focused:= nil;
@@ -612,7 +597,7 @@ begin
                  else begin
                    //no moves left, start new round
                    dat.AdvanceYear;
-                   dat.NewRound(dat.player_nation, m_Map);
+                   dat.NewRound(dat.player_nation);
                    focused:= dat.GetFirstLazyUnit(dat.player_nation);
                  end;
     end;//case
@@ -622,7 +607,8 @@ begin
       temp_x:= focused.GetPosX;
       temp_y:= focused.GetPosY;
       ApplyDir(temp_x, temp_y, direc);
-      if (focused.IsShip and not m_Map.tiles[temp_x, temp_y].IsWater and (focused.EmbarkedPassengers>0)) then
+      temp_Map:= dat.GetMap;
+      if (focused.IsShip and not temp_Map.tiles[temp_x, temp_y].IsWater and (focused.EmbarkedPassengers>0)) then
       begin
         //check for landfall
         temp_cb._type:= CBT_LANDFALL;
@@ -633,10 +619,10 @@ begin
         else temp_cb.Landfall.UType:= utGalleon;
         temp_cb.Landfall.x:= temp_x;
         temp_cb.Landfall.y:= temp_y;
-        temp_cb.Landfall.AMap:= m_Map;
+        temp_cb.Landfall.AMap:= temp_Map;
         ShowMessageOptions(dat.GetLang.GetLandfall(0), ToShortStrArr(dat.GetLang.GetLandfall(1), dat.GetLang.GetLandfall(2)), temp_cb);
       end
-      else focused.Move(direc, m_Map);
+      else focused.Move(direc, temp_Map);
     end;//if
     //check if unit moved out of sight, and center on it, if neccessary
     if focused<>nil then
@@ -766,6 +752,7 @@ procedure TGui.Draw;
 var i, j: Integer;
     tempUnit: TUnit;
     tempColony: TColony;
+    tempMap: TMap;
 begin
   {$IFDEF DEBUG_CODE}
     WriteLn('Entered TGui.Draw');
@@ -823,13 +810,14 @@ begin
     glEnd;//borders
 
     //draw the real map
+    tempMap:= dat.GetMap;
     for i:= OffsetX to OffSetX +x_Fields-1 do
       for j:= OffSetY to OffsetY +y_Fields-1 do
       begin
-        if m_TerrainTexNames[m_Map.tiles[i,j].m_Type]=0 then
+        if m_TerrainTexNames[tempMap.tiles[i,j].m_Type]=0 then
         begin
           glBegin(GL_QUADS);
-            case m_Map.tiles[i,j].m_Type of
+            case tempMap.tiles[i,j].m_Type of
               ttArctic: glColor3f(1.0, 1.0, 1.0);//white
               ttSea: glColor3f(0.0, 0.0, 1.0);//blue
               ttOpenSea: glColor3f(0.3, 0.3, 1.0);//lighter blue
@@ -845,7 +833,7 @@ begin
         end//if-then
         else begin
           glEnable(GL_TEXTURE_2D);
-          glBindTexture(GL_TEXTURE_2D, m_TerrainTexNames[m_Map.tiles[i,j].m_Type]);
+          glBindTexture(GL_TEXTURE_2D, m_TerrainTexNames[tempMap.tiles[i,j].m_Type]);
           glBegin(GL_QUADS);
             glColor3f(1.0, 1.0, 1.0);
             glTexCoord2f(0.0, 1.0);
@@ -928,7 +916,7 @@ begin
       for i:=0 to MiniMap_x_Fields-1 do
         for j:= MiniMapOffset_Y to MiniMapOffset_Y +MiniMap_y_Fields-1 do
         begin
-          glColor3ubv(@cMapColour[m_Map.tiles[i,j].m_Type,0]);
+          glColor3ubv(@cMapColour[tempMap.tiles[i,j].m_Type,0]);
           glVertex3f(x_Fields + (24+2*i)*PixelWidth,
                      y_Fields-BorderWidth - (j-MinimapOffset_Y)*2*PixelWidth, 0.1);
           glVertex3f(x_Fields + (24+2*i)*PixelWidth,
@@ -978,7 +966,7 @@ begin
       WriteText(dat.GetLang.GetUnitName(focused.GetType),
                 x_Fields +4*PixelWidth, 6.5);
       // -- terrain of unit's location
-      WriteText(dat.GetLang.GetTerrainName(m_Map.tiles[focused.GetPosX,focused.GetPosY].GetType),
+      WriteText(dat.GetLang.GetTerrainName(tempMap.tiles[focused.GetPosX,focused.GetPosY].GetType),
                 x_Fields +4*PixelWidth, 6.0);
 
     end;//if Focused unit present
@@ -999,6 +987,7 @@ end;//TGui.Draw
 
 procedure TGui.DrawColonyView;
 var i,j: Integer;
+    local_Map: TMap;
 begin
   {$IFDEF DEBUG_CODE}
     WriteLn('Entered TGui.DrawColonyView');
@@ -1019,17 +1008,18 @@ begin
     glVertex2f(cWindowWidth*PixelWidth, y_Fields-5.0);
   glEnd;
   //draw fields
+  local_Map:= dat.GetMap;
   for i:= -1 to 1 do
     for j:= -1 to 1 do
     begin
       //draw terrain
-      if m_TerrainTexNames[m_Map.tiles[i+cur_colony.GetPosX,j+cur_colony.GetPosY].m_Type]=0 then
+      if m_TerrainTexNames[local_Map.tiles[i+cur_colony.GetPosX,j+cur_colony.GetPosY].m_Type]=0 then
       begin
         {$IFDEF DEBUG_CODE}
           WriteLn('TGui.DrawColonyView: Trying to draw flat terrain in ',i,',',j);
         {$ENDIF}
         glBegin(GL_QUADS);
-        case m_Map.tiles[i+cur_colony.GetPosX,j+cur_colony.GetPosY].m_Type of
+        case local_Map.tiles[i+cur_colony.GetPosX,j+cur_colony.GetPosY].m_Type of
           ttArctic: glColor3f(1.0, 1.0, 1.0);//white
           ttSea: glColor3f(0.0, 0.0, 1.0);//blue
           ttOpenSea: glColor3f(0.3, 0.3, 1.0);//lighter blue
@@ -1045,7 +1035,7 @@ begin
       end//if-then
       else begin
         glEnable(GL_TEXTURE_2D);
-        glBindTexture(GL_TEXTURE_2D, m_TerrainTexNames[m_Map.tiles[i+cur_colony.GetPosX,j+cur_colony.GetPosY].m_Type]);
+        glBindTexture(GL_TEXTURE_2D, m_TerrainTexNames[local_Map.tiles[i+cur_colony.GetPosX,j+cur_colony.GetPosY].m_Type]);
         glBegin(GL_QUADS);
           glColor3f(1.0, 1.0, 1.0);
           glTexCoord2f(0.0, 0.0);
@@ -1695,7 +1685,6 @@ begin
                 1: begin //save
                      temp_cb._type:= CBT_SAVE_GAME;
                      temp_cb.SaveGame.AData:= dat;
-                     temp_cb.SaveGame.AMap:= m_Map;
                      str_arr:= dat.GetSaveSlots;
                      ShowMessageOptions(dat.GetLang.GetSaveLoad(slsSaveChoose),
                                         ToShortStrArr(dat.GetLang.GetNothing, str_arr),
@@ -1704,7 +1693,6 @@ begin
                 2: begin //load
                      temp_cb._type:= CBT_LOAD_GAME;
                      temp_cb.LoadGame.AData:= dat;
-                     temp_cb.LoadGame.AMap:= m_Map;
                      str_arr:= dat.GetSaveSlots;
                      ShowMessageOptions(dat.GetLang.GetSaveLoad(slsLoadChoose),
                                         ToShortStrArr(dat.GetLang.GetNothing, str_arr),
