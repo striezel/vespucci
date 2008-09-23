@@ -41,6 +41,7 @@ type
       function GetProduction(const bt: TBuildingType; const ut: TUnitType): Integer;
       procedure NewRound(const AMap: TMap);
       function GetUnitInField(const x_shift, y_shift: Integer): TUnit;
+      function GetUnitInFieldGood(const x_shift, y_shift: Integer): TGoodType;
       procedure SetUnitInField(const x_shift, y_shift: Integer; const AUnit: TUnit; const AGood: TGoodType=gtFood);
       function GetUnitInBuilding(const bt: TBuildingType; const place: Byte): TUnit;
       procedure SetUnitInBuilding(const bt: TBuildingType; const place: Byte; const AUnit: TUnit);
@@ -337,6 +338,12 @@ function TColony.GetUnitInField(const x_shift, y_shift: Integer): TUnit;
 begin
   if (abs(x_shift)>1) or (abs(y_shift)>1) then Result:= nil
   else Result:= UnitsInFields[x_shift, y_shift].u;
+end;//func
+
+function TColony.GetUnitInFieldGood(const x_shift, y_shift: Integer): TGoodType;
+begin
+  if (abs(x_shift)>1) or (abs(y_shift)>1) then Result:= gtFood
+  else Result:= UnitsInFields[x_shift, y_shift].GoesFor;
 end;//func
 
 procedure TColony.SetUnitInField(const x_shift, y_shift: Integer; const AUnit: TUnit; const AGood: TGoodType=gtFood);

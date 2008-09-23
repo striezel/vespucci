@@ -3,7 +3,7 @@ unit Callbacks;
 interface
 
 uses
-  Units, Map, Data;
+  Units, Map, Data, Colony, Goods;
 
 const
   CBT_ANY = 0;
@@ -12,6 +12,7 @@ const
   CBT_BUILD_COLONY = 3;
   CBT_SAVE_GAME = 4;
   CBT_LOAD_GAME = 5;
+  CBT_JOB_CHANGE = 6;
 
 type
   TExitCallback = procedure (const option: Integer);
@@ -38,6 +39,10 @@ type
   TLoadGameData = record
                     AData: TData;
                   end;//rec
+  TJobChangeData = record
+                     x_shift, y_shift: ShortInt;
+                     AColony: TColony;
+                   end;//rec
 
   TCallbackRec = record
                    option: Integer;
@@ -50,6 +55,7 @@ type
                      3: (BuildColony: TBuildColonyData);
                      4: (SaveGame: TSaveGameData);
                      5: (LoadGame: TLoadGameData);
+                     6: (JobChange: TJobChangeData);
                  end;//rec
 
 const
@@ -115,6 +121,30 @@ begin
   WriteLn('LoadGame errors: '+err_str);
 end;//if
 
+function CBF_JobChange(const option: Integer; const cbRec: TCallbackRec): Boolean;
+var new_good: TGoodType;
+begin
+  Result:= False;
+  if ((abs(cbRec.JobChange.x_shift)>1) or (abs(cbRec.JobChange.y_shift)>1)
+     or (cbRec.JobChange.AColony=nil)) then Exit;
+  if cbRec.JobChange.AColony.GetUnitInField(cbRec.JobChange.x_shift, cbRec.JobChange.y_shift)=nil then Exit;
+  case option of
+    0: new_good:= gtFood;
+    1: new_good:= gtSugar;
+    2: new_good:= gtTobacco;
+    3: new_good:= gtCotton;
+    4: new_good:= gtFur;
+    5: new_good:= gtWood;
+    6: new_good:= gtOre;
+    7: new_good:= gtSilver;
+  else //should not happen
+    new_good:= gtFood;
+  end;//case
+  cbRec.JobChange.AColony.SetUnitInField(cbRec.JobChange.x_shift, cbRec.JobChange.y_shift,
+        cbRec.JobChange.AColony.GetUnitInField(cbRec.JobChange.x_shift, cbRec.JobChange.y_shift), new_good);
+  Result:= True;
+end;//func
+
 function HandleCallback(const cbRec: TCallbackRec): Boolean;
 begin
   case cbRec._type of
@@ -131,7 +161,8 @@ begin
                         cbRec.BuildColony.founder, cbRec.BuildColony.AMap,
                         cbRec.BuildColony.AData);
     CBT_SAVE_GAME: Result:= CBF_SaveGame(cbRec.option, cbRec.SaveGame.AData);
-    CBT_LOAD_GAME: Result:= CBF_LoadGame(cbRec.option, cbRec.LoadGame.AData); //not implemented yet
+    CBT_LOAD_GAME: Result:= CBF_LoadGame(cbRec.option, cbRec.LoadGame.AData);
+    CBT_JOB_CHANGE: Result:= CBF_JobChange(cbRec.option, cbRec);
   else
     Result:= False; //unknown callback type or type not supported
   end;//case
