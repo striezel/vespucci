@@ -217,6 +217,7 @@ type
       function  GetGoodAtMouse: TGoodType;
       function  GetMenuCategoryAtMouse: TMenuCategory;
       procedure GetMenuSelectionAtMouse(var cat: TMenuCategory; var sel_option: Integer);
+      procedure GetColonyFieldAtMouse(var x_shift, y_shift: ShortInt);
       procedure EnqueueNewMessage(const msg_txt: AnsiString; const opts: TShortStrArr; const inCaption, inText: ShortString; cbRec: TCallbackRec);
       procedure GetNextMessage;//de-facto dequeue
       procedure HandleMenuSelection(const categ: TMenuCategory; const selected: Integer);
@@ -640,6 +641,8 @@ end;//proc
 procedure TGui.MouseFunc(const button, state, x,y: LongInt);
 var pos_x, pos_y: Integer;
     temp_cat: TMenuCategory;
+    sx, sy: ShortInt;
+    temp_cbr: TCallbackRec;
 begin
   {$IFDEF DEBUG_CODE}
     WriteLn('Entered TGui.MouseFunc');
@@ -652,7 +655,20 @@ begin
     begin
       cur_colony:= nil;
       glutPostRedisplay;
-    end;//if
+    end//if
+    else if ((button=GLUT_LEFT) and (state=GLUT_UP)) then
+    begin
+      GetColonyFieldAtMouse(sx, sy);
+      if ((sx<>-2) and (cur_colony.GetUnitInField(sx, sy)<>nil)) then
+      begin
+        temp_cbr._type:= CBT_JOB_CHANGE;
+        temp_cbr.JobChange.x_shift:= sx;
+        temp_cbr.JobChange.y_shift:= sy;
+        temp_cbr.JobChange.AColony:= cur_colony;
+        ShowMessageOptions('Choose profession for unit '+dat.GetLang.GetUnitName(cur_colony.GetUnitInField(sx, sy).GetType)+':',
+                           dat.GetJobList(sx, sy, cur_colony.GetUnitInField(sx, sy).GetType, cur_colony), temp_cbr);
+      end;//if
+    end;//else if
     {$IFDEF DEBUG_CODE}
     WriteLn('Exiting TGui.MouseFunc');
     {$ENDIF}
@@ -986,8 +1002,10 @@ begin
 end;//TGui.Draw
 
 procedure TGui.DrawColonyView;
-var i,j: Integer;
+var i,j: ShortInt;
     local_Map: TMap;
+    tempStr: string;
+    str_width: Integer;
 begin
   {$IFDEF DEBUG_CODE}
     WriteLn('Entered TGui.DrawColonyView');
@@ -1072,6 +1090,17 @@ begin
         glDisable(GL_TEXTURE_2D);
       end;//if
     end;//for
+  //show text for field
+  GetColonyFieldAtMouse(i,j);
+  if ((i<>-2) and (cur_colony.GetUnitInField(i,j)<>nil)) then
+  begin
+    tempStr:= IntToStr(local_Map.tiles[i+cur_colony.GetPosX,j+cur_colony.GetPosY].GetGoodProduction(cur_colony.GetUnitInFieldGood(i,j)))
+               +' '+dat.GetLang.GetGoodName(cur_colony.GetUnitInFieldGood(i,j));
+    str_width:= length(tempStr)*8;
+    glColor3ubv(@cMenuTextColour[0]);
+    WriteText(tempStr, x_Fields+2.5-(str_width*PixelWidth*0.5), y_Fields - 0.75);
+  end;//if
+  
   DrawColonyTitleBar;
   DrawGoodsBar;
   {$IFDEF DEBUG_CODE}
@@ -1765,6 +1794,17 @@ begin
       sel_option:= -1;
     end;//else
   end;//else
+end;//proc
+
+procedure TGui.GetColonyFieldAtMouse(var x_shift, y_shift: ShortInt);
+begin
+  x_shift:= (mouse_x div FieldWidth)-x_Fields-2;
+  y_shift:= (mouse_y -16) div FieldWidth -2;
+  if ((x_shift<-1) or (x_shift>1) or (y_shift<-1) or (y_shift>1)) then
+  begin
+    x_shift:= -2;
+    y_shift:= -2;    
+  end;//if
 end;//proc
 
 end.
