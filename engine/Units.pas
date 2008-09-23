@@ -140,6 +140,7 @@ type
   end;//class
 
   procedure ApplyDir(var x,y: Byte; const dir: TDirection);
+  function GetUnitForGood(const AGood: TGoodType): TUnitType;
 
 implementation
 
@@ -697,6 +698,35 @@ begin
     Result:= True;
   end//if
   else Result:= False;
+end;//func
+
+//general
+function GetUnitForGood(const AGood: TGoodType): TUnitType;
+begin
+  case AGood of
+    gtFood: Result:= utFarmer;
+    gtSugar: Result:= utSugarplanter;
+    gtTobacco: Result:= utTobaccoplanter;
+    gtCotton: Result:= utCottonplanter;
+    gtFur: Result:= utFurHunter;
+    gtWood: Result:= utWoodcutter;
+    gtOre: Result:= utOreMiner;
+    gtSilver: Result:= utSilverMiner;
+    //gtSilver: none
+    //gtHorses: none
+    gtRum: Result:= utDistiller;
+    gtCigar: Result:= utTobacconist;
+    gtCloth: Result:= utWeaver;
+    gtCoat: Result:= utFurTrader;
+    //gtTradegoods: none
+    gtTool: Result:= utSmith;
+    gtMusket: Result:= utWeaponSmith;
+    gtHammer: Result:= utCarpenter;
+    gtLibertyBell: Result:= utStatesman;
+    gtCross: Result:= utPreacher;
+  else
+    Result:= utCriminal;
+  end;//case
 end;//func
 
 end.

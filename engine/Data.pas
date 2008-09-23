@@ -71,6 +71,7 @@ type
               function GetSaveSlots: TShortStrArr;
               function GetPathBase: string;
               function GetLang: TLanguage;
+              function GetJobList(const x_shift, y_shift: ShortInt; const UnitType: TUnitType; ACol: TColony; AMap: TMap): TShortStrArr;
           end;//class
 
 implementation
@@ -826,6 +827,23 @@ end;//func
 function TData.GetLang: TLanguage;
 begin
   Result:= lang;
+end;//func
+
+function TData.GetJobList(const x_shift, y_shift: ShortInt; const UnitType: TUnitType; ACol: TColony; AMap: TMap): TShortStrArr;
+var i: Integer;
+    ut: TUnitType;
+begin
+  SetLength(Result, Ord(gtSilver)-Ord(gtFood)+1);
+  for i:= 0 to High(Result) do
+    Result[i]:= lang.GetEmpty;
+  if ((abs(x_shift)>1) or (abs(y_shift)>1) or (ACol=nil) or (AMap=nil)) then Exit;
+
+  for i:= Ord(gtFood) to Ord(gtSilver) do
+  begin
+    Result[i]:= lang.GetUnitName(GetUnitForGood(TGoodType(i)))+':  '
+               +IntToStr(AMap.tiles[ACol.GetPosX+x_shift,ACol.GetPosY+y_shift].GetGoodProduction(TGoodType(i)))
+               +' '+lang.GetGoodName(TGoodType(i));
+  end;//for
 end;//func
 
 end.

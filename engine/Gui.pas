@@ -517,9 +517,9 @@ begin
       ShowMessageOptions('Vespucci beenden?', ToShortStrArr('Nein', 'Ja'), temp_cb);
     end;//else
   end;//if KEY_ESCAPE
-  
+
   if Wooden_Mode then Exit; //rest is only for america view
-  
+
   case UpCase(char(Key)) of
     'B': //build colony
          if focused<>nil then
@@ -694,7 +694,7 @@ begin
       end;//if
       Exit;
     end;//if InMenu
-    
+
     if Wooden_Mode then pos_x:= -1
     else begin
       //in america view
