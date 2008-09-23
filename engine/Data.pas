@@ -36,6 +36,8 @@ type
               //the colonies
               m_Colonies: array of TColony;
               Colony_max: Integer;
+              //map
+              m_Map: TMap;
               //language
               lang: TLanguage;
               //relative path
@@ -44,6 +46,7 @@ type
               function LoadUnitFromStream(var AUnit: TUnit; var fs: TFileStream): Boolean;
               function LoadColonyFromStream(var AColony: TColony; var fs: TFileStream): Boolean;
               procedure InitializeNations;
+              procedure InitializeMap;
               procedure DeInitColonies;
               procedure DeInitUnits;
             public
@@ -64,14 +67,15 @@ type
               function GetColonyInXY(const x,y: Byte): TColony;
               function FreeForSettlement(const x,y:Byte): Boolean;
               //others
-              procedure NewRound(const num_Nation: Integer; AMap: TMap);
-              function SaveData(const n: Word; AMap: TMap; var err: string): Boolean;
-              function LoadData(const n: Word; AMap: TMap; var err: string): Boolean;
+              procedure NewRound(const num_Nation: Integer);
+              function SaveData(const n: Word; var err: string): Boolean;
+              function LoadData(const n: Word; var err: string): Boolean;
               function GetSaveInfo(const n: Word): string;
               function GetSaveSlots: TShortStrArr;
               function GetPathBase: string;
               function GetLang: TLanguage;
-              function GetJobList(const x_shift, y_shift: ShortInt; const UnitType: TUnitType; ACol: TColony; AMap: TMap): TShortStrArr;
+              function GetMap: TMap;
+              function GetJobList(const x_shift, y_shift: ShortInt; const UnitType: TUnitType; ACol: TColony): TShortStrArr;
           end;//class
 
 implementation
@@ -79,6 +83,7 @@ implementation
 constructor TData.Create;
 var i: Integer;
 begin
+  base_dir:= '';
   player_nation:= cNationEngland;
   Year:= 1492;
   Autumn:= False;
@@ -93,7 +98,7 @@ begin
   //colonies
   SetLength(m_Colonies, 0);
   Colony_max:= -1;
-  base_dir:= '';
+  InitializeMap;
 end;//construc
 
 destructor TData.Destroy;
@@ -104,6 +109,7 @@ begin
   DeInitColonies;
   DeInitUnits;
   lang.Destroy;
+  m_Map.Destroy;
 end;//destruc
 
 procedure TData.InitializeNations;
@@ -115,6 +121,25 @@ begin
   Nations[cNationHolland]:= TEuropeanNation.Create(cNationHolland, lang.GetNationName(cNationHolland), 'Michiel De Ruyter');
   for i:= cMinIndian to cMaxIndian do
     Nations[i]:= TIndianNation.Create(i, lang.GetNationName(i));
+end;//proc
+
+procedure TData.InitializeMap;
+begin
+  m_Map:= TMap.Create;
+  if FileExists(GetPathBase+america_map_path) then
+  begin
+    if m_Map.LoadFromFile(GetPathBase+america_map_path) then
+      WriteLn('Map "'+GetPathBase+america_map_path+'" successfully loaded.')
+    else begin
+      WriteLn('Couldn''t load map file "'+GetPathBase+america_map_path+'" properly. Using generation routine instead.');
+      m_Map.Generate(0.7);
+    end;
+  end
+  else begin
+    WriteLn('Couldn''t find map file "'+GetPathBase+america_map_path+'". Using generation routine instead.');
+    m_Map.Generate(0.7);
+  end;
+  m_Map.GenerateSpecials;
 end;//proc
 
 procedure TData.DeInitColonies;
@@ -262,7 +287,7 @@ begin
         end;//if
 end;//func
 
-procedure TData.NewRound(const num_Nation: Integer; AMap: TMap);
+procedure TData.NewRound(const num_Nation: Integer);
 var i: Integer;
 begin
   //call NewRound method for every unit of that nation
@@ -275,8 +300,7 @@ begin
     if m_Colonies[i]<>nil then
       if (m_Colonies[i].GetNation=num_Nation) then
       begin
-        //we should try to get a valid map instead of just nil in next line
-        m_Colonies[i].NewRound(AMap);
+        m_Colonies[i].NewRound(m_Map);
         //following should be implemented in TColony and not here
         if m_Colonies[i].GetStore(gtFood)>=200 then
         begin
@@ -288,7 +312,7 @@ begin
       end;//if
 end;//func
 
-function TData.SaveData(const n: Word; AMap: TMap; var err: string): Boolean;
+function TData.SaveData(const n: Word; var err: string): Boolean;
 var fs: TFileStream;
     i, temp: Integer;
     temp_str: string;
@@ -299,7 +323,7 @@ begin
       units<n>.vud - all units
       colony.vcd - all colonies
   }
-  if AMap=nil then
+  if m_Map=nil then
   begin
     err:= 'TData.SaveData: no map supplied.';
     Result:= False;
@@ -342,9 +366,9 @@ begin
   end;//if
 
   //map
-  if AMap<>nil then
+  if m_Map<>nil then
   begin
-    Result:= Result and AMap.SaveToFile(GetPathBase+save_path +'map'+IntToStr(n)+'.vmd');
+    Result:= Result and m_Map.SaveToFile(GetPathBase+save_path +'map'+IntToStr(n)+'.vmd');
   end//if
   else begin
     //no map specified
@@ -404,7 +428,7 @@ begin
     err:= 'TData.SaveData: Error while writing colony file "'+GetPathBase+save_path +'colony'+IntToStr(n)+'.vcd';
 end;//func SaveData
 
-function TData.LoadData(const n: Word; AMap: TMap; var err: string): Boolean;
+function TData.LoadData(const n: Word; var err: string): Boolean;
 var fs: TFileStream;
     temp_str: string;
     i, temp: Integer;
@@ -413,11 +437,7 @@ var fs: TFileStream;
     temp_colony: TColony;
 begin
   Result:= False;
-  if AMap=nil then
-  begin
-    err:= 'TData.LoadData: no map supplied.';
-    Exit;
-  end;//if
+  if m_Map=nil then InitializeMap;
   if not DirectoryExists(GetPathBase+save_path) then
   begin
     err:= 'TData.LoadData: could not find directory "'+GetPathBase+save_path+'".';
@@ -507,7 +527,7 @@ begin
   end;//if
 
   //load the map
-  if AMap<>nil then Result:= Result and AMap.LoadFromFile(GetPathBase+save_path+'map'+IntToStr(n)+'.vmd')
+  if m_Map<>nil then Result:= Result and m_Map.LoadFromFile(GetPathBase+save_path+'map'+IntToStr(n)+'.vmd')
   else begin
     err:= 'TData.LoadData: no map supplied.';
     Result:= False;
@@ -829,19 +849,24 @@ begin
   Result:= lang;
 end;//func
 
-function TData.GetJobList(const x_shift, y_shift: ShortInt; const UnitType: TUnitType; ACol: TColony; AMap: TMap): TShortStrArr;
+function TData.GetMap: TMap;
+begin
+  Result:= m_Map;
+end;//func
+
+function TData.GetJobList(const x_shift, y_shift: ShortInt; const UnitType: TUnitType; ACol: TColony): TShortStrArr;
 var i: Integer;
     ut: TUnitType;
 begin
   SetLength(Result, Ord(gtSilver)-Ord(gtFood)+1);
   for i:= 0 to High(Result) do
     Result[i]:= lang.GetEmpty;
-  if ((abs(x_shift)>1) or (abs(y_shift)>1) or (ACol=nil) or (AMap=nil)) then Exit;
+  if ((abs(x_shift)>1) or (abs(y_shift)>1) or (ACol=nil) or (m_Map=nil)) then Exit;
 
   for i:= Ord(gtFood) to Ord(gtSilver) do
   begin
     Result[i]:= lang.GetUnitName(GetUnitForGood(TGoodType(i)))+':  '
-               +IntToStr(AMap.tiles[ACol.GetPosX+x_shift,ACol.GetPosY+y_shift].GetGoodProduction(TGoodType(i)))
+               +IntToStr(m_Map.tiles[ACol.GetPosX+x_shift,ACol.GetPosY+y_shift].GetGoodProduction(TGoodType(i)))
                +' '+lang.GetGoodName(TGoodType(i));
   end;//for
 end;//func

@@ -34,11 +34,9 @@ type
                       end;//rec
   TSaveGameData = record
                     AData: TData;
-                    AMap: TMap;
                   end;//rec
   TLoadGameData = record
                     AData: TData;
-                    AMap: TMap;
                   end;//rec
 
   TCallbackRec = record
@@ -89,15 +87,15 @@ begin
   end;//if
 end;//func
 
-function CBF_SaveGame(const option: Integer; AMap: TMap; AData: TData): Boolean;
+function CBF_SaveGame(const option: Integer; AData: TData): Boolean;
 var err_str: string;
 begin
   err_str:= 'not saved.';
   if (option>0) and (option<65536) then
   begin
-    if ((AMap<>nil) and (AData<>nil)) then
+    if (AData<>nil) then
     begin
-      Result:= AData.SaveData(option, AMap, err_str);
+      Result:= AData.SaveData(option, err_str);
     end//if
     else Result:= False;
   end//if
@@ -105,13 +103,13 @@ begin
   WriteLn('SaveGame errors: '+err_str);
 end;//func
 
-function CBF_LoadGame(const option: Integer; AMap: TMap; AData: TData): Boolean;
+function CBF_LoadGame(const option: Integer; AData: TData): Boolean;
 var err_str: string;
 begin
   err_str:= 'not loaded.';
-  if ((option>0) and (option<65536) and (AMap<>nil) and (AData<>nil)) then
+  if ((option>0) and (option<65536) and (AData<>nil)) then
   begin
-    Result:= AData.LoadData(option, AMap, err_str);
+    Result:= AData.LoadData(option, err_str);
   end//if
   else Result:= False;
   WriteLn('LoadGame errors: '+err_str);
@@ -132,8 +130,8 @@ begin
                         cbRec.BuildColony.num_nation, cbRec.inputText,
                         cbRec.BuildColony.founder, cbRec.BuildColony.AMap,
                         cbRec.BuildColony.AData);
-    CBT_SAVE_GAME: Result:= CBF_SaveGame(cbRec.option, cbRec.SaveGame.AMap, cbRec.SaveGame.AData);
-    CBT_LOAD_GAME: Result:= CBF_LoadGame(cbRec.option, cbRec.LoadGame.AMap, cbRec.LoadGame.AData); //not implemented yet
+    CBT_SAVE_GAME: Result:= CBF_SaveGame(cbRec.option, cbRec.SaveGame.AData);
+    CBT_LOAD_GAME: Result:= CBF_LoadGame(cbRec.option, cbRec.LoadGame.AData); //not implemented yet
   else
     Result:= False; //unknown callback type or type not supported
   end;//case
