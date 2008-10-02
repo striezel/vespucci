@@ -173,7 +173,11 @@ type
                end;//rec
   TGui = class
     private
-      mouse_x, mouse_y: Integer;
+      mouse: record
+               x,y: LongInt;
+               down: Boolean;
+               down_x, down_y: LongInt;
+             end;//rec
       menu_cat: TMenuCategory;
       selected_menu_option: Integer;
       OffsetX, OffsetY: Integer;
@@ -217,7 +221,7 @@ type
       function  GetGoodAtMouse: TGoodType;
       function  GetMenuCategoryAtMouse: TMenuCategory;
       procedure GetMenuSelectionAtMouse(var cat: TMenuCategory; var sel_option: Integer);
-      procedure GetColonyFieldAtMouse(var x_shift, y_shift: ShortInt);
+      procedure GetColonyFieldAtMouse(var x_shift, y_shift: ShortInt; const m_x: LongInt=-1; m_y: LongInt=-1);
       procedure EnqueueNewMessage(const msg_txt: AnsiString; const opts: TShortStrArr; const inCaption, inText: ShortString; cbRec: TCallbackRec);
       procedure GetNextMessage;//de-facto dequeue
       procedure HandleMenuSelection(const categ: TMenuCategory; const selected: Integer);
@@ -265,8 +269,11 @@ begin
     WriteLn('Entered TGui.Create');
   {$ENDIF}
   inherited Create;
-  mouse_x:= 0;
-  mouse_y:= 0;
+  mouse.x:= 0;
+  mouse.y:= 0;
+  mouse.down:= False;
+  mouse.down_x:= -1;
+  mouse.down_y:= -1;
   OffsetX:= 0; OffsetY:= 0;
   Wooden_Mode:= True;
   MiniMapOffset_Y:= 0;
@@ -641,13 +648,26 @@ end;//proc
 procedure TGui.MouseFunc(const button, state, x,y: LongInt);
 var pos_x, pos_y: Integer;
     temp_cat: TMenuCategory;
-    sx, sy: ShortInt;
+    sx, sy, sx_d, sy_d: ShortInt;
     temp_cbr: TCallbackRec;
+    tempUnit: TUnit;
+    tempGood: TGoodType;
 begin
   {$IFDEF DEBUG_CODE}
     WriteLn('Entered TGui.MouseFunc');
   {$ENDIF}
   if msg.txt<>'' then Exit;
+  
+  //general stuff
+  if ((button=GLUT_LEFT) and (state=GLUT_UP)) then mouse.down:= False
+  else if ((button=GLUT_LEFT) and (state=GLUT_DOWN)) then
+  begin
+    mouse.down:= True;
+    mouse.down_x:= x;
+    mouse.down_y:= y;
+  end;//if down
+
+  //handling mouse events
   if (cur_colony<>nil) then
   begin
     //check for pressing the red "E" in colony view
@@ -659,7 +679,20 @@ begin
     else if ((button=GLUT_LEFT) and (state=GLUT_UP)) then
     begin
       GetColonyFieldAtMouse(sx, sy);
-      if ((sx<>-2) and (cur_colony.GetUnitInField(sx, sy)<>nil)) then
+      GetColonyFieldAtMouse(sx_d, sy_d, mouse.down_x, mouse.down_y);
+      //moving unit in field
+      if ((sx<>-2) and (sx_d<>-2) and ((sx<>sx_d) or (sy<>sy_d)) and (cur_colony.GetUnitInField(sx_d, sy_d)<>nil)) then
+      begin
+        //check whether field is center or not
+        if ((sx<>0) or (sy<>0)) then
+        begin
+          tempUnit:= cur_colony.GetUnitInField(sx_d, sy_d);
+          tempGood:= cur_colony.GetUnitInFieldGood(sx_d, sy_d);
+          cur_colony.SetUnitInField(sx_d, sy_d, nil);
+          cur_colony.SetUnitInField(sx, sy, tempUnit, tempGood);
+        end;//if
+      end//if
+      else if ((sx<>-2) and (cur_colony.GetUnitInField(sx, sy)<>nil)) then
       begin
         temp_cbr._type:= CBT_JOB_CHANGE;
         temp_cbr.JobChange.x_shift:= sx;
@@ -667,7 +700,7 @@ begin
         temp_cbr.JobChange.AColony:= cur_colony;
         ShowMessageOptions('Choose profession for unit '+dat.GetLang.GetUnitName(cur_colony.GetUnitInField(sx, sy).GetType)+':',
                            dat.GetJobList(sx, sy, cur_colony.GetUnitInField(sx, sy).GetType, cur_colony), temp_cbr);
-      end;//if
+      end;//else if
     end;//else if
     {$IFDEF DEBUG_CODE}
     WriteLn('Exiting TGui.MouseFunc');
@@ -726,8 +759,8 @@ end;//proc
 
 procedure TGui.MouseMoveFunc(const x,y: LongInt);
 begin
-  mouse_x:= x;
-  mouse_y:= y;
+  mouse.x:= x;
+  mouse.y:= y;
 end;//func
 
 procedure TGui.Resize(Width, Height: LongInt);
@@ -1100,9 +1133,39 @@ begin
     glColor3ubv(@cMenuTextColour[0]);
     WriteText(tempStr, x_Fields+2.5-(str_width*PixelWidth*0.5), y_Fields - 0.75);
   end;//if
-  
+
   DrawColonyTitleBar;
   DrawGoodsBar;
+  
+  //check for movable unit in field and draw it
+  if (mouse.down) then
+  begin
+    GetColonyFieldAtMouse(i,j, mouse.down_x, mouse.down_y);
+    if ((i<>-2) and (cur_colony.GetUnitInField(i,j)<>nil)) then
+    begin
+      glEnable(GL_TEXTURE_2D);
+      glEnable(GL_ALPHA_TEST);
+      if m_UnitTexNames[cur_colony.GetUnitInField(i,j).GetType]<>0 then
+        glBindTexture(GL_TEXTURE_2D, m_UnitTexNames[cur_colony.GetUnitInField(i,j).GetType])
+      else glBindTexture(GL_TEXTURE_2D, m_ErrorTexName);
+      i:= mouse.x mod FieldWidth;
+      j:= ((mouse.y-16) mod FieldWidth)-FieldWidth;
+      glBegin(GL_QUADS);
+        glColor3f(1.0, 1.0, 1.0);
+        glTexCoord2f(0.0, 0.0);
+        glVertex2f((mouse.x-i)*PixelWidth, (cWindowHeight-mouse.y+j)*PixelWidth-0.5);//lower left corner
+        glTexCoord2f(1.0, 0.0);
+        glVertex2f((mouse.x-i)*PixelWidth+1.0, (cWindowHeight-mouse.y+j)*PixelWidth-0.5);
+        glTexCoord2f(1.0, 1.0);
+        glVertex2f((mouse.x-i)*PixelWidth+1.0, (cWindowHeight-mouse.y+j)*PixelWidth+0.5);
+        glTexCoord2f(0.0, 1.0);
+        glVertex2f((mouse.x-i)*PixelWidth, (cWindowHeight-mouse.y+j)*PixelWidth+0.5);
+      glEnd;
+      glDisable(GL_ALPHA_TEST);
+      glDisable(GL_TEXTURE_2D);
+    end;//if
+  end;//if
+  
   {$IFDEF DEBUG_CODE}
     WriteLn('Leaving TGui.DrawColonyView');
   {$ENDIF}
@@ -1429,7 +1492,7 @@ begin
     price_str:= dat.GetLang.GetGoodName(GetGoodAtMouse);
     str_width:= 8*length(price_str);
     //use "i" as temporary var to store the pixel count where the text begins
-    if (str_width+mouse_x<cWindowWidth) then i:= mouse_x
+    if (str_width+mouse.x<cWindowWidth) then i:= mouse.x
     else i:= cWindowWidth-str_width;
     glBegin(GL_QUADS);
       glColor3ub(0,0,0);
@@ -1498,9 +1561,9 @@ end;//func
 
 procedure TGui.GetSquareAtMouse(var sq_x, sq_y: Integer);
 begin
-  sq_x:= mouse_x div 32;
-  if mouse_y>16 then
-    sq_y:= (mouse_y-16) div 32
+  sq_x:= mouse.x div 32;
+  if mouse.y>16 then
+    sq_y:= (mouse.y-16) div 32
   else sq_y:= -1;
   if ((sq_x>=0) and (sq_x<x_Fields) and (sq_y>=0) and (sq_y<y_Fields)) then
   begin
@@ -1517,10 +1580,10 @@ end;//func
 
 function TGui.GetGoodAtMouse: TGoodType;
 begin
-  if ((mouse_x<0) or (mouse_x>607) or (mouse_y<cWindowHeight-50) or (mouse_y>cWindowHeight-16)) then
+  if ((mouse.x<0) or (mouse.x>607) or (mouse.y<cWindowHeight-50) or (mouse.y>cWindowHeight-16)) then
     Result:= gtCross
   else
-    Result:= TGoodType(Ord(gtFood)+(mouse_x div 38));
+    Result:= TGoodType(Ord(gtFood)+(mouse.x div 38));
 end;//func
 
 procedure TGui.EnqueueNewMessage(const msg_txt: AnsiString; const opts: TShortStrArr; const inCaption, inText: ShortString; cbRec: TCallbackRec);
@@ -1727,7 +1790,7 @@ begin
                                         ToShortStrArr(dat.GetLang.GetNothing, str_arr),
                                         temp_cb);
                    end;//load
-                3: begin
+                3: begin//quit?
                      temp_cb._type:= CBT_EXIT;
                      temp_cb.cbExit:= @CBF_Exit;
                      ShowMessageOptions('Vespucci beenden?', ToShortStrArr('Nein', 'Ja'), temp_cb);
@@ -1761,32 +1824,32 @@ function TGui.GetMenuCategoryAtMouse: TMenuCategory;
 var temp_str: string;
     i: Integer;
 begin
-  if (mouse_y>16) then Result:= mcNone
+  if (mouse.y>16) then Result:= mcNone
   else begin
     temp_str:= '';
     Result:= mcGame;
     for i:= Ord(mcGame) to Ord(Pred(High(TMenuCategory))) do
     begin
       temp_str:= temp_str+dat.GetLang.GetMenuLabel(TMenuCategory(i))+'  ';
-      if mouse_x>length(temp_str)*8 then Result:= TMenuCategory(i+1);
+      if mouse.x>length(temp_str)*8 then Result:= TMenuCategory(i+1);
     end;//func
     temp_str:= temp_str+dat.GetLang.GetMenuLabel(High(TMenuCategory));
-    if mouse_x>length(temp_str)*8 then Result:= mcNone;
+    if mouse.x>length(temp_str)*8 then Result:= mcNone;
   end;//else
 end;//func
 
 procedure TGui.GetMenuSelectionAtMouse(var cat: TMenuCategory; var sel_option: Integer);
 begin
-  if mouse_y<16 then
+  if mouse.y<16 then
   begin
     cat:= GetMenuCategoryAtMouse;
     sel_option:=0;
   end//if
   else begin
     //get selected option
-    sel_option:= mouse_y div 16;
-    if ((mouse_x>=GetMenuStartX(menu_cat)*FieldWidth) and
-       (mouse_x<=GetMenuStartX(menu_cat)*FieldWidth+dat.GetLang.GetMaxLen(menu_cat)*8+FieldWidth)
+    sel_option:= mouse.y div 16;
+    if ((mouse.x>=GetMenuStartX(menu_cat)*FieldWidth) and
+       (mouse.x<=GetMenuStartX(menu_cat)*FieldWidth+dat.GetLang.GetMaxLen(menu_cat)*8+FieldWidth)
        and (sel_option<=dat.GetLang.GetOptionCount(menu_cat))) then
       cat:= menu_cat
     else begin
@@ -1796,14 +1859,21 @@ begin
   end;//else
 end;//proc
 
-procedure TGui.GetColonyFieldAtMouse(var x_shift, y_shift: ShortInt);
+procedure TGui.GetColonyFieldAtMouse(var x_shift, y_shift: ShortInt; const m_x: LongInt=-1; m_y: LongInt=-1);
 begin
-  x_shift:= (mouse_x div FieldWidth)-x_Fields-2;
-  y_shift:= (mouse_y -16) div FieldWidth -2;
+  if ((m_x=-1) or (m_y=-1)) then
+  begin
+    x_shift:= (mouse.x div FieldWidth)-x_Fields-2;
+    y_shift:= (mouse.y -16) div FieldWidth -2;
+  end//if
+  else begin
+    x_shift:= (m_x div FieldWidth)-x_Fields-2;
+    y_shift:= (m_y -16) div FieldWidth -2;
+  end;//else
   if ((x_shift<-1) or (x_shift>1) or (y_shift<-1) or (y_shift>1)) then
   begin
     x_shift:= -2;
-    y_shift:= -2;    
+    y_shift:= -2;
   end;//if
 end;//proc
 
