@@ -92,6 +92,8 @@ type
                                   end;//rec
       AI_Task: TTask;
   end;//class TUnit
+  
+  TUnitArr = array of TUnit;
 
   //the AI stuff
   TTask = class

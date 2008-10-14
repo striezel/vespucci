@@ -62,6 +62,7 @@ type
               function NewUnit(const TypeOfUnit: TUnitType; const ANation: Integer; X: Integer=1; Y: Integer=1): TUnit;
               function GetFirstUnitInXY(const x, y: Integer; const OnlyAmerica: Boolean=True): TUnit;
               function GetFirstLazyUnit(const num_Nation: Integer): TUnit;
+              function GetAllShipsInXY(const x,y: Integer; const OnlyAmerica: Boolean=True): TUnitArr;
               //colonies
               function NewColony(const x,y: Byte; const num_Nation: Integer; const AName: ShortString): TColony;
               function GetColonyInXY(const x,y: Byte): TColony;
@@ -245,6 +246,24 @@ begin
     end;//if
 end;//func
 
+function TData.GetAllShipsInXY(const x,y: Integer; const OnlyAmerica: Boolean=True): TUnitArr;
+var i: Integer;
+begin
+  SetLength(Result, 0);
+  for i:= 0 to Unit_max do
+    if m_Units[i]<>nil then
+    begin
+      if ((m_Units[i].GetPosX=x) and (m_Units[i].GetPosY=y) and (m_Units[i].IsShip)) then
+      begin
+        if ((m_Units[i].GetLocation=ulAmerica) or not OnlyAmerica) then
+        begin
+          SetLength(Result, length(Result)+1);
+          Result[High(Result)]:= m_Units[i];
+        end;//if
+      end;//if
+    end;//if <>nil
+end;//func
+
 function TData.NewColony(const x,y: Byte; const num_Nation: Integer; const AName: ShortString): TColony;
 var i: Integer;
 begin
@@ -381,7 +400,6 @@ begin
     Exit;
   end;//if
 
-
   //units
   temp:= 0;
   for i:=0 to Unit_max do
@@ -398,7 +416,9 @@ begin
   Result:= Result and (fs.Write(cUnitFileHeader[1], sizeof(cUnitFileHeader))=sizeof(cUnitFileHeader));
   Result:= Result and (fs.Write(temp, sizeof(Integer))=sizeof(Integer));
   for i:= 0 to Unit_max do
-    if m_Units[i]<>nil then Result:= Result and m_Units[i].SaveToStream(fs);
+    if m_Units[i]<>nil then
+      if not (m_Units[i].GetLocation in [ulEmbarked, ulInColony]) then
+        Result:= Result and m_Units[i].SaveToStream(fs);
   fs.Free;
   fs:= nil;
   if not Result then

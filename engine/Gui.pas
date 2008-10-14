@@ -11,8 +11,9 @@ const
   y_Fields = 12;
   FieldWidth = 32; //width of field in pixels
   BarWidth = 160; //bar width in px
-
   PixelWidth = 0.03125; // =1/32, i.e. 1px
+
+  cGoodBarHeight = 52;
 
   Minimap_x_Fields = 56;
   Minimap_y_Fields = 39;
@@ -216,6 +217,7 @@ type
       procedure DrawColonyTitleBar;
       procedure DrawMessage;
       procedure DrawColonyView;
+      procedure DrawShipsInColonyPort;
       procedure DrawMenu;
       procedure GetSquareAtMouse(var sq_x, sq_y: Integer);
       function  GetGoodAtMouse: TGoodType;
@@ -657,7 +659,7 @@ begin
     WriteLn('Entered TGui.MouseFunc');
   {$ENDIF}
   if msg.txt<>'' then Exit;
-  
+
   //general stuff
   if ((button=GLUT_LEFT) and (state=GLUT_UP)) then mouse.down:= False
   else if ((button=GLUT_LEFT) and (state=GLUT_DOWN)) then
@@ -667,7 +669,7 @@ begin
     mouse.down_y:= y;
   end;//if down
 
-  //handling mouse events
+  //handling colony view's mouse events
   if (cur_colony<>nil) then
   begin
     //check for pressing the red "E" in colony view
@@ -707,8 +709,21 @@ begin
     {$ENDIF}
     Exit;
   end;//if colony
-  //handle mouse events here
-  if ((button=GLUT_LEFT) and (state=GLUT_UP) and (europe=nil) and (cur_colony=nil)) then
+
+  //handle European view's mouse events
+  if (europe<>nil) then
+  begin
+    //check for pressing the red "E" in European view
+    if ((button=GLUT_LEFT) and (state=GLUT_UP) and (x>608) and (y>cWindowHeight-50)) then
+    begin
+      europe:= nil;
+      glutPostRedisplay;
+    end;//if
+    Exit;
+  end;//europe
+
+  //handle map view's mouse events here
+  if ((button=GLUT_LEFT) and (state=GLUT_UP) {and (europe=nil) and (cur_colony=nil)}) then
   begin
     if InMenu then
     begin
@@ -738,13 +753,26 @@ begin
     end;//else
     if (pos_x<>-1) then
     begin
+      //check for colony first
+      cur_colony:= dat.GetColonyInXY(pos_x, pos_y);
+      //if not player's colony, set back to nil
+      if cur_colony<>nil then
+      begin
+        if cur_colony.GetNation<>dat.player_nation then cur_colony:= nil;
+      end//if colony<>nil
+      else begin
+        {If we don't have a colony there, there might be a unit?}
+        focused:= dat.GetFirstUnitInXY(pos_x, pos_y);
+      end;//else
+      CenterOn(pos_x, pos_y);
+      {//old code
       focused:= dat.GetFirstUnitInXY(pos_x, pos_y);
       CenterOn(pos_x, pos_y);
-      {If we don't have a unit there, there might be a colony?}
+      //If we don't have a unit there, there might be a colony?
       if focused=nil then cur_colony:= dat.GetColonyInXY(pos_x, pos_y);
       //if not player's colony, set back to nil
       if cur_colony<>nil then
-        if cur_colony.GetNation<>dat.player_nation then cur_colony:= nil;
+        if cur_colony.GetNation<>dat.player_nation then cur_colony:= nil;}
       glutPostRedisplay;
     end//if pos_x<>-1
     else begin
@@ -1136,7 +1164,8 @@ begin
 
   DrawColonyTitleBar;
   DrawGoodsBar;
-  
+  DrawShipsInColonyPort;
+
   //check for movable unit in field and draw it
   if (mouse.down) then
   begin
@@ -1165,11 +1194,78 @@ begin
       glDisable(GL_TEXTURE_2D);
     end;//if
   end;//if
-  
+
   {$IFDEF DEBUG_CODE}
     WriteLn('Leaving TGui.DrawColonyView');
   {$ENDIF}
 end;//proc DrawColonyView
+
+procedure TGui.DrawShipsInColonyPort;
+var i: ShortInt;
+    ShipArr: TUnitArr;
+begin
+  if cur_colony=nil then Exit;
+  glBegin(GL_QUADS);
+    //front of boxes
+    glColor3f(cWoodenColour[0]*0.8, cWoodenColour[1]*0.8, cWoodenColour[2]*0.8);
+    glVertex2f(1.0, (cGoodBarHeight+1)*PixelWidth);
+    glVertex2f(7.0, (cGoodBarHeight+1)*PixelWidth);
+    glVertex2f(7.0, (cGoodBarHeight+1)*PixelWidth+1.0);
+    glVertex2f(1.0, (cGoodBarHeight+1)*PixelWidth+1.0);
+    //"upper face" (isometric)
+    glColor3f(cWoodenColour[0]*0.7, cWoodenColour[1]*0.7, cWoodenColour[2]*0.7);
+    glVertex2f(1.0, (cGoodBarHeight+1)*PixelWidth+1.0);
+    glVertex2f(7.0, (cGoodBarHeight+1)*PixelWidth+1.0);
+    glVertex2f(7.5, (cGoodBarHeight+1)*PixelWidth+1.5);
+    glVertex2f(1.5, (cGoodBarHeight+1)*PixelWidth+1.5);
+    //"right face" (isometric)
+    glColor3f(cWoodenColour[0]*0.6, cWoodenColour[1]*0.6, cWoodenColour[2]*0.6);
+    glVertex2f(7.0, (cGoodBarHeight+1)*PixelWidth+1.0);
+    glVertex2f(7.0, (cGoodBarHeight+1)*PixelWidth);
+    glVertex2f(7.5, (cGoodBarHeight+1)*PixelWidth+0.5);
+    glVertex2f(7.5, (cGoodBarHeight+1)*PixelWidth+1.5);
+  glEnd;
+  //separating lines
+  glBegin(GL_LINE_STRIP);
+    glColor3f(cWoodenColour[0]*0.5, cWoodenColour[1]*0.5, cWoodenColour[2]*0.5);
+    glVertex2f(1.0, (cGoodBarHeight+1)*PixelWidth);
+    glVertex2f(7.0, (cGoodBarHeight+1)*PixelWidth);
+    glVertex2f(7.0, (cGoodBarHeight+1)*PixelWidth+1.0);
+    glVertex2f(1.0, (cGoodBarHeight+1)*PixelWidth+1.0);
+    for i:=0 to 5 do
+    begin
+      glVertex2f(1.0+i, (cGoodBarHeight+1)*PixelWidth);
+      glVertex2f(2.0+i, (cGoodBarHeight+1)*PixelWidth);
+      glVertex2f(1.0+i, (cGoodBarHeight+1)*PixelWidth+1.0);
+      glVertex2f(2.0+i, (cGoodBarHeight+1)*PixelWidth+1.0);
+    end;//for
+  glEnd;
+  //draw all present ships
+  ShipArr:= dat.GetAllShipsInXY(cur_colony.GetPosX, cur_colony.GetPosY);
+  //for debug reasons only: window title
+  glutSetWindowTitle(PChar('Ships in port: '+IntToStr(length(ShipArr))));
+  if length(ShipArr)>0 then
+  begin
+    glColor3f(1.0, 1.0, 1.0);
+    glEnable(GL_TEXTURE_2D);
+    for i:= 0 to High(ShipArr) do
+    begin
+      if m_UnitTexNames[ShipArr[i].GetType]<>0 then glBindTexture(GL_TEXTURE_2D, m_UnitTexNames[ShipArr[i].GetType])
+      else glBindTexture(GL_TEXTURE_2D, m_ErrorTexName);
+      glBegin(GL_QUADS);
+        glTexCoord2f(0.0, 0.0);
+        glVertex2f(1.0+(i mod 6), (cGoodBarHeight+1)*PixelWidth+1.0 +(i div 6));
+        glTexCoord2f(1.0, 0.0);
+        glVertex2f(2.0+(i mod 6), (cGoodBarHeight+1)*PixelWidth+1.0 +(i div 6));
+        glTexCoord2f(1.0, 1.0);
+        glVertex2f(2.0+(i mod 6), (cGoodBarHeight+1)*PixelWidth+2.0 +(i div 6));
+        glTexCoord2f(0.0, 1.0);
+        glVertex2f(1.0+(i mod 6), (cGoodBarHeight+1)*PixelWidth+2.0 +(i div 6));
+      glEnd;
+    end;//for
+    glDisable(GL_TEXTURE_2D);
+  end;//if
+end;//proc DrawShipsInColonyPort
 
 procedure TGui.DrawMenu;
 var count, i, max_len: Integer;
@@ -1418,8 +1514,8 @@ begin
     glColor3ub(76, 100, 172);
     glVertex2f(0.0, -0.5);
     glVertex2f(38*PixelWidth*16.0, -0.5);
-    glVertex2f(38*PixelWidth*16.0, 52*PixelWidth-0.5);
-    glVertex2f(0.0, 52*PixelWidth-0.5);
+    glVertex2f(38*PixelWidth*16.0, cGoodBarHeight*PixelWidth-0.5);
+    glVertex2f(0.0, cGoodBarHeight*PixelWidth-0.5);
   glEnd;
   glLineWidth(2.0);
   //border box
@@ -1427,15 +1523,15 @@ begin
     glColor3ub(192, 216, 240);
     glVertex2f(0.0, -0.5);
     glVertex2f(38*PixelWidth*16.0, -0.5);
-    glVertex2f(38*PixelWidth*16.0, 52*PixelWidth -0.5);
-    glVertex2f(0.0, 52*PixelWidth-0.5);
+    glVertex2f(38*PixelWidth*16.0, cGoodBarHeight*PixelWidth -0.5);
+    glVertex2f(0.0, cGoodBarHeight*PixelWidth-0.5);
   glEnd;
   //the vertical lines
   glBegin(GL_LINES);
     for i:= 1 to 15 do
     begin
       glVertex2f(i*38*PixelWidth, -0.5);
-      glVertex2f(i*38*PixelWidth, 52*PixelWidth -0.5);
+      glVertex2f(i*38*PixelWidth, cGoodBarHeight*PixelWidth -0.5);
     end;//for
   glEnd;
   //draw the good icons, if present
@@ -1502,7 +1598,7 @@ begin
       glVertex2f((i-2)*PixelWidth, 66*PixelWidth -0.5);
     glEnd;
     glColor3ub(255, 255, 255);
-    WriteText(price_str, i*PixelWidth, 53*PixelWidth -0.5)
+    WriteText(price_str, i*PixelWidth, (cGoodBarHeight+1)*PixelWidth -0.5)
   end;//func
   {$IFDEF DEBUG_CODE}
     WriteLn('Leaving TGui.DrawGoodsBar');
