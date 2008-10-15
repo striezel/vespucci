@@ -26,6 +26,8 @@ type
       Moves: string;
       Empty: string;
       Nothing: string;
+      Tax: string;
+      Gold: string;
       //for messages after saving/loading the game
       SaveLoad: array[TSaveLoadString] of string;
       //for landfall message box
@@ -54,6 +56,8 @@ type
       function GetMoves: string;
       function GetEmpty: string;
       function GetNothing: string;
+      function GetTax: string;
+      function GetGold: string;
       function GetSaveLoad(const which: TSaveLoadString): string;
       function GetLandfall(const which: Byte): string;
       function GetBuildColony(const which: Byte): string;
@@ -204,6 +208,8 @@ begin
   Moves:= 'Züge';
   Empty:= 'leer';
   Nothing:= 'nichts';
+  Tax:= 'Steuer';
+  Gold:= 'Gold';
   //save/ load messages
   SaveLoad[slsLoadChoose]:= 'Wählen Sie den zu ladenden Spielstand.';
   SaveLoad[slsLoadError]:= 'Fehler beim Laden des Spielstandes! Das geladene Spiel kann '
@@ -331,6 +337,16 @@ begin
   Result:= Nothing;
 end;//func
 
+function TLanguage.GetTax: string;
+begin
+  Result:= Tax;
+end;//func
+
+function TLanguage.GetGold: string;
+begin
+  Result:= Gold;
+end;//func
+
 function TLanguage.GetSaveLoad(const which: TSaveLoadString): string;
 begin
   Result:= SaveLoad[which];
@@ -385,6 +401,8 @@ begin
   WriteLn(dat, Moves);
   WriteLn(dat, Empty);
   WriteLn(dat, Nothing);
+  WriteLn(dat, Tax);
+  WriteLn(dat, Gold);
   WriteLn(dat);
   WriteLn(dat, '[SaveLoad]');
   for i:= Ord(Low(TSaveLoadString)) to Ord(High(TSaveLoadString)) do
@@ -477,7 +495,7 @@ begin
       else if str1='[Others]' then
       begin
         i:= 0;
-        while (i<=3) and not Eof(dat) do
+        while (i<=5) and not Eof(dat) do
         begin
           ReadLn(dat, str1);
           str1:= Trim(str1);
@@ -486,7 +504,9 @@ begin
             if i=0 then Location:= str1
             else if i=1 then Moves:= str1
             else if i=2 then Empty:= str1
-            else Nothing:= str1;
+            else if i=3 then Nothing:= str1
+            else if i=4 then Tax:= str1
+            else Gold:= str1;
           end;//if
           i:= i+1;
         end;//while

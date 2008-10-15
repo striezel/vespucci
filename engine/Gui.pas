@@ -185,7 +185,7 @@ type
       MiniMapOffset_Y: Integer;
       Wooden_Mode: Boolean;
       cur_colony: TColony;
-      europe: PEuropeanNation;
+      europe: TEuropeanNation;
       focused: TUnit;
       dat: TData;
       //text messages
@@ -215,9 +215,11 @@ type
       procedure DrawMenuBar;
       procedure DrawGoodsBar;
       procedure DrawColonyTitleBar;
+      procedure DrawEuropeTitleBar;
       procedure DrawMessage;
       procedure DrawColonyView;
-      procedure DrawShipsInColonyPort;
+      procedure DrawEuropeanView;
+      procedure DrawShipsInPort;
       procedure DrawMenu;
       procedure GetSquareAtMouse(var sq_x, sq_y: Integer);
       function  GetGoodAtMouse: TGoodType;
@@ -723,7 +725,7 @@ begin
   end;//europe
 
   //handle map view's mouse events here
-  if ((button=GLUT_LEFT) and (state=GLUT_UP) {and (europe=nil) and (cur_colony=nil)}) then
+  if ((button=GLUT_LEFT) and (state=GLUT_UP)) then
   begin
     if InMenu then
     begin
@@ -845,6 +847,10 @@ begin
   if InColony then
   begin
     DrawColonyView;
+  end//if
+  else if InEurope then
+  begin
+    DrawEuropeanView;
   end//if
   else if InWoodenMode then
   begin
@@ -1164,7 +1170,7 @@ begin
 
   DrawColonyTitleBar;
   DrawGoodsBar;
-  DrawShipsInColonyPort;
+  DrawShipsInPort;
 
   //check for movable unit in field and draw it
   if (mouse.down) then
@@ -1200,11 +1206,25 @@ begin
   {$ENDIF}
 end;//proc DrawColonyView
 
-procedure TGui.DrawShipsInColonyPort;
+procedure TGui.DrawEuropeanView;
+begin
+  //border
+  glLineWidth(2.0);
+  glBegin(GL_LINES);
+    glColor3f(0.0, 0.0, 0.0);
+    glVertex2f(0.0, y_Fields);
+    glVertex2f(x_Fields+ BarWidth*PixelWidth, y_Fields);
+  glEnd;
+  DrawGoodsBar;
+  DrawEuropeTitleBar;
+  DrawShipsInPort;
+end;//proc
+
+procedure TGui.DrawShipsInPort;
 var i: ShortInt;
     ShipArr: TUnitArr;
 begin
-  if cur_colony=nil then Exit;
+  if ((cur_colony=nil) and (europe=nil)) then Exit;
   glBegin(GL_QUADS);
     //front of boxes
     glColor3f(cWoodenColour[0]*0.8, cWoodenColour[1]*0.8, cWoodenColour[2]*0.8);
@@ -1241,9 +1261,9 @@ begin
     end;//for
   glEnd;
   //draw all present ships
-  ShipArr:= dat.GetAllShipsInXY(cur_colony.GetPosX, cur_colony.GetPosY);
-  //for debug reasons only: window title
-  glutSetWindowTitle(PChar('Ships in port: '+IntToStr(length(ShipArr))));
+  if cur_colony<>nil then
+    ShipArr:= dat.GetAllShipsInXY(cur_colony.GetPosX, cur_colony.GetPosY)
+  else ShipArr:= dat.GetAllShipsInEurope(dat.player_nation);
   if length(ShipArr)>0 then
   begin
     glColor3f(1.0, 1.0, 1.0);
@@ -1265,7 +1285,7 @@ begin
     end;//for
     glDisable(GL_TEXTURE_2D);
   end;//if
-end;//proc DrawShipsInColonyPort
+end;//proc DrawShipsInPort
 
 procedure TGui.DrawMenu;
 var count, i, max_len: Integer;
@@ -1575,8 +1595,8 @@ begin
     glColor3ub(0,0,0);
     for i:= Ord(gtFood) to Ord(gtMusket) do
     begin
-      price_str:= IntToStr(europe^.GetPrice(TGoodType(i), True))+'/'
-                 +IntToStr(europe^.GetPrice(TGoodType(i), False));
+      price_str:= IntToStr(europe.GetPrice(TGoodType(i), True))+'/'
+                 +IntToStr(europe.GetPrice(TGoodType(i), False));
       str_width:= 0;
       for j:= 1 to length(price_str) do
         str_width:= str_width + glutBitmapWidth(GLUT_BITMAP_HELVETICA_12, Ord(price_str[j]));
@@ -1614,7 +1634,8 @@ begin
   {$ENDIF}
   if cur_colony<>nil then
   begin
-    s:= cur_colony.GetName +'.  '+dat.GetLang.GetSeason(dat.IsAutumn)+', '+IntToStr(dat.GetYear)+'. Gold: ';
+    with dat.GetLang do
+      s:= cur_colony.GetName +'.  '+{dat.GetLang.}GetSeason(dat.IsAutumn)+', '+IntToStr(dat.GetYear)+'. '+GetGold+': ';
     temp_nat:= dat.GetNation(cur_colony.GetNation);
     if temp_nat<>nil then
     begin
@@ -1628,6 +1649,19 @@ begin
   {$IFDEF DEBUG_CODE}
     WriteLn('Leaving TGui.DrawColonyTitleBar');
   {$ENDIF}
+end;//proc
+
+procedure TGui.DrawEuropeTitleBar;
+var s: string;
+begin
+  if europe<>nil then
+  begin
+    with dat.getLang do
+      s:= GetNationName(dat.player_nation)+'. '+GetSeason(dat.IsAutumn)+' '+IntToStr(dat.GetYear)
+        +'. '+GetTax+': '+IntToStr(europe.GetTaxRate)+'. '+GetGold+': '+IntToStr(europe.GetGold)+'°';
+    glColor3ubv(@cMenuTextColour[0]);
+    WriteText(s, ((cWindowWidth-8*length(s)) div 2)*PixelWidth, 12.0+5.0*PixelWidth);
+  end;//if
 end;//proc
 
 function TGui.InMenu: Boolean;
@@ -1895,7 +1929,7 @@ begin
             end;//mcGame
     mcView: begin
               case selected of
-                1: ; //europe
+                1: europe:= TEuropeanNation(dat.GetNation(dat.player_nation)); //europe
                 2: if focused<>nil then CenterOn(focused.GetPosX, focused.GetPosY); //center view
               end;//case
             end;//mcView
