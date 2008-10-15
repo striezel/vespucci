@@ -63,6 +63,7 @@ type
               function GetFirstUnitInXY(const x, y: Integer; const OnlyAmerica: Boolean=True): TUnit;
               function GetFirstLazyUnit(const num_Nation: Integer): TUnit;
               function GetAllShipsInXY(const x,y: Integer; const OnlyAmerica: Boolean=True): TUnitArr;
+              function GetAllShipsInEurope(const num_nation: Integer): TUnitArr;
               //colonies
               function NewColony(const x,y: Byte; const num_Nation: Integer; const AName: ShortString): TColony;
               function GetColonyInXY(const x,y: Byte): TColony;
@@ -260,6 +261,21 @@ begin
           SetLength(Result, length(Result)+1);
           Result[High(Result)]:= m_Units[i];
         end;//if
+      end;//if
+    end;//if <>nil
+end;//func
+
+function TData.GetAllShipsInEurope(const num_nation: Integer): TUnitArr;
+var i: Integer;
+begin
+  SetLength(Result, 0);
+  for i:= 0 to Unit_max do
+    if m_Units[i]<>nil then
+    begin
+      if ((m_Units[i].GetLocation=ulEurope) and (m_Units[i].IsShip) and(m_Units[i].GetNation=num_nation)) then
+      begin
+        SetLength(Result, length(Result)+1);
+        Result[High(Result)]:= m_Units[i];
       end;//if
     end;//if <>nil
 end;//func
