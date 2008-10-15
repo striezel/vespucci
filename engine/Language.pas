@@ -8,6 +8,7 @@ uses
 type
   TMenuCategory = (mcNone, mcGame, mcView, mcOrders, mcReports, mcTrade);
   TSaveLoadString = (slsLoadChoose, slsLoadError, slsLoadSuccess, slsSaveChoose, slsSaveError, slsSaveSuccess, slsNoGameLoaded);
+  TTransferString = (tsBoycotted, tsOutOfGold, tsOutOfSpace);
   TLanguage = class
     private
       Menu: array[TMenuCategory] of string;
@@ -21,6 +22,7 @@ type
       TerrainNames: array[TTerrainType] of string;
       UnitNames: array[TUnitType] of string;
       Seasons: array[0..1] of string;
+      Transfer: array [TTransferString] of string;
       //others (Maybe we should introduce a structure for them, too.)
       Location: string;
       Moves: string;
@@ -51,6 +53,7 @@ type
       function GetTerrainName(const ATerrain: TTerrainType): string;
       function GetUnitName(const AUnit: TUnitType): string;
       function GetSeason(const autumn: Boolean): string;
+      function GetTransfer(const which_string: TTransferString): string;
       //others
       function GetLocation: string;
       function GetMoves: string;
@@ -203,6 +206,14 @@ begin
   //seasons
   Seasons[0]:= 'Frühling';
   Seasons[1]:= 'Herbst';
+  //good transfers
+  Transfer[tsBoycotted]:= 'Diese Ware wird momentan vom Parlament boykottiert, Eure    '
+                          +'Exzellenz. Wir können damit nicht handeln, bis das Parlament'
+                          +'den Boykott aufhebt.';
+  Transfer[tsOutOfGold]:= 'Wir haben nicht genug Gold, um uns 100 Einheiten der gewün- '
+                          +'schten Ware zu leisten, Eure Exzellenz.';
+  Transfer[tsOutOfSpace]:= 'Unser Schiff hat nicht genug freien Laderaum, um noch diese '
+                           +'Ware noch laden zu können.';
   //others
   Location:= 'Ort';
   Moves:= 'Züge';
@@ -317,6 +328,11 @@ begin
   else Result:= Seasons[0];
 end;//func
 
+function TLanguage.GetTransfer(const which_string: TTransferString): string;
+begin
+  Result:= Transfer[which_string];
+end;//func
+
 function TLanguage.GetLocation: string;
 begin
   Result:= Location;
@@ -395,6 +411,10 @@ begin
   WriteLn(dat, '[Seasons]');
   WriteLn(dat, Seasons[0]);
   WriteLn(dat, Seasons[1]);
+  WriteLn(dat);
+  WriteLn(dat, '[Transfer]');
+  for i:= Ord(Low(TTransferString)) to Ord(High(TTransferString)) do
+    WriteLn(dat, Transfer[TTransferString(i)]);
   WriteLn(dat);
   WriteLn(dat, '[Others]');
   WriteLn(dat, Location);
@@ -489,6 +509,17 @@ begin
           ReadLn(dat, str1);
           str1:= Trim(str1);
           if str1<>'' then Seasons[i]:= str1;
+          i:= i+1;
+        end;//while
+      end//if
+      else if str1='[Transfer]' then
+      begin
+        i:= Ord(Low(TTransferString));
+        while (i<=Ord(High(TTransferString))) and not Eof(dat) do
+        begin
+          ReadLn(dat, str1);
+          str1:= Trim(str1);
+          if str1<>'' then Transfer[TTransferString(i)]:= str1;
           i:= i+1;
         end;//while
       end//if
