@@ -76,6 +76,8 @@ type
       procedure ChangeAllItems(const new_items: Byte);
       function SaveToStream(var fs: TFileStream): Boolean;
       procedure SetCargo(const slot: Byte; const new_amount: Byte; const AGood: TGoodType);
+      function GetCargoAmountBySlot(const slot: Byte): Byte;
+      function GetCargoGoodBySlot(const slot: Byte): TGoodType;
     private
       PosX, PosY: Integer;
       UnitType: TUnitType;
@@ -92,7 +94,7 @@ type
                                   end;//rec
       AI_Task: TTask;
   end;//class TUnit
-  
+
   TUnitArr = array of TUnit;
 
   //the AI stuff
@@ -569,6 +571,19 @@ begin
       Result:= Result and passengers[i].SaveToStream(fs);
   //********* save tasks needs to be done yet! *********
 end;//func
+
+function TUnit.GetCargoAmountBySlot(const slot: Byte): Byte;
+begin
+  if slot<=5 then Result:= cargo_load[slot].amount
+  else Result:= 0;
+end;//func
+
+function TUnit.GetCargoGoodBySlot(const slot: Byte): TGoodType;
+begin
+  if slot<=5 then Result:= cargo_load[slot].which
+  else Result:= gtCross;
+end;//func
+
 
 //only used during loading routine
 procedure TUnit.SetCargo(const slot: Byte; const new_amount: Byte; const AGood: TGoodType);

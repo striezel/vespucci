@@ -222,10 +222,11 @@ type
       procedure DrawShipsInPort;
       procedure DrawMenu;
       procedure GetSquareAtMouse(var sq_x, sq_y: Integer);
-      function  GetGoodAtMouse: TGoodType;
+      function  GetGoodAtMouse(const m_x: LongInt=-1; const m_y: LongInt=-1): TGoodType;
       function  GetMenuCategoryAtMouse: TMenuCategory;
       procedure GetMenuSelectionAtMouse(var cat: TMenuCategory; var sel_option: Integer);
       procedure GetColonyFieldAtMouse(var x_shift, y_shift: ShortInt; const m_x: LongInt=-1; m_y: LongInt=-1);
+      function GetCargoBoxAtMouse(const m_x: LongInt=-1; m_y: LongInt=-1): ShortInt;
       procedure EnqueueNewMessage(const msg_txt: AnsiString; const opts: TShortStrArr; const inCaption, inText: ShortString; cbRec: TCallbackRec);
       procedure GetNextMessage;//de-facto dequeue
       procedure HandleMenuSelection(const categ: TMenuCategory; const selected: Integer);
@@ -656,6 +657,8 @@ var pos_x, pos_y: Integer;
     temp_cbr: TCallbackRec;
     tempUnit: TUnit;
     tempGood: TGoodType;
+    tempUArr: TUnitArr;
+    tempAmount: Byte;
 begin
   {$IFDEF DEBUG_CODE}
     WriteLn('Entered TGui.MouseFunc');
@@ -720,7 +723,57 @@ begin
     begin
       europe:= nil;
       glutPostRedisplay;
-    end;//if
+    end//if
+    //check for good transfer to port or from port to ship
+    else if ((button=GLUT_LEFT) and (state=GLUT_UP)) then
+    begin
+      //from ship to port
+      sx:= GetCargoBoxAtMouse(mouse.down_x, mouse.down_y);
+      tempGood:= GetGoodAtMouse;
+      if ((sx<>-1) and (tempGood<>gtCross)) then
+      begin
+        tempUArr:= dat.GetAllShipsInEurope(europe.GetCount);
+        if length(tempUArr)>0 then //at least one ship present?
+          if tempUArr[0].GetCargoAmountBySlot(sx)>0 then
+          begin
+            //we have a cargo transfer to the port
+            if europe.IsBoycotted(tempUArr[0].GetCargoGoodBySlot(sx)) then
+              ShowMessageSimple(dat.GetLang.GetTransfer(tsBoycotted))
+            else begin
+              //start the transfer, finally
+              tempAmount:= tempUArr[0].UnloadGood(tempUArr[0].GetCargoGoodBySlot(sx), tempUArr[0].GetCargoAmountBySlot(sx));
+              europe.SellGood(tempUArr[0].GetCargoGoodBySlot(sx), tempAmount);
+            end;//else
+          end;//if
+      end;//if
+      //from port to ship
+      sx:= GetCargoBoxAtMouse;
+      tempGood:= GetGoodAtMouse(mouse.down_x, mouse.down_y);
+      if ((sx<>-1) and (tempGood<>gtCross)) then
+      begin
+        tempUArr:= dat.GetAllShipsInEurope(europe.GetCount);
+        if length(tempUArr)>0 then //at least one ship present?
+        begin
+          //cargo transfer from port to ship
+          if europe.IsBoycotted(tempGood) then
+            ShowMessageSimple(dat.GetLang.GetTransfer(tsBoycotted))
+          else if europe.GetPrice(tempGood, False)*100>europe.GetGold then
+            ShowMessageSimple(dat.GetLang.GetTransfer(tsOutOfGold))
+          else begin
+            //start the transfer
+            if tempUArr[0].LoadGood(tempGood, 100) then
+            begin
+              europe.BuyGood(tempGood, tempAmount);
+              //should show message about costs to player
+            end
+            else ShowMessageSimple(dat.GetLang.GetTransfer(tsOutOfSpace));
+          end;//else
+        end;//if
+      end;//if
+    end;//else if
+    {$IFDEF DEBUG_CODE}
+    WriteLn('Exiting TGui.MouseFunc');
+    {$ENDIF}
     Exit;
   end;//europe
 
@@ -767,19 +820,13 @@ begin
         focused:= dat.GetFirstUnitInXY(pos_x, pos_y);
       end;//else
       CenterOn(pos_x, pos_y);
-      {//old code
-      focused:= dat.GetFirstUnitInXY(pos_x, pos_y);
-      CenterOn(pos_x, pos_y);
-      //If we don't have a unit there, there might be a colony?
-      if focused=nil then cur_colony:= dat.GetColonyInXY(pos_x, pos_y);
-      //if not player's colony, set back to nil
-      if cur_colony<>nil then
-        if cur_colony.GetNation<>dat.player_nation then cur_colony:= nil;}
       glutPostRedisplay;
     end//if pos_x<>-1
     else begin
       menu_cat:= GetMenuCategoryAtMouse;
+      {$IFDEF DEBUG_CODE}
       WriteLn('GUI got category: ', Ord(menu_cat));
+      {$ENDIF}
     end;//else
   end;//if
   {$IFDEF DEBUG_CODE}
@@ -796,7 +843,7 @@ end;//func
 procedure TGui.Resize(Width, Height: LongInt);
 begin
   {$IFDEF DEBUG_CODE}
-    WriteLn('Entered TGuiResize');
+    WriteLn('Entered TGui.Resize');
   {$ENDIF}
   if ((Width<>cWindowWidth) or (Height<>cWindowHeight)) then
     glutReshapeWindow(cWindowWidth, cWindowHeight);
@@ -1268,6 +1315,7 @@ begin
   begin
     glColor3f(1.0, 1.0, 1.0);
     glEnable(GL_TEXTURE_2D);
+    //draw list of ships in port
     for i:= 0 to High(ShipArr) do
     begin
       if m_UnitTexNames[ShipArr[i].GetType]<>0 then glBindTexture(GL_TEXTURE_2D, m_UnitTexNames[ShipArr[i].GetType])
@@ -1282,6 +1330,26 @@ begin
         glTexCoord2f(0.0, 1.0);
         glVertex2f(1.0+(i mod 6), (cGoodBarHeight+1)*PixelWidth+2.0 +(i div 6));
       glEnd;
+    end;//for
+    //draw icons of goods in first ship
+    for i:= 0 to 5 do
+    begin
+      if ShipArr[0].GetCargoAmountBySlot(i)>0 then
+      begin
+        if m_GoodTexNames[ShipArr[0].GetCargoGoodBySlot(i)]<>0 then
+          glBindTexture(GL_TEXTURE_2D, m_GoodTexNames[ShipArr[0].GetCargoGoodBySlot(i)])
+        else glBindTexture(GL_TEXTURE_2D, m_ErrorTexName);
+        glBegin(GL_QUADS);
+          glTexCoord2f(0.0, 0.0);
+          glVertex2f(1.0+i, (cGoodBarHeight+1)*PixelWidth);
+          glTexCoord2f(1.0, 0.0);
+          glVertex2f(2.0+i, (cGoodBarHeight+1)*PixelWidth);
+          glTexCoord2f(1.0, 1.0);
+          glVertex2f(2.0+i, (cGoodBarHeight+1)*PixelWidth+1.0);
+          glTexCoord2f(0.0, 1.0);
+          glVertex2f(1.0+i, (cGoodBarHeight+1)*PixelWidth+1.0);
+        glEnd;
+      end;//if
     end;//for
     glDisable(GL_TEXTURE_2D);
   end;//if
@@ -1708,12 +1776,19 @@ begin
   end;//else
 end;//func
 
-function TGui.GetGoodAtMouse: TGoodType;
+function TGui.GetGoodAtMouse(const m_x: LongInt=-1; const m_y: LongInt=-1): TGoodType;
 begin
-  if ((mouse.x<0) or (mouse.x>607) or (mouse.y<cWindowHeight-50) or (mouse.y>cWindowHeight-16)) then
-    Result:= gtCross
-  else
-    Result:= TGoodType(Ord(gtFood)+(mouse.x div 38));
+  if ((m_x=-1) or (m_y=-1)) then
+  begin
+    if ((mouse.x<0) or (mouse.x>607) or (mouse.y<cWindowHeight-50) or (mouse.y>cWindowHeight-16)) then
+      Result:= gtCross
+    else Result:= TGoodType(Ord(gtFood)+(mouse.x div 38));
+  end
+  else begin
+    if ((m_x<0) or (m_x>607) or (m_y<cWindowHeight-50) or (m_y>cWindowHeight-16)) then
+      Result:= gtCross
+    else Result:= TGoodType(Ord(gtFood)+(m_x div 38));
+  end;//else
 end;//func
 
 procedure TGui.EnqueueNewMessage(const msg_txt: AnsiString; const opts: TShortStrArr; const inCaption, inText: ShortString; cbRec: TCallbackRec);
@@ -2006,5 +2081,22 @@ begin
     y_shift:= -2;
   end;//if
 end;//proc
+
+function TGui.GetCargoBoxAtMouse(const m_x: LongInt=-1; m_y: LongInt=-1): ShortInt;
+begin
+  if ((m_x=-1) or (m_y=-1)) then
+  begin
+    if ((mouse.x<FieldWidth) or (mouse.x>=7*FieldWidth) or (mouse.y>cWindowHeight-cGoodBarHeight)
+         or (mouse.y<cWindowHeight-cGoodBarHeight-FieldWidth)) then
+      Result:= -1
+    else Result:= (mouse.x-FieldWidth) div FieldWidth;
+  end//if
+  else begin
+    if ((m_x<FieldWidth) or (m_x>=7*FieldWidth) or (m_y>cWindowHeight-cGoodBarHeight)
+         or (m_y<cWindowHeight-cGoodBarHeight-FieldWidth)) then
+      Result:= -1
+    else Result:= (m_x-FieldWidth) div FieldWidth;
+  end;//else
+end;//func
 
 end.
