@@ -3,7 +3,7 @@ unit Units;
 interface
 
 uses
-  Goods, Map, Classes;
+  Goods, Map, Classes, Terrain;
 
 const
   UNIT_ITEM_NONE: Byte = 0;
@@ -56,6 +56,9 @@ type
       function AttackStrength: Integer;
       function GetTask: TTask;
       procedure SetTask(const new_task: TTask);
+      //go across the big pond
+      function SendToEurope: Boolean;
+      function SendToNewWorld: Boolean;
       //functions for loading/ unloading freigth or passengers and checking freigth status
       function FreightCapacity: Byte;
       function FreeCapacity: Byte;
@@ -82,6 +85,7 @@ type
       PosX, PosY: Integer;
       UnitType: TUnitType;
       m_location: TUnitLocation;
+      m_RoundsInOpenSea: Byte;
       m_Nation: Integer;
       //stores items like horses, muskets, tools
       items: Byte;
@@ -172,6 +176,7 @@ begin
   PosX:= X;
   PosY:= Y;
   m_location:= ulAmerica;
+  m_RoundsInOpenSea:= 0;
   MovesLeft:= MovesPerRound;
   m_Nation:= ANation;
   items:= 0;
@@ -196,6 +201,22 @@ procedure TUnit.NewRound;
 begin
   //regain moves
   MovesLeft:= MovesPerRound;
+  //check for passage over the pond
+  if m_RoundsInOpenSea>0 then
+  begin
+    m_RoundsInOpenSea:= m_RoundsInOpenSea-1;
+    if m_RoundsInOpenSea=0 then
+    begin
+      case m_Location of
+        ulGoToNewWorld: m_Location:= ulAmerica;
+        ulGoToEurope: begin
+                        m_Location:= ulEurope;
+                        DropAllPassengers;
+                      end;//case GoToEurope
+      end;//case
+    end;//if
+  end;//if
+  
   //check for task and execute, if present
   if AI_Task<>nil then
   begin
@@ -241,6 +262,10 @@ begin
 
     if allow then
     begin
+      //check ships for european route
+      if IsShip and (AMap<>nil) then
+        if ((AMap.tiles[PosX, PosY].GetType=ttOpenSea) and (AMap.tiles[newX, newY].GetType=ttOpenSea)) then
+          SendToEurope;
       if direction<>dirNone then
       begin
         MovesLeft:= MovesLeft -1;
@@ -357,6 +382,26 @@ begin
   if AI_Task<>nil then AI_Task.Destroy;
   AI_Task:= new_task;
 end;//proc
+
+function TUnit.SendToEurope: Boolean;
+begin
+  if (m_location<>ulAmerica) or not IsShip then Result:= False
+  else begin
+    m_RoundsInOpenSea:= 2;
+    MovesLeft:= 0;
+    m_location:= ulGoToEurope;
+  end;//else
+end;//func
+
+function TUnit.SendToNewWorld: Boolean;
+begin
+  if (m_location<>ulEurope) or not IsShip then Result:= False
+  else begin
+    m_RoundsInOpenSea:= 2;
+    MovesLeft:= 0;
+    m_location:= ulGoToNewWorld;
+  end;//else
+end;//func
 
 function TUnit.FreightCapacity: Byte;
 begin
@@ -492,8 +537,12 @@ begin
   begin
     if passengers[slot]<>nil then
     begin
-      passengers[slot].SetLocation(ulAmerica);
-      passengers[slot].WarpToXY(PosX, PosY, nil);
+      if m_Location = ulEurope then
+        passengers[slot].SetLocation(ulEurope)
+      else begin
+        passengers[slot].SetLocation(ulAmerica);
+        passengers[slot].WarpToXY(PosX, PosY, nil);
+      end;//else
       passengers[slot]:= nil;
     end;//if
   end;//for
@@ -729,7 +778,6 @@ begin
     gtWood: Result:= utWoodcutter;
     gtOre: Result:= utOreMiner;
     gtSilver: Result:= utSilverMiner;
-    //gtSilver: none
     //gtHorses: none
     gtRum: Result:= utDistiller;
     gtCigar: Result:= utTobacconist;

@@ -708,7 +708,40 @@ begin
         ShowMessageOptions('Choose profession for unit '+dat.GetLang.GetUnitName(cur_colony.GetUnitInField(sx, sy).GetType)+':',
                            dat.GetJobList(sx, sy, cur_colony.GetUnitInField(sx, sy).GetType, cur_colony), temp_cbr);
       end;//else if
-    end;//else if
+      
+      //*** check for good transfer ***
+      //from ship to port of colony
+      sx:= GetCargoBoxAtMouse(mouse.down_x, mouse.down_y);
+      tempGood:= GetGoodAtMouse;
+      if ((sx<>-1) and (tempGood<>gtCross)) then
+      begin
+        tempUArr:= dat.GetAllShipsInXY(cur_colony.GetPosX, cur_colony.GetPosY);
+        if length(tempUArr)>0 then //at least one ship present?
+          if tempUArr[0].GetCargoAmountBySlot(sx)>0 then
+          begin
+            //we have a cargo transfer to the port
+            tempAmount:= tempUArr[0].UnloadGood(tempUArr[0].GetCargoGoodBySlot(sx), tempUArr[0].GetCargoAmountBySlot(sx));
+            cur_colony.AddToStore(tempUArr[0].GetCargoGoodBySlot(sx), tempAmount);
+          end;//if
+      end;//if
+      //from port to ship
+      sx:= GetCargoBoxAtMouse;
+      tempGood:= GetGoodAtMouse(mouse.down_x, mouse.down_y);
+      if ((sx<>-1) and (tempGood<>gtCross)) then
+      begin
+        tempUArr:= dat.GetAllShipsInXY(cur_colony.GetPosX, cur_colony.GetPosY);
+        if length(tempUArr)>0 then
+        begin
+          if cur_colony.GetStore(tempGood)>=100 then tempAmount:= 100
+          else tempAmount:= cur_colony.GetStore(tempGood);
+          if tempUArr[0].LoadGood(tempGood, tempAmount) then
+          begin
+            cur_colony.RemoveFromStore(tempGood, tempAmount);
+          end//if
+          else ShowMessageSimple(dat.GetLang.GetTransfer(tsOutOfSpace));
+        end;//if
+      end;//if
+    end;//else if button=LEFT and state=UP
     {$IFDEF DEBUG_CODE}
     WriteLn('Exiting TGui.MouseFunc');
     {$ENDIF}
@@ -763,7 +796,7 @@ begin
             //start the transfer
             if tempUArr[0].LoadGood(tempGood, 100) then
             begin
-              europe.BuyGood(tempGood, tempAmount);
+              europe.BuyGood(tempGood, 100);
               //should show message about costs to player
             end
             else ShowMessageSimple(dat.GetLang.GetTransfer(tsOutOfSpace));
