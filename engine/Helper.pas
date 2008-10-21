@@ -9,9 +9,9 @@ const
   cSpace08 = '        ';
   cSpace16 = cSpace08+cSpace08;
   cSpace32 = cSpace16+cSpace16;
+  cSpace60 = '                                                            ';
   cSpace64 = cSpace32+cSpace32;
   cSpace128 = cSpace64+cSpace64;
-//  cSpace256 = cSpace128+cSpace128;
 
 type
   TShortStrArr = array of ShortString;

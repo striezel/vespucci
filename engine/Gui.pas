@@ -137,7 +137,6 @@ const
     );
 
   cWindowCaption = 'Vespucci v0.01';
-  cSpace60 = '                                                            ';
 
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
   cMenuHighColour : array [0..2] of Byte = (255, 20, 20);
@@ -220,6 +219,7 @@ type
       procedure DrawColonyView;
       procedure DrawEuropeanView;
       procedure DrawShipsInPort;
+      procedure DrawPeopleInEurope;
       procedure DrawMenu;
       procedure GetSquareAtMouse(var sq_x, sq_y: Integer);
       function  GetGoodAtMouse(const m_x: LongInt=-1; const m_y: LongInt=-1): TGoodType;
@@ -428,6 +428,7 @@ var tempUnit: TUnit;
     temp_x, temp_y: Byte;
     temp_Map: TMap;
     direc: TDirection;
+    temp_col: TColony;
 begin
   {$IFDEF DEBUG_CODE}
     WriteLn('Entered TGui.KeyFunc');
@@ -621,20 +622,40 @@ begin
       temp_y:= focused.GetPosY;
       ApplyDir(temp_x, temp_y, direc);
       temp_Map:= dat.GetMap;
-      if (focused.IsShip and not temp_Map.tiles[temp_x, temp_y].IsWater and (focused.EmbarkedPassengers>0)) then
+      if (focused.IsShip) then
       begin
-        //check for landfall
-        temp_cb._type:= CBT_LANDFALL;
-        temp_cb.Landfall.cbLandfall:= @CBF_Landfall;
-        temp_cb.Landfall.Ship:= focused;
-        tempUnit:= focused.GetFirstEmbarkedPassenger;
-        if tempUnit<>nil then temp_cb.Landfall.UType:= tempUnit.GetType
-        else temp_cb.Landfall.UType:= utGalleon;
-        temp_cb.Landfall.x:= temp_x;
-        temp_cb.Landfall.y:= temp_y;
-        temp_cb.Landfall.AMap:= temp_Map;
-        ShowMessageOptions(dat.GetLang.GetLandfall(0), ToShortStrArr(dat.GetLang.GetLandfall(1), dat.GetLang.GetLandfall(2)), temp_cb);
-      end
+        if (not temp_Map.tiles[temp_x, temp_y].IsWater) then
+        begin
+          temp_col:= dat.GetColonyInXY(temp_x, temp_y);
+          if (temp_col<>nil) then
+          begin
+            if (temp_col.GetNation=focused.GetNation) then
+            begin
+              //ship enters colony
+              focused.WarpToXY(temp_x, temp_y, temp_Map);
+              focused.DropAllPassengers;
+              focused.MovesLeft:= focused.MovesLeft-1;
+            end
+            else focused.Move(direc, temp_Map);
+          end//if temp_col<>nil
+          else if (focused.EmbarkedPassengers>0) then
+          begin
+            //check for landfall
+            temp_cb._type:= CBT_LANDFALL;
+            temp_cb.Landfall.cbLandfall:= @CBF_Landfall;
+            temp_cb.Landfall.Ship:= focused;
+            tempUnit:= focused.GetFirstEmbarkedPassenger;
+            if tempUnit<>nil then temp_cb.Landfall.UType:= tempUnit.GetType
+            else temp_cb.Landfall.UType:= utGalleon;
+            temp_cb.Landfall.x:= temp_x;
+            temp_cb.Landfall.y:= temp_y;
+            temp_cb.Landfall.AMap:= temp_Map;
+            ShowMessageOptions(dat.GetLang.GetLandfall(0), ToShortStrArr(dat.GetLang.GetLandfall(1), dat.GetLang.GetLandfall(2)), temp_cb);
+          end //if passengers>0
+          else focused.Move(direc, temp_Map);
+        end//if not water
+        else focused.Move(direc, temp_Map);
+      end//if IsShip
       else focused.Move(direc, temp_Map);
     end;//if
     //check if unit moved out of sight, and center on it, if neccessary
@@ -708,7 +729,7 @@ begin
         ShowMessageOptions('Choose profession for unit '+dat.GetLang.GetUnitName(cur_colony.GetUnitInField(sx, sy).GetType)+':',
                            dat.GetJobList(sx, sy, cur_colony.GetUnitInField(sx, sy).GetType, cur_colony), temp_cbr);
       end;//else if
-      
+
       //*** check for good transfer ***
       //from ship to port of colony
       sx:= GetCargoBoxAtMouse(mouse.down_x, mouse.down_y);
@@ -1120,10 +1141,10 @@ begin
       end;//if Icon present
       // -- moves of unit
       glColor3ubv(@cMenuTextColour[0]);
-      WriteText(dat.GetLang.GetMoves+': '+IntToStr(focused.MovesLeft),
+      WriteText(dat.GetLang.GetOthers(osMoves)+': '+IntToStr(focused.MovesLeft),
                 x_Fields +40*PixelWidth, 7.5);
       // -- location of unit
-      WriteText(dat.GetLang.GetLocation+': '+IntToStr(focused.GetPosX)+','+IntToStr(focused.GetPosY),
+      WriteText(dat.GetLang.GetOthers(osLocation)+': '+IntToStr(focused.GetPosX)+','+IntToStr(focused.GetPosY),
                 x_Fields +40*PixelWidth, 7.0);
       // -- type of unit
       WriteText(dat.GetLang.GetUnitName(focused.GetType),
@@ -1298,6 +1319,7 @@ begin
   DrawGoodsBar;
   DrawEuropeTitleBar;
   DrawShipsInPort;
+  DrawPeopleInEurope;
 end;//proc
 
 procedure TGui.DrawShipsInPort;
@@ -1387,6 +1409,65 @@ begin
     glDisable(GL_TEXTURE_2D);
   end;//if
 end;//proc DrawShipsInPort
+
+procedure TGui.DrawPeopleInEurope;
+var i: ShortInt;
+    PeopleArr: TUnitArr;
+begin
+  if (europe=nil) then Exit;
+  glBegin(GL_QUADS);
+    //Anlegesteg
+    glColor3f(cWoodenColour[0]*0.8, cWoodenColour[1]*0.8, cWoodenColour[2]*0.8);
+    glVertex2f((cWindowWidth-6*FieldWidth)*PixelWidth, (cGoodBarHeight+1)*PixelWidth);
+    glVertex2f(cWindowWidth*PixelWidth, (cGoodBarHeight+1)*PixelWidth);
+    glVertex2f(cWindowWidth*PixelWidth, (cGoodBarHeight+1)*PixelWidth+0.5);
+    glVertex2f((cWindowWidth-6*FieldWidth)*PixelWidth, (cGoodBarHeight+1)*PixelWidth+0.5);
+    //"Begrenzung" (linksseitiger Abschluss)
+    glVertex2f((cWindowWidth-6*FieldWidth)*PixelWidth, (cGoodBarHeight+1)*PixelWidth+0.75);
+    glVertex2f((cWindowWidth-6.5*FieldWidth)*PixelWidth, (cGoodBarHeight+1)*PixelWidth+0.75);
+    glVertex2f((cWindowWidth-6.5*FieldWidth)*PixelWidth, (cGoodBarHeight+1)*PixelWidth-0.25);
+    glVertex2f((cWindowWidth-6*FieldWidth)*PixelWidth, (cGoodBarHeight+1)*PixelWidth-0.25);
+  glEnd;
+  //Umrandung (border)
+  glLineWidth(2.0);
+  glBegin(GL_LINE_LOOP);
+    //Anlegesteg
+    glColor3f(cWoodenColour[0]*0.6, cWoodenColour[1]*0.6, cWoodenColour[2]*0.6);
+    glVertex2f((cWindowWidth-6*FieldWidth)*PixelWidth, (cGoodBarHeight+1)*PixelWidth);
+    glVertex2f(cWindowWidth*PixelWidth, (cGoodBarHeight+1)*PixelWidth);
+    glVertex2f(cWindowWidth*PixelWidth, (cGoodBarHeight+1)*PixelWidth+0.5);
+    glVertex2f((cWindowWidth-6*FieldWidth)*PixelWidth, (cGoodBarHeight+1)*PixelWidth+0.5);
+    //"Begrenzung" (linksseitiger Abschluss)
+    glVertex2f((cWindowWidth-6*FieldWidth)*PixelWidth, (cGoodBarHeight+1)*PixelWidth+0.75);
+    glVertex2f((cWindowWidth-6.5*FieldWidth)*PixelWidth, (cGoodBarHeight+1)*PixelWidth+0.75);
+    glVertex2f((cWindowWidth-6.5*FieldWidth)*PixelWidth, (cGoodBarHeight+1)*PixelWidth-0.25);
+    glVertex2f((cWindowWidth-6*FieldWidth)*PixelWidth, (cGoodBarHeight+1)*PixelWidth-0.25);
+  glEnd;
+
+  PeopleArr:= dat.GetAllNonShipsInEurope(europe.GetCount);
+  
+  if length(PeopleArr)>0 then
+  begin
+    glColor3f(1.0, 1.0, 1.0);
+    glEnable(GL_TEXTURE_2D);
+    //draw list of ships in port
+    for i:= 0 to High(PeopleArr) do
+    begin
+      if m_UnitTexNames[PeopleArr[i].GetType]<>0 then glBindTexture(GL_TEXTURE_2D, m_UnitTexNames[PeopleArr[i].GetType])
+      else glBindTexture(GL_TEXTURE_2D, m_ErrorTexName);
+      glBegin(GL_QUADS);
+        glTexCoord2f(0.0, 0.0);
+        glVertex2f((cWindowWidth-6*FieldWidth)*PixelWidth+(i mod 6), (cGoodBarHeight+1)*PixelWidth+0.5 +(i div 6));
+        glTexCoord2f(1.0, 0.0);
+        glVertex2f((cWindowWidth-6*FieldWidth)*PixelWidth+1.0+(i mod 6), (cGoodBarHeight+1)*PixelWidth+0.5 +(i div 6));
+        glTexCoord2f(1.0, 1.0);
+        glVertex2f((cWindowWidth-6*FieldWidth)*PixelWidth+1.0+(i mod 6), (cGoodBarHeight+1)*PixelWidth+1.5 +(i div 6));
+        glTexCoord2f(0.0, 1.0);
+        glVertex2f((cWindowWidth-6*FieldWidth)*PixelWidth+(i mod 6), (cGoodBarHeight+1)*PixelWidth+1.5 +(i div 6));
+      glEnd;
+    end;//for
+  end;//if
+end;//proc
 
 procedure TGui.DrawMenu;
 var count, i, max_len: Integer;
@@ -1736,7 +1817,7 @@ begin
   if cur_colony<>nil then
   begin
     with dat.GetLang do
-      s:= cur_colony.GetName +'.  '+{dat.GetLang.}GetSeason(dat.IsAutumn)+', '+IntToStr(dat.GetYear)+'. '+GetGold+': ';
+      s:= cur_colony.GetName +'.  '+GetSeason(dat.IsAutumn)+', '+IntToStr(dat.GetYear)+'. '+GetOthers(osGold)+': ';
     temp_nat:= dat.GetNation(cur_colony.GetNation);
     if temp_nat<>nil then
     begin
@@ -1757,9 +1838,9 @@ var s: string;
 begin
   if europe<>nil then
   begin
-    with dat.getLang do
+    with dat.GetLang do
       s:= GetNationName(dat.player_nation)+'. '+GetSeason(dat.IsAutumn)+' '+IntToStr(dat.GetYear)
-        +'. '+GetTax+': '+IntToStr(europe.GetTaxRate)+'. '+GetGold+': '+IntToStr(europe.GetGold)+'°';
+        +'. '+GetOthers(osTax)+': '+IntToStr(europe.GetTaxRate)+'. '+GetOthers(osGold)+': '+IntToStr(europe.GetGold)+'°';
     glColor3ubv(@cMenuTextColour[0]);
     WriteText(s, ((cWindowWidth-8*length(s)) div 2)*PixelWidth, 12.0+5.0*PixelWidth);
   end;//if
@@ -1946,7 +2027,7 @@ begin
     msg.cbRec.inputText:= msg.inputText;
     //check whether we need callbacks
     if (((msg.cbRec._type in [CBT_LOAD_GAME, CBT_SAVE_GAME]) and (msg.selected_option=0))
-       or ((msg.cbRec._type=CBT_LOAD_GAME) and (dat.GetSaveInfo(msg.selected_option)='('+dat.GetLang.GetEmpty+')'))) then
+       or ((msg.cbRec._type=CBT_LOAD_GAME) and (dat.GetSaveInfo(msg.selected_option)='('+dat.GetLang.GetOthers(osEmpty)+')'))) then
     begin
       //skip callbacks
     end
@@ -2017,7 +2098,7 @@ begin
                      temp_cb.SaveGame.AData:= dat;
                      str_arr:= dat.GetSaveSlots;
                      ShowMessageOptions(dat.GetLang.GetSaveLoad(slsSaveChoose),
-                                        ToShortStrArr(dat.GetLang.GetNothing, str_arr),
+                                        ToShortStrArr(dat.GetLang.GetOthers(osNothing), str_arr),
                                         temp_cb);
                    end;//save
                 2: begin //load
@@ -2025,7 +2106,7 @@ begin
                      temp_cb.LoadGame.AData:= dat;
                      str_arr:= dat.GetSaveSlots;
                      ShowMessageOptions(dat.GetLang.GetSaveLoad(slsLoadChoose),
-                                        ToShortStrArr(dat.GetLang.GetNothing, str_arr),
+                                        ToShortStrArr(dat.GetLang.GetOthers(osNothing), str_arr),
                                         temp_cb);
                    end;//load
                 3: begin//quit?

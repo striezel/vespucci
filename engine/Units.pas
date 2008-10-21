@@ -216,7 +216,7 @@ begin
       end;//case
     end;//if
   end;//if
-  
+
   //check for task and execute, if present
   if AI_Task<>nil then
   begin
@@ -233,7 +233,7 @@ function TUnit.Move(const direction: TDirection; const AMap: TMap): Boolean;
 var newX, newY: Integer;
     allow: Boolean;
 begin
-  if MovesLeft = 0 then
+  if MovesLeft <= 0 then
     Result:= False
   else begin
     case direction of
