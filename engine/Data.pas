@@ -65,6 +65,7 @@ type
               function GetAllShipsInXY(const x,y: Integer; const OnlyAmerica: Boolean=True): TUnitArr;
               function GetAllShipsInEurope(const num_nation: Integer): TUnitArr;
               function GetAllNonShipsInEurope(const num_nation: Integer): TUnitArr;
+              procedure GetEuropeanQuartett(const num_nation: Integer; var Ships, People, ExpectedSoon, ToNewWorld: TUnitArr);
               //colonies
               function NewColony(const x,y: Byte; const num_Nation: Integer; const AName: ShortString): TColony;
               function GetColonyInXY(const x,y: Byte): TColony;
@@ -295,6 +296,43 @@ begin
       end;//if
     end;//if <>nil
 end;//func
+
+procedure TData.GetEuropeanQuartett(const num_nation: Integer; var Ships, People, ExpectedSoon, ToNewWorld: TUnitArr);
+var i: Integer;
+begin
+  SetLength(Ships, 0);
+  SetLength(People, 0);
+  SetLength(ExpectedSoon, 0);
+  SetLength(ToNewWorld, 0);
+  for i:= 0 to Unit_max do
+    if m_Units[i]<>nil then
+    begin
+      if (m_Units[i].GetNation=num_nation) then
+      begin
+        case m_Units[i].GetLocation of
+          ulEurope: begin
+                      if m_Units[i].IsShip then
+                      begin
+                        SetLength(Ships, length(Ships)+1);
+                        Ships[High(Ships)]:= m_Units[i];
+                      end//if
+                      else begin
+                        SetLength(People, length(People)+1);
+                        People[High(People)]:= m_Units[i];
+                      end;//else
+                    end;//ulEurope
+          ulGoToEurope: begin
+                          SetLength(ExpectedSoon, length(ExpectedSoon)+1);
+                          ExpectedSoon[High(ExpectedSoon)]:= m_Units[i];
+                        end;//ulGoToEurope
+          ulGoToNewWorld: begin
+                            SetLength(ToNewWorld, length(ToNewWorld)+1);
+                            ToNewWorld[High(ToNewWorld)]:= m_Units[i];
+                          end;//ulGoToNewWorld
+        end;//case
+      end;//if
+    end;//if
+end;//proc
 
 function TData.NewColony(const x,y: Byte; const num_Nation: Integer; const AName: ShortString): TColony;
 var i: Integer;
@@ -908,7 +946,6 @@ end;//func
 
 function TData.GetJobList(const x_shift, y_shift: ShortInt; const UnitType: TUnitType; ACol: TColony): TShortStrArr;
 var i: Integer;
-    ut: TUnitType;
 begin
   SetLength(Result, Ord(gtSilver)-Ord(gtFood)+1);
   for i:= 0 to High(Result) do
