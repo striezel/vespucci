@@ -3,12 +3,12 @@ unit Tribe;
 interface
 
 uses
-  Settlement, Nation, Units;
+  Settlement, Nation, Units, MsgSys;
 
 type
   TTribe = class(TSettlement)
     public
-      constructor Create(const X, Y: Integer; const ANation: PNation; KnownFor: TUnitType);
+      constructor Create(const X, Y: Integer; const ANation: Integer; KnownFor: TUnitType);
       procedure Teach(var AUnit: TUnit);
     private
       m_KnownFor: TUnitType;
@@ -20,7 +20,7 @@ implementation
 
 // **** TTribe functions ****
 
-constructor TTribe.Create(const X, Y: Integer; const ANation: PNation; KnownFor: TUnitType);
+constructor TTribe.Create(const X, Y: Integer; const ANation: Integer; KnownFor: TUnitType);
 var i: Integer;
 begin
   //sets Nation and position
@@ -47,10 +47,10 @@ begin
     end;//else
   end
   //only European Units can learn from Indians
-  else if (AUnit.GetNation^.GetCount in [cMin_Nations..cMaxEuropean]) then
+  else if (AUnit.GetNation in [cMin_Nations..cMaxEuropean]) then
   begin
     //check, if Indians already did teach that nation's units a new skill
-    if m_HasTought[AUnit.GetNation^.GetCount] then
+    if m_HasTought[AUnit.GetNation] then
     begin
       //Show message, something like "Ihr habt schon etwas von uns gelernt"
       // Still ToDo();
@@ -58,10 +58,9 @@ begin
     else begin
       //actually teach the unit something
       AUnit.ChangeType(m_KnownFor);
-      m_HasTought[AUnit.GetNation^.GetCount]:= True;
+      m_HasTought[AUnit.GetNation]:= True;
     end;//else
   end;//if
 end;//proc
 
 end.
- 

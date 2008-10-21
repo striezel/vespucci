@@ -9,6 +9,7 @@ type
   TMenuCategory = (mcNone, mcGame, mcView, mcOrders, mcReports, mcTrade);
   TSaveLoadString = (slsLoadChoose, slsLoadError, slsLoadSuccess, slsSaveChoose, slsSaveError, slsSaveSuccess, slsNoGameLoaded);
   TTransferString = (tsBoycotted, tsOutOfGold, tsOutOfSpace);
+  TOtherString = (osLocation, osMoves, osEmpty, osNothing, osTax, osGold);
   TLanguage = class
     private
       Menu: array[TMenuCategory] of string;
@@ -22,14 +23,9 @@ type
       TerrainNames: array[TTerrainType] of string;
       UnitNames: array[TUnitType] of string;
       Seasons: array[0..1] of string;
-      Transfer: array [TTransferString] of string;
-      //others (Maybe we should introduce a structure for them, too.)
-      Location: string;
-      Moves: string;
-      Empty: string;
-      Nothing: string;
-      Tax: string;
-      Gold: string;
+      Transfer: array[TTransferString] of string;
+      //others
+      Others: array[TOtherString] of string;
       //for messages after saving/loading the game
       SaveLoad: array[TSaveLoadString] of string;
       //for landfall message box
@@ -55,12 +51,7 @@ type
       function GetSeason(const autumn: Boolean): string;
       function GetTransfer(const which_string: TTransferString): string;
       //others
-      function GetLocation: string;
-      function GetMoves: string;
-      function GetEmpty: string;
-      function GetNothing: string;
-      function GetTax: string;
-      function GetGold: string;
+      function GetOthers(const which_one: TOtherString): string;
       function GetSaveLoad(const which: TSaveLoadString): string;
       function GetLandfall(const which: Byte): string;
       function GetBuildColony(const which: Byte): string;
@@ -215,12 +206,18 @@ begin
   Transfer[tsOutOfSpace]:= 'Unser Schiff hat nicht genug freien Laderaum, um noch diese '
                            +'Ware noch laden zu können.';
   //others
-  Location:= 'Ort';
+  Others[osLocation]:= 'Ort';
+  Others[osMoves]:= 'Züge';
+  Others[osEmpty]:= 'leer';
+  Others[osNothing]:= 'nichts';
+  Others[osTax]:= 'Steuer';
+  Others[osGold]:= 'Gold';
+  {Location:= 'Ort';
   Moves:= 'Züge';
   Empty:= 'leer';
   Nothing:= 'nichts';
   Tax:= 'Steuer';
-  Gold:= 'Gold';
+  Gold:= 'Gold';}
   //save/ load messages
   SaveLoad[slsLoadChoose]:= 'Wählen Sie den zu ladenden Spielstand.';
   SaveLoad[slsLoadError]:= 'Fehler beim Laden des Spielstandes! Das geladene Spiel kann '
@@ -251,6 +248,7 @@ begin
   BuildColony[4]:= 'Kolonien können nicht in den Bergen gebaut werden, Eure Exzellenz.';
 
   SetMenuHelpers;
+  
 end;//proc
 
 procedure TLanguage.SetMenuHelpers;
@@ -333,34 +331,9 @@ begin
   Result:= Transfer[which_string];
 end;//func
 
-function TLanguage.GetLocation: string;
+function TLanguage.GetOthers(const which_one: TOtherString): string;
 begin
-  Result:= Location;
-end;//func
-
-function TLanguage.GetMoves: string;
-begin
-  Result:= Moves;
-end;//func
-
-function TLanguage.GetEmpty: string;
-begin
-  Result:= Empty;
-end;//func
-
-function TLanguage.GetNothing: string;
-begin
-  Result:= Nothing;
-end;//func
-
-function TLanguage.GetTax: string;
-begin
-  Result:= Tax;
-end;//func
-
-function TLanguage.GetGold: string;
-begin
-  Result:= Gold;
+  Result:= Others[which_one];
 end;//func
 
 function TLanguage.GetSaveLoad(const which: TSaveLoadString): string;
@@ -417,12 +390,8 @@ begin
     WriteLn(dat, Transfer[TTransferString(i)]);
   WriteLn(dat);
   WriteLn(dat, '[Others]');
-  WriteLn(dat, Location);
-  WriteLn(dat, Moves);
-  WriteLn(dat, Empty);
-  WriteLn(dat, Nothing);
-  WriteLn(dat, Tax);
-  WriteLn(dat, Gold);
+  for i:= Ord(Low(TOtherString)) to Ord(High(TOtherString)) do
+    WriteLn(dat, Others[TOtherString(i)]);
   WriteLn(dat);
   WriteLn(dat, '[SaveLoad]');
   for i:= Ord(Low(TSaveLoadString)) to Ord(High(TSaveLoadString)) do
@@ -525,20 +494,12 @@ begin
       end//if
       else if str1='[Others]' then
       begin
-        i:= 0;
-        while (i<=5) and not Eof(dat) do
+        i:= Ord(Low(TOtherString));
+        while (i<=Ord(High(TOtherString))) and not Eof(dat) do
         begin
           ReadLn(dat, str1);
           str1:= Trim(str1);
-          if str1<>'' then
-          begin
-            if i=0 then Location:= str1
-            else if i=1 then Moves:= str1
-            else if i=2 then Empty:= str1
-            else if i=3 then Nothing:= str1
-            else if i=4 then Tax:= str1
-            else Gold:= str1;
-          end;//if
+          if str1<>'' then Others[TOtherString(i)]:= str1;
           i:= i+1;
         end;//while
       end//if

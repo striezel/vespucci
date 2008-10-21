@@ -4,10 +4,12 @@ program vespucci;
 uses Gui, GLUT;
 
 var TheGUI: TGui;
+    Frames: LongWord;
 
 procedure DrawWrapper; cdecl;
 begin
   TheGUI.Draw;
+  Frames:= Frames+1;
 end;
 
 procedure KeyWrapper(Key: Byte; x, y: LongInt); cdecl;
@@ -49,9 +51,18 @@ end;//proc
 procedure IdleWrapper; cdecl;
 begin
   TheGUI.Draw;
+  Frames:= Frames+1;
 end;
 
+procedure TimerWrapper(value: LongInt); cdecl;
 begin
+  glutTimerFunc(1000, @TimerWrapper, 0);
+  WriteLn('Frames: ', Frames);
+  Frames:= 0;
+end;//func
+
+begin
+  Frames:= 0;
   WriteLn(Gui.cWindowCaption);
   WriteLn;
   WriteLn('glutInit...');
@@ -82,6 +93,7 @@ begin
   glutMotionFunc(@MouseMoveWrapper);
   glutPassiveMotionFunc(@MouseMoveWrapper);
   glutIdleFunc(@IdleWrapper);
+  glutTimerFunc(1000, @TimerWrapper, 0);
 
   WriteLn('Starting GUI...');
   TheGui.Start;//starts GUI and GLUT's main loop

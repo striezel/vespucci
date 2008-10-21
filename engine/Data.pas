@@ -64,6 +64,7 @@ type
               function GetFirstLazyUnit(const num_Nation: Integer): TUnit;
               function GetAllShipsInXY(const x,y: Integer; const OnlyAmerica: Boolean=True): TUnitArr;
               function GetAllShipsInEurope(const num_nation: Integer): TUnitArr;
+              function GetAllNonShipsInEurope(const num_nation: Integer): TUnitArr;
               //colonies
               function NewColony(const x,y: Byte; const num_Nation: Integer; const AName: ShortString): TColony;
               function GetColonyInXY(const x,y: Byte): TColony;
@@ -273,6 +274,21 @@ begin
     if m_Units[i]<>nil then
     begin
       if ((m_Units[i].GetLocation=ulEurope) and (m_Units[i].IsShip) and(m_Units[i].GetNation=num_nation)) then
+      begin
+        SetLength(Result, length(Result)+1);
+        Result[High(Result)]:= m_Units[i];
+      end;//if
+    end;//if <>nil
+end;//func
+
+function TData.GetAllNonShipsInEurope(const num_nation: Integer): TUnitArr;
+var i: Integer;
+begin
+  SetLength(Result, 0);
+  for i:= 0 to Unit_max do
+    if m_Units[i]<>nil then
+    begin
+      if ((m_Units[i].GetLocation=ulEurope) and(m_Units[i].GetNation=num_nation) and not m_Units[i].IsShip) then
       begin
         SetLength(Result, length(Result)+1);
         Result[High(Result)]:= m_Units[i];
@@ -812,14 +828,14 @@ var fs: TFileStream;
     temp_Year, temp_nation, temp_len: Integer;
 begin
   if ((n=0) or not FileExists(GetPathBase+save_path +'data'+IntToStr(n)+'.vdd')) then
-    Result:= '('+lang.GetEmpty+')'
+    Result:= '('+lang.GetOthers(osEmpty)+')'
   else begin
     fs:= nil;
     status:= True;
     try
       fs:= TFileStream.Create(GetPathBase+save_path +'data'+IntToStr(n)+'.vdd', fmOpenRead or fmShareDenyNone);
     except
-      Result:= '('+lang.GetEmpty+')';
+      Result:= '('+lang.GetOthers(osEmpty)+')';
       if fs<>nil then fs.Free;
       Exit;
     end;//tryxcept
@@ -842,7 +858,7 @@ begin
     if status then
       Result:= temp_str+', '+lang.GetNationName(temp_nation)+', '
               +lang.GetSeason(temp_Autumn)+' '+IntToStr(temp_Year)
-    else Result:='('+lang.GetEmpty+')';
+    else Result:='('+lang.GetOthers(osEmpty)+')';
   end;//else
 end;//func
 
@@ -859,7 +875,7 @@ begin
   begin
     if (FileExists(GetPathBase+save_path +'data'+IntToStr(i)+'.vdd') and FileExists(GetPathBase+save_path +'map'+IntToStr(i)+'.vmd') and FileExists(GetPathBase+save_path +'units'+IntToStr(i)+'.vud') and FileExists(GetPathBase+save_path +'colony'+IntToStr(i)+'.vcd')) then
     Result[i-1]:= GetSaveInfo(i)
-    else Result[i-1]:= '('+lang.GetEmpty+')';
+    else Result[i-1]:= '('+lang.GetOthers(osEmpty)+')';
   end;//for
 end;//func
 
@@ -896,7 +912,7 @@ var i: Integer;
 begin
   SetLength(Result, Ord(gtSilver)-Ord(gtFood)+1);
   for i:= 0 to High(Result) do
-    Result[i]:= lang.GetEmpty;
+    Result[i]:= lang.GetOthers(osEmpty);
   if ((abs(x_shift)>1) or (abs(y_shift)>1) or (ACol=nil) or (m_Map=nil)) then Exit;
 
   for i:= Ord(gtFood) to Ord(gtSilver) do
