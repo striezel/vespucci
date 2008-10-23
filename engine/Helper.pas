@@ -24,6 +24,9 @@ type
   function ToShortStrArr(const s1: ShortString; const arr: TShortStrArr): TShortStrArr; overload;
   function SpaceString(const len: Byte): string;
   function Trim(const str1: string): string;
+  
+  function Min(const a,b: Integer): Integer; overload;
+  function Min(const a,b: Double): Double; overload;
 
 implementation
 
@@ -102,5 +105,14 @@ begin
   end;//else
 end;//func
 
+function Min(const a,b: Integer): Integer; overload;
+begin
+  if a<=b then Result:= a else Result:= b;
+end;//func
+
+function Min(const a,b: Double): Double; overload;
+begin
+  if a<=b then Result:= a else Result:= b;
+end;//func
 
 end.

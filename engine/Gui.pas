@@ -20,6 +20,9 @@ const
 
   cWindowWidth = 32*x_Fields+BarWidth;
   cWindowHeight = 32*y_Fields+16+16;
+  
+  cShipsInExpectedSoon = 5;
+  cShipsInToNewWorld = 5;
 
   BorderWidth: Single = 0.0625; // =1/16, i.e. 2px
   BorderColour: array[0..2] of Byte = (0,0,0); //black
@@ -141,6 +144,7 @@ const
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
   cMenuHighColour : array [0..2] of Byte = (255, 20, 20);
   cWoodenColour: array [0..2] of GLfloat = (0.83, 0.66, 0.39);
+  cBlueBorderColour: array[0..2] of GLfloat = (0.25, 0.35, 0.64);
 
   //Keys
   KEY_BACKSPACE = 8;
@@ -218,15 +222,21 @@ type
       procedure DrawMessage;
       procedure DrawColonyView;
       procedure DrawEuropeanView;
-      procedure DrawShipsInPort;
-      procedure DrawPeopleInEurope;
+      procedure DrawShipsInPort(const predefShips: TUnitArr);
+      procedure DrawPeopleInEurope(const People: TUnitArr);
+      procedure DrawExpectedSoon(const ExpSoon: TUnitArr);
+      procedure DrawShipsToNewWorld(const ToNewWorld: TUnitArr);
       procedure DrawMenu;
       procedure GetSquareAtMouse(var sq_x, sq_y: Integer);
       function  GetGoodAtMouse(const m_x: LongInt=-1; const m_y: LongInt=-1): TGoodType;
       function  GetMenuCategoryAtMouse: TMenuCategory;
       procedure GetMenuSelectionAtMouse(var cat: TMenuCategory; var sel_option: Integer);
       procedure GetColonyFieldAtMouse(var x_shift, y_shift: ShortInt; const m_x: LongInt=-1; m_y: LongInt=-1);
-      function GetCargoBoxAtMouse(const m_x: LongInt=-1; m_y: LongInt=-1): ShortInt;
+      function  GetCargoBoxAtMouse(const m_x: LongInt=-1; m_y: LongInt=-1): ShortInt;
+      function  IsMouseInExpectedSoon(const m_x: LongInt=-1; m_y: LongInt=-1): Boolean;
+      function  IsMouseInToNewWorld(const m_x: LongInt=-1; m_y: LongInt=-1): Boolean;
+      function  GetExpectedSoonAtMouse(const m_x: LongInt=-1; m_y: LongInt=-1): ShortInt;
+      function  GetToNewWorldAtMouse(const m_x: LongInt=-1; m_y: LongInt=-1): ShortInt;
       procedure EnqueueNewMessage(const msg_txt: AnsiString; const opts: TShortStrArr; const inCaption, inText: ShortString; cbRec: TCallbackRec);
       procedure GetNextMessage;//de-facto dequeue
       procedure HandleMenuSelection(const categ: TMenuCategory; const selected: Integer);
@@ -1271,7 +1281,7 @@ begin
 
   DrawColonyTitleBar;
   DrawGoodsBar;
-  DrawShipsInPort;
+  DrawShipsInPort(nil);
 
   //check for movable unit in field and draw it
   if (mouse.down) then
@@ -1301,13 +1311,13 @@ begin
       glDisable(GL_TEXTURE_2D);
     end;//if
   end;//if
-
   {$IFDEF DEBUG_CODE}
     WriteLn('Leaving TGui.DrawColonyView');
   {$ENDIF}
 end;//proc DrawColonyView
 
 procedure TGui.DrawEuropeanView;
+var Ship, Colonists, Expected, NewWorld: TUnitArr;
 begin
   //border
   glLineWidth(2.0);
@@ -1318,11 +1328,19 @@ begin
   glEnd;
   DrawGoodsBar;
   DrawEuropeTitleBar;
-  DrawShipsInPort;
-  DrawPeopleInEurope;
+  
+  if europe<>nil then
+    dat.GetEuropeanQuartett(europe.GetCount, Ship, Colonists, Expected, NewWorld)
+  else
+    dat.GetEuropeanQuartett(cNationEngland, Ship, Colonists, Expected, NewWorld);
+  
+  DrawShipsInPort(Ship);
+  DrawPeopleInEurope(Colonists);
+  DrawExpectedSoon(Expected);
+  DrawShipsToNewWorld(NewWorld);
 end;//proc
 
-procedure TGui.DrawShipsInPort;
+procedure TGui.DrawShipsInPort(const predefShips: TUnitArr);
 var i: ShortInt;
     ShipArr: TUnitArr;
 begin
@@ -1363,9 +1381,12 @@ begin
     end;//for
   glEnd;
   //draw all present ships
-  if cur_colony<>nil then
-    ShipArr:= dat.GetAllShipsInXY(cur_colony.GetPosX, cur_colony.GetPosY)
-  else ShipArr:= dat.GetAllShipsInEurope(dat.player_nation);
+  if (predefShips<>nil) then ShipArr:= predefShips
+  else begin
+    if cur_colony<>nil then
+      ShipArr:= dat.GetAllShipsInXY(cur_colony.GetPosX, cur_colony.GetPosY)
+    else ShipArr:= dat.GetAllShipsInEurope(dat.player_nation);
+  end;//else
   if length(ShipArr)>0 then
   begin
     glColor3f(1.0, 1.0, 1.0);
@@ -1410,7 +1431,7 @@ begin
   end;//if
 end;//proc DrawShipsInPort
 
-procedure TGui.DrawPeopleInEurope;
+procedure TGui.DrawPeopleInEurope(const People: TUnitArr);
 var i: ShortInt;
     PeopleArr: TUnitArr;
 begin
@@ -1444,8 +1465,9 @@ begin
     glVertex2f((cWindowWidth-6*FieldWidth)*PixelWidth, (cGoodBarHeight+1)*PixelWidth-0.25);
   glEnd;
 
-  PeopleArr:= dat.GetAllNonShipsInEurope(europe.GetCount);
-  
+  if (People<>nil) then PeopleArr:= People
+  else PeopleArr:= dat.GetAllNonShipsInEurope(europe.GetCount);
+
   if length(PeopleArr)>0 then
   begin
     glColor3f(1.0, 1.0, 1.0);
@@ -1466,6 +1488,79 @@ begin
         glVertex2f((cWindowWidth-6*FieldWidth)*PixelWidth+(i mod 6), (cGoodBarHeight+1)*PixelWidth+1.5 +(i div 6));
       glEnd;
     end;//for
+    glDisable(GL_TEXTURE_2D);
+  end;//if
+end;//proc
+
+procedure TGui.DrawExpectedSoon(const ExpSoon: TUnitArr);
+var i: Integer;
+begin
+  //border
+  glLineWidth(2.0);
+  glBegin(GL_LINE_LOOP);
+    glColor3fv(@cBlueBorderColour[0]);
+    glVertex2f(1.0, y_Fields - 1.0);
+    glVertex2f(1.0, y_Fields - 3.0);
+    glVertex2f(1.0 +cShipsInExpectedSoon+1, y_Fields - 3.0);
+    glVertex2f(1.0 +cShipsInExpectedSoon+1, y_Fields - 1.0);
+  glEnd;
+  WriteText('Expected soon', 1.5, y_Fields -0.75);
+  if ExpSoon<>nil then
+  begin
+    glColor3f(1.0, 1.0, 1.0);
+    glEnable(GL_TEXTURE_2D);
+    for i:= 0 to Min(High(ExpSoon),cShipsInExpectedSoon-1) do
+    begin
+      if m_UnitTexNames[ExpSoon[i].GetType]<>0 then glBindTexture(GL_TEXTURE_2D, m_UnitTexNames[ExpSoon[i].GetType])
+      else glBindTexture(GL_TEXTURE_2D, m_ErrorTexName);
+      glBegin(GL_QUADS);
+        glTexCoord2f(0.0, 0.0);
+        glVertex2f(1.5+i, y_Fields - 2.5);
+        glTexCoord2f(1.0, 0.0);
+        glVertex2f(2.5+i, y_Fields - 2.5);
+        glTexCoord2f(1.0, 1.0);
+        glVertex2f(2.5+i, y_Fields - 1.5);
+        glTexCoord2f(0.0, 1.0);
+        glVertex2f(1.5+i, y_Fields - 1.5);
+      glEnd;
+    end;//for
+    glDisable(GL_TEXTURE_2D);
+  end;//if
+end;//proc
+
+procedure TGui.DrawShipsToNewWorld(const ToNewWorld: TUnitArr);
+var i: Integer;
+begin
+  //border
+  glLineWidth(2.0);
+  glBegin(GL_LINE_LOOP);
+    glColor3fv(@cBlueBorderColour[0]);
+    glVertex2f(3.0+cShipsInExpectedSoon, y_Fields - 1.0);
+    glVertex2f(3.0+cShipsInExpectedSoon, y_Fields - 3.0);
+    glVertex2f(4.0+cShipsInExpectedSoon+cShipsInToNewWorld, y_Fields - 3.0);
+    glVertex2f(4.0+cShipsInExpectedSoon+cShipsInToNewWorld, y_Fields - 1.0);
+  glEnd;
+  WriteText('Ziel: Neue Welt', 3.5+cShipsInExpectedSoon, y_Fields -0.75);
+  if ToNewWorld<>nil then
+  begin
+    glColor3f(1.0, 1.0, 1.0);
+    glEnable(GL_TEXTURE_2D);
+    for i:= 0 to Min(High(ToNewWorld),cShipsInToNewWorld-1) do
+    begin
+      if m_UnitTexNames[ToNewWorld[i].GetType]<>0 then glBindTexture(GL_TEXTURE_2D, m_UnitTexNames[ToNewWorld[i].GetType])
+      else glBindTexture(GL_TEXTURE_2D, m_ErrorTexName);
+      glBegin(GL_QUADS);
+        glTexCoord2f(0.0, 0.0);
+        glVertex2f(3.5+cShipsInExpectedSoon+i, y_Fields - 2.5);
+        glTexCoord2f(1.0, 0.0);
+        glVertex2f(4.5+cShipsInExpectedSoon+i, y_Fields - 2.5);
+        glTexCoord2f(1.0, 1.0);
+        glVertex2f(4.5+cShipsInExpectedSoon+i, y_Fields - 1.5);
+        glTexCoord2f(0.0, 1.0);
+        glVertex2f(3.5+cShipsInExpectedSoon+i, y_Fields - 1.5);
+      glEnd;
+    end;//for
+    glDisable(GL_TEXTURE_2D);
   end;//if
 end;//proc
 
@@ -2211,6 +2306,44 @@ begin
       Result:= -1
     else Result:= (m_x-FieldWidth) div FieldWidth;
   end;//else
+end;//func
+
+function TGui.IsMouseInExpectedSoon(const m_x: LongInt=-1; m_y: LongInt=-1): Boolean;
+begin
+  if ((m_x=-1) or (m_y=-1)) then
+  begin
+    Result:= (mouse.x>=FieldWidth) and (mouse.x<=(2+cShipsInExpectedSoon)*FieldWidth)
+             and (mouse.y>=16+FieldWidth) and (mouse.y<=16+2*FieldWidth);
+  end//if
+  else Result:= (m_x>=FieldWidth) and (m_x<=(2+cShipsInExpectedSoon)*FieldWidth)
+             and (m_y>=16+FieldWidth) and (m_y<=16+2*FieldWidth);
+end;//func
+
+function TGui.GetExpectedSoonAtMouse(const m_x: LongInt=-1; m_y: LongInt=-1): ShortInt;
+begin
+  if ((m_x=-1) or (m_y=-1)) then
+    Result:= (mouse.x- ((3*FieldWidth)div 2)) div FieldWidth
+  else Result:= (m_x- ((3*FieldWidth)div 2)) div FieldWidth;
+  if not((Result in [0..cShipsInExpectedSoon]) and IsMouseInExpectedSoon(m_x, m_y)) then Result:= -1;
+end;//func
+
+function TGui.IsMouseInToNewWorld(const m_x: LongInt=-1; m_y: LongInt=-1): Boolean;
+begin
+  if ((m_x=-1) or (m_y=-1)) then
+  begin
+    Result:= (mouse.x>=(3+cShipsInExpectedSoon)*FieldWidth) and (mouse.x<=(4+cShipsInExpectedSoon+cShipsinToNewWorld)*FieldWidth)
+             and (mouse.y>=16+FieldWidth) and (mouse.y<=16+2*FieldWidth);
+  end//if
+  else Result:= (m_x>=(3+cShipsInExpectedSoon)*FieldWidth) and (m_x<=(4+cShipsInExpectedSoon+cShipsinToNewWorld)*FieldWidth)
+             and (m_y>=16+FieldWidth) and (m_y<=16+2*FieldWidth);
+end;//func
+
+function TGui.GetToNewWorldAtMouse(const m_x: LongInt=-1; m_y: LongInt=-1): ShortInt;
+begin
+  if ((m_x=-1) or (m_y=-1)) then
+    Result:= (mouse.x- ((3+cShipsInExpectedSoon)*FieldWidth+ FieldWidth div 2)) div FieldWidth
+  else Result:= (m_x- ((3+cShipsInExpectedSoon)*FieldWidth+ FieldWidth div 2)) div FieldWidth;
+  if not((Result in [0..cShipsInExpectedSoon]) and IsMouseInExpectedSoon(m_x, m_y)) then Result:= -1;
 end;//func
 
 end.
