@@ -20,7 +20,7 @@ const
 
   cWindowWidth = 32*x_Fields+BarWidth;
   cWindowHeight = 32*y_Fields+16+16;
-  
+
   cShipsInExpectedSoon = 5;
   cShipsInToNewWorld = 5;
 
@@ -237,6 +237,7 @@ type
       function  IsMouseInToNewWorld(const m_x: LongInt=-1; m_y: LongInt=-1): Boolean;
       function  GetExpectedSoonAtMouse(const m_x: LongInt=-1; m_y: LongInt=-1): ShortInt;
       function  GetToNewWorldAtMouse(const m_x: LongInt=-1; m_y: LongInt=-1): ShortInt;
+      function  GetShipAtMouse(const m_x, m_y: LongInt): Integer;
       procedure EnqueueNewMessage(const msg_txt: AnsiString; const opts: TShortStrArr; const inCaption, inText: ShortString; cbRec: TCallbackRec);
       procedure GetNextMessage;//de-facto dequeue
       procedure HandleMenuSelection(const categ: TMenuCategory; const selected: Integer);
@@ -526,7 +527,7 @@ begin
     end;//else
   end;//if KEY_ESCAPE
 
-  if Wooden_Mode then Exit; //rest is only for america view
+  if Wooden_Mode or InEurope or InColony then Exit; //rest is only for america view
 
   case UpCase(char(Key)) of
     'B': //build colony
@@ -592,7 +593,13 @@ begin
       KEY_SPACE: //try to get next unit
                  begin
                    focused:= dat.GetFirstLazyUnit(dat.player_nation);
-                   if focused<>nil then CenterOn(focused.GetPosX, focused.GetPosY);
+                   if focused<>nil then CenterOn(focused.GetPosX, focused.GetPosY)
+                   else begin
+                     //no units left, start new round
+                     dat.AdvanceYear;
+                     dat.NewRound(dat.player_nation);
+                     focused:= dat.GetFirstLazyUnit(dat.player_nation);
+                   end;//else
                  end;//case SPACE
     end;//case
   end//if
@@ -608,22 +615,21 @@ begin
       KEY_NUMPAD7: direc:= dirNW;
       GLUT_KEY_UP, KEY_NUMPAD8: direc:= dirN; {Move unit up}
       KEY_NUMPAD9: direc:= dirNE;
-      KEY_SPACE: if focused.MovesLeft>0 then
-                 begin
+      KEY_SPACE: begin
                    focused.MovesLeft:= 0;
                    tempUnit:= dat.GetFirstLazyUnit(dat.player_nation);
                    if tempUnit<>nil then
                    begin
                      focused:= tempUnit;
                      CenterOn(focused.GetPosX, focused.GetPosY);
-                   end;
-                 end//if
-                 else begin
-                   //no moves left, start new round
-                   dat.AdvanceYear;
-                   dat.NewRound(dat.player_nation);
-                   focused:= dat.GetFirstLazyUnit(dat.player_nation);
-                 end;
+                   end//if
+                   else begin
+                     //no units left, start new round
+                     dat.AdvanceYear;
+                     dat.NewRound(dat.player_nation);
+                     focused:= dat.GetFirstLazyUnit(dat.player_nation);
+                   end;//else
+                 end;//KEY_SPACE
     end;//case
     //should move now
     if direc<>dirNone then
@@ -791,11 +797,14 @@ begin
     //check for good transfer to port or from port to ship
     else if ((button=GLUT_LEFT) and (state=GLUT_UP)) then
     begin
+      WriteLn('This is European left button GLUT_UP...');
       //from ship to port
       sx:= GetCargoBoxAtMouse(mouse.down_x, mouse.down_y);
       tempGood:= GetGoodAtMouse;
+      WriteLn('Cargo to port: sx: ', sx, '; Good: ', dat.GetLang.GetGoodName(tempGood));
       if ((sx<>-1) and (tempGood<>gtCross)) then
       begin
+        WriteLn('Trying to clear cargo...');
         tempUArr:= dat.GetAllShipsInEurope(europe.GetCount);
         if length(tempUArr)>0 then //at least one ship present?
           if tempUArr[0].GetCargoAmountBySlot(sx)>0 then
@@ -813,8 +822,10 @@ begin
       //from port to ship
       sx:= GetCargoBoxAtMouse;
       tempGood:= GetGoodAtMouse(mouse.down_x, mouse.down_y);
+      WriteLn('Cargo to ship: sx: ', sx, '; Good: ', dat.GetLang.GetGoodName(tempGood));
       if ((sx<>-1) and (tempGood<>gtCross)) then
       begin
+        WriteLn('Trying to load cargo...');
         tempUArr:= dat.GetAllShipsInEurope(europe.GetCount);
         if length(tempUArr)>0 then //at least one ship present?
         begin
@@ -834,7 +845,50 @@ begin
           end;//else
         end;//if
       end;//if
-    end;//else if
+
+
+      //check for moving ship from "to new world box" to "expected soon box"
+      pos_x:= GetToNewWorldAtMouse(mouse.down_x, mouse.down_y);
+      WriteLn('New World at mouse: pos_x: ', pos_x);
+      if (pos_x<>-1) and IsMouseInExpectedSoon then
+      begin
+        WriteLn('Trying to send back to europe...');
+        tempUArr:= dat.GetAllShipsGoingToNewWorld(europe.GetCount);
+        if pos_x<=High(tempUArr) then tempUArr[pos_x].CallBackToEurope;
+        Exit;
+      end;//if
+
+      //check for moving ship from "expected soon box" to "to new world box"
+      pos_x:= GetExpectedSoonAtMouse(mouse.down_x, mouse.down_y);
+      WriteLn('Expected Soon at mouse: pos_x: ', pos_x);
+      if (pos_x<>-1) and IsMouseInToNewWorld then
+      begin
+        WriteLn('Trying to send back to new world...');
+        tempUArr:= dat.GetAllShipsGoingToEurope(europe.GetCount);
+        if pos_x<=High(tempUArr) then tempUArr[pos_x].CallBackToNewWorld;
+        Exit;
+      end;//if
+
+      //check for moving ship from port to "new world box"
+      pos_x:= GetShipAtMouse(mouse.down_x, mouse.down_y);
+      WriteLn('Ship at mouse: pos_x: ', pos_x);
+      if (pos_x<>-1) and IsMouseInToNewWorld then
+      begin
+        WriteLn('Trying to send a ship to new world...');
+        tempUArr:= dat.GetAllShipsInEurope(europe.GetCount);
+        if pos_x<=High(tempUArr) then
+        begin
+          //load all possible units we can load, before we go off to New World
+          tempUnit:= tempUArr[pos_x];
+          tempUArr:= dat.GetAllNonShipsInEurope(europe.GetCount);
+          for pos_y:= 0 to High(tempUArr) do
+            if ((tempUArr[pos_y].GetState=usWaitingForShip) and (tempUnit.FreeCapacity>0)) then
+              tempUnit.LoadUnit(tempUArr[pos_y]);
+          tempUnit.SendToNewWorld;
+        end;//if
+      end;//if
+
+    end;//else if (button=LEFT) and (state=UP)
     {$IFDEF DEBUG_CODE}
     WriteLn('Exiting TGui.MouseFunc');
     {$ENDIF}
@@ -1328,12 +1382,12 @@ begin
   glEnd;
   DrawGoodsBar;
   DrawEuropeTitleBar;
-  
+
   if europe<>nil then
     dat.GetEuropeanQuartett(europe.GetCount, Ship, Colonists, Expected, NewWorld)
   else
     dat.GetEuropeanQuartett(cNationEngland, Ship, Colonists, Expected, NewWorld);
-  
+
   DrawShipsInPort(Ship);
   DrawPeopleInEurope(Colonists);
   DrawExpectedSoon(Expected);
@@ -2313,10 +2367,10 @@ begin
   if ((m_x=-1) or (m_y=-1)) then
   begin
     Result:= (mouse.x>=FieldWidth) and (mouse.x<=(2+cShipsInExpectedSoon)*FieldWidth)
-             and (mouse.y>=16+FieldWidth) and (mouse.y<=16+2*FieldWidth);
+             and (mouse.y>=16+FieldWidth) and (mouse.y<=16+3*FieldWidth);
   end//if
   else Result:= (m_x>=FieldWidth) and (m_x<=(2+cShipsInExpectedSoon)*FieldWidth)
-             and (m_y>=16+FieldWidth) and (m_y<=16+2*FieldWidth);
+             and (m_y>=16+FieldWidth) and (m_y<=16+3*FieldWidth);
 end;//func
 
 function TGui.GetExpectedSoonAtMouse(const m_x: LongInt=-1; m_y: LongInt=-1): ShortInt;
@@ -2332,10 +2386,10 @@ begin
   if ((m_x=-1) or (m_y=-1)) then
   begin
     Result:= (mouse.x>=(3+cShipsInExpectedSoon)*FieldWidth) and (mouse.x<=(4+cShipsInExpectedSoon+cShipsinToNewWorld)*FieldWidth)
-             and (mouse.y>=16+FieldWidth) and (mouse.y<=16+2*FieldWidth);
+             and (mouse.y>=16+FieldWidth) and (mouse.y<=16+3*FieldWidth);
   end//if
   else Result:= (m_x>=(3+cShipsInExpectedSoon)*FieldWidth) and (m_x<=(4+cShipsInExpectedSoon+cShipsinToNewWorld)*FieldWidth)
-             and (m_y>=16+FieldWidth) and (m_y<=16+2*FieldWidth);
+             and (m_y>=16+FieldWidth) and (m_y<=16+3*FieldWidth);
 end;//func
 
 function TGui.GetToNewWorldAtMouse(const m_x: LongInt=-1; m_y: LongInt=-1): ShortInt;
@@ -2343,7 +2397,17 @@ begin
   if ((m_x=-1) or (m_y=-1)) then
     Result:= (mouse.x- ((3+cShipsInExpectedSoon)*FieldWidth+ FieldWidth div 2)) div FieldWidth
   else Result:= (m_x- ((3+cShipsInExpectedSoon)*FieldWidth+ FieldWidth div 2)) div FieldWidth;
-  if not((Result in [0..cShipsInExpectedSoon]) and IsMouseInExpectedSoon(m_x, m_y)) then Result:= -1;
+  if not((Result in [0..cShipsInToNewWorld]) and IsMouseInToNewWorld(m_x, m_y)) then Result:= -1;
+end;//func
+
+function TGui.GetShipAtMouse(const m_x, m_y: LongInt): Integer;
+begin
+ // glVertex2f(1.0+(i mod 6), (cGoodBarHeight+1)*PixelWidth+1.0 +(i div 6));
+ if ((m_x<=FieldWidth) or (m_x>=7*FieldWidth) or (m_y>=cWindowHeight-cGoodBarHeight-FieldWidth-17)) then Result:= -1
+ else begin
+   Result:= (m_x-FieldWidth) div FieldWidth;
+   Result:= Result+6*((cWindowHeight-(cGoodBarHeight+FieldWidth+17)-m_y)div FieldWidth);
+ end;//else
 end;//func
 
 end.

@@ -30,6 +30,7 @@ type
 
                utBrave, utBraveOnHorse);
   TUnitLocation = (ulAmerica, ulInColony, ulGoToEurope, ulGoToNewWorld, ulEurope, ulEmbarked);
+  TUnitState = (usNormal,{-} usFortified,{F} usWaitingForShip{S});
   TDirection = (dirSW, dirS, dirSE, dirE, dirNE, dirN, dirNW, dirW, dirNone);
 
   TTask = class;
@@ -51,6 +52,8 @@ type
       procedure ChangeType(const newType: TUnitType);
       function GetLocation: TUnitLocation;
       procedure SetLocation(const loc: TUnitLocation);
+      function GetState: TUnitState;
+      procedure SetState(const state: TUnitState);
       function IsShip: Boolean;
       function MovesPerRound: Integer;
       function AttackStrength: Integer;
@@ -59,6 +62,8 @@ type
       //go across the big pond
       function SendToEurope: Boolean;
       function SendToNewWorld: Boolean;
+      function CallBackToEurope: Boolean;
+      function CallBackToNewWorld: Boolean;
       //functions for loading/ unloading freigth or passengers and checking freigth status
       function FreightCapacity: Byte;
       function FreeCapacity: Byte;
@@ -85,6 +90,7 @@ type
       PosX, PosY: Integer;
       UnitType: TUnitType;
       m_location: TUnitLocation;
+      m_State: TUnitState;
       m_RoundsInOpenSea: Byte;
       m_Nation: Integer;
       //stores items like horses, muskets, tools
@@ -176,6 +182,7 @@ begin
   PosX:= X;
   PosY:= Y;
   m_location:= ulAmerica;
+  m_State:= usNormal;
   m_RoundsInOpenSea:= 0;
   MovesLeft:= MovesPerRound;
   m_Nation:= ANation;
@@ -333,6 +340,16 @@ begin
   m_location:= loc;
 end;//proc
 
+function TUnit.GetState: TUnitState;
+begin
+  Result:= m_State;
+end;//func
+
+procedure TUnit.SetState(const state: TUnitState);
+begin
+  m_State:= state;
+end;//proc
+
 function TUnit.IsShip: Boolean;
 begin
   Result:= (UnitType in [utCaravel, utTradingShip, utGalleon, utPrivateer,
@@ -390,6 +407,7 @@ begin
     m_RoundsInOpenSea:= 2;
     MovesLeft:= 0;
     m_location:= ulGoToEurope;
+    Result:= True;
   end;//else
 end;//func
 
@@ -400,6 +418,31 @@ begin
     m_RoundsInOpenSea:= 2;
     MovesLeft:= 0;
     m_location:= ulGoToNewWorld;
+    Result:= True;
+  end;//else
+end;//func
+
+function TUnit.CallBackToEurope: Boolean;
+begin
+  if (m_location<>ulGoToNewWorld) or not IsShip then Result:= False
+  else begin
+    m_RoundsInOpenSea:= 2-m_RoundsInOpenSea;
+    MovesLeft:= 0;
+    m_location:= ulGoToEurope;
+    Result:= True;
+    if m_RoundsInOpenSea<=0 then m_location:= ulEurope;
+  end;//else
+end;//func
+
+function TUnit.CallBackToNewWorld: Boolean;
+begin
+  if (m_location<>ulGoToEurope) or not IsShip then Result:= False
+  else begin
+    m_RoundsInOpenSea:= 2-m_RoundsInOpenSea;
+    MovesLeft:= 0;
+    m_location:= ulGoToNewWorld;
+    Result:= True;
+    if m_RoundsInOpenSea<=0 then m_location:= ulAmerica;
   end;//else
 end;//func
 
@@ -543,6 +586,7 @@ begin
         passengers[slot].SetLocation(ulAmerica);
         passengers[slot].WarpToXY(PosX, PosY, nil);
       end;//else
+      passengers[slot].SetState(usNormal);
       passengers[slot]:= nil;
     end;//if
   end;//for

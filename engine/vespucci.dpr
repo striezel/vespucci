@@ -93,7 +93,7 @@ begin
   glutMotionFunc(@MouseMoveWrapper);
   glutPassiveMotionFunc(@MouseMoveWrapper);
   glutIdleFunc(@IdleWrapper);
-  glutTimerFunc(1000, @TimerWrapper, 0);
+  if (ParamStr(1)<>'--no-frames') then glutTimerFunc(1000, @TimerWrapper, 0);
 
   WriteLn('Starting GUI...');
   TheGui.Start;//starts GUI and GLUT's main loop
