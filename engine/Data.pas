@@ -65,6 +65,8 @@ type
               function GetAllShipsInXY(const x,y: Integer; const OnlyAmerica: Boolean=True): TUnitArr;
               function GetAllShipsInEurope(const num_nation: Integer): TUnitArr;
               function GetAllNonShipsInEurope(const num_nation: Integer): TUnitArr;
+              function GetAllShipsGoingToEurope(const num_nation: Integer): TUnitArr;
+              function GetAllShipsGoingToNewWorld(const num_nation: Integer): TUnitArr;
               procedure GetEuropeanQuartett(const num_nation: Integer; var Ships, People, ExpectedSoon, ToNewWorld: TUnitArr);
               //colonies
               function NewColony(const x,y: Byte; const num_Nation: Integer; const AName: ShortString): TColony;
@@ -297,6 +299,36 @@ begin
     end;//if <>nil
 end;//func
 
+function TData.GetAllShipsGoingToEurope(const num_nation: Integer): TUnitArr;
+var i: Integer;
+begin
+  SetLength(Result, 0);
+  for i:= 0 to Unit_max do
+    if m_Units[i]<>nil then
+    begin
+      if ((m_Units[i].GetLocation=ulGoToEurope) and(m_Units[i].GetNation=num_nation)) then
+      begin
+        SetLength(Result, length(Result)+1);
+        Result[High(Result)]:= m_Units[i];
+      end;//if
+    end;//if <>nil
+end;//func
+
+function TData.GetAllShipsGoingToNewWorld(const num_nation: Integer): TUnitArr;
+var i: Integer;
+begin
+  SetLength(Result, 0);
+  for i:= 0 to Unit_max do
+    if m_Units[i]<>nil then
+    begin
+      if ((m_Units[i].GetLocation=ulGoToNewWorld) and(m_Units[i].GetNation=num_nation)) then
+      begin
+        SetLength(Result, length(Result)+1);
+        Result[High(Result)]:= m_Units[i];
+      end;//if
+    end;//if <>nil
+end;//func
+
 procedure TData.GetEuropeanQuartett(const num_nation: Integer; var Ships, People, ExpectedSoon, ToNewWorld: TUnitArr);
 var i: Integer;
 begin
@@ -385,20 +417,21 @@ begin
       if (m_Units[i].GetNation=num_Nation) then
         m_Units[i].NewRound;
   //call NewRound method for every colony
-  for i:= 0 to Colony_max do
-    if m_Colonies[i]<>nil then
-      if (m_Colonies[i].GetNation=num_Nation) then
-      begin
-        m_Colonies[i].NewRound(m_Map);
-        //following should be implemented in TColony and not here
-        if m_Colonies[i].GetStore(gtFood)>=200 then
+  if not Autumn then //only in spring we produce, to avoid production twice a year
+    for i:= 0 to Colony_max do
+      if m_Colonies[i]<>nil then
+        if (m_Colonies[i].GetNation=num_Nation) then
         begin
-          //time for new inhabitant
-          m_Colonies[i].RemoveFromStore(gtFood, 200);
-          //creates new unit and sets its location to America
-          NewUnit(utColonist, num_nation, m_Colonies[i].GetPosX, m_Colonies[i].GetPosY).SetLocation(ulAmerica);
+          m_Colonies[i].NewRound(m_Map);
+          //following should be implemented in TColony and not here
+          if m_Colonies[i].GetStore(gtFood)>=200 then
+          begin
+            //time for new inhabitant
+            m_Colonies[i].RemoveFromStore(gtFood, 200);
+            //creates new unit and sets its location to America
+            NewUnit(utColonist, num_nation, m_Colonies[i].GetPosX, m_Colonies[i].GetPosY).SetLocation(ulAmerica);
+          end;//if
         end;//if
-      end;//if
 end;//func
 
 function TData.SaveData(const n: Word; var err: string): Boolean;
