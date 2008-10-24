@@ -430,7 +430,11 @@ begin
     MovesLeft:= 0;
     m_location:= ulGoToEurope;
     Result:= True;
-    if m_RoundsInOpenSea<=0 then m_location:= ulEurope;
+    if m_RoundsInOpenSea<=0 then
+    begin
+      m_location:= ulEurope;
+      DropAllPassengers;
+    end;//if
   end;//else
 end;//func
 
