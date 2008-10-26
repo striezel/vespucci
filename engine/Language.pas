@@ -9,7 +9,8 @@ type
   TMenuCategory = (mcNone, mcGame, mcView, mcOrders, mcReports, mcTrade);
   TSaveLoadString = (slsLoadChoose, slsLoadError, slsLoadSuccess, slsSaveChoose, slsSaveError, slsSaveSuccess, slsNoGameLoaded);
   TTransferString = (tsBoycotted, tsOutOfGold, tsOutOfSpace);
-  TOtherString = (osLocation, osMoves, osEmpty, osNothing, osTax, osGold);
+  TOtherString = (osLocation, osMoves, osEmpty, osNothing, osTax, osGold, osCost, osSaving);
+  TEuroPortString = (epsNotOnShip, epsGoOnShip, epsArm, epsDisarm, epsGiveHorses, epsNoHorses, epsGiveTools, epsNoTools, epsNoChanges);
   TLanguage = class
     private
       Menu: array[TMenuCategory] of string;
@@ -32,6 +33,8 @@ type
       Landfall: array[0..2] of string;
       //for building new colonies
       BuildColony: array[0..4] of string;
+      //for managing units in european port
+      EuroPortManage: array[TEuroPortString] of string;
       procedure InitialValues;
       procedure SetMenuHelpers;
       function privGetOptionCount(const categ: TMenuCategory): Integer;
@@ -55,6 +58,7 @@ type
       function GetSaveLoad(const which: TSaveLoadString): string;
       function GetLandfall(const which: Byte): string;
       function GetBuildColony(const which: Byte): string;
+      function GetEuroPort(const which: TEuroPortString): string;
       function SaveToFile(const FileName: string): Boolean;
       function LoadFromFile(const FileName: string): Boolean;
   end;//class
@@ -212,12 +216,8 @@ begin
   Others[osNothing]:= 'nichts';
   Others[osTax]:= 'Steuer';
   Others[osGold]:= 'Gold';
-  {Location:= 'Ort';
-  Moves:= 'Züge';
-  Empty:= 'leer';
-  Nothing:= 'nichts';
-  Tax:= 'Steuer';
-  Gold:= 'Gold';}
+  Others[osCost]:= 'Kosten';
+  Others[osSaving]:= 'Einsparung';
   //save/ load messages
   SaveLoad[slsLoadChoose]:= 'Wählen Sie den zu ladenden Spielstand.';
   SaveLoad[slsLoadError]:= 'Fehler beim Laden des Spielstandes! Das geladene Spiel kann '
@@ -246,9 +246,18 @@ begin
   BuildColony[3]:= 'Dieses Land liegt für eine neue Kolonie zu nah an einer     '
                   +'schon bestehenden Kolonie, Eure Exzellenz.';
   BuildColony[4]:= 'Kolonien können nicht in den Bergen gebaut werden, Eure Exzellenz.';
+  //for European ports
+  EuroPortManage[epsNotOnShip]:= 'Nicht aufs nächste Schiff gehen';
+  EuroPortManage[epsGoOnShip]:= 'An Bord des nächsten Schiffes gehen';
+  EuroPortManage[epsArm]:= 'Mit Musketen bewaffnen';
+  EuroPortManage[epsDisarm]:= 'Musketen verkaufen';
+  EuroPortManage[epsGiveHorses]:= 'Mit Pferden ausrüsten';
+  EuroPortManage[epsNoHorses]:= 'Pferde verkaufen';
+  EuroPortManage[epsGiveTools]:= 'Mit Werkzeugen ausrüsten';
+  EuroPortManage[epsNoTools]:= 'Werkzeuge verkaufen';
+  EuroPortManage[epsNoChanges]:= 'Keine Veränderungen';
 
   SetMenuHelpers;
-  
 end;//proc
 
 procedure TLanguage.SetMenuHelpers;
@@ -353,6 +362,11 @@ begin
   else Result:= BuildColony[which];
 end;//func
 
+function TLanguage.GetEuroPort(const which: TEuroPortString): string;
+begin
+  Result:= EuroPortManage[which];
+end;//func
+
 function TLanguage.SaveToFile(const FileName: string): Boolean;
 var dat: TextFile;
     i: Integer;
@@ -404,6 +418,10 @@ begin
   WriteLn(dat, '[BuildColony]');
   for i:=0 to 4 do
     WriteLn(dat, BuildColony[i]);
+  WriteLn(dat);
+  WriteLn(dat, '[EuropeanPort]');
+  for i:= Ord(Low(TEuroPortString)) to Ord(High(TEuroPortString)) do
+    WriteLn(dat, EuroPortManage[TEuroPortString(i)]);
   CloseFile(dat);
   Result:= True;
 end;//func
@@ -533,6 +551,17 @@ begin
           ReadLn(dat, str1);
           str1:= Trim(str1);
           if str1<>'' then BuildColony[i]:= str1;
+          i:= i+1;
+        end;//while
+      end//if
+      else if str1='[EuropeanPort]' then
+      begin
+        i:= Ord(Low(TEuroPortString));
+        while (i<=Ord(High(TEuroPortString))) and not Eof(dat) do
+        begin
+          ReadLn(dat, str1);
+          str1:= Trim(str1);
+          if str1<>'' then EuroPortManage[TEuroPortString(i)]:= str1;
           i:= i+1;
         end;//while
       end;//if

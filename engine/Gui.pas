@@ -222,6 +222,7 @@ type
       procedure DrawMessage;
       procedure DrawColonyView;
       procedure DrawEuropeanView;
+      procedure DrawGoodDraggedFromBar;
       procedure DrawShipsInPort(const predefShips: TUnitArr);
       procedure DrawPeopleInEurope(const People: TUnitArr);
       procedure DrawExpectedSoon(const ExpSoon: TUnitArr);
@@ -1363,8 +1364,9 @@ begin
       glEnd;
       glDisable(GL_ALPHA_TEST);
       glDisable(GL_TEXTURE_2D);
-    end;//if
-  end;//if
+    end//if (i<>-2) and ...
+    else DrawGoodDraggedFromBar;
+  end;//if mouse.down
   {$IFDEF DEBUG_CODE}
     WriteLn('Leaving TGui.DrawColonyView');
   {$ENDIF}
@@ -1392,6 +1394,39 @@ begin
   DrawPeopleInEurope(Colonists);
   DrawExpectedSoon(Expected);
   DrawShipsToNewWorld(NewWorld);
+  DrawGoodDraggedFromBar;
+end;//proc
+
+procedure TGui.DrawGoodDraggedFromBar;
+var tempGood: TGoodType;
+begin
+  //draw dragged items
+  if mouse.down then
+  begin
+    tempGood:= GetGoodAtMouse(mouse.down_x, mouse.down_y);
+    if tempGood<>gtCross then
+    begin
+      glColor3f(1.0, 1.0, 1.0);
+      glEnable(GL_TEXTURE_2D);
+      if m_GoodTexNames[tempGood]<>0 then glBindTexture(GL_TEXTURE_2D, m_GoodTexNames[tempGood])
+      else glBindTexture(GL_TEXTURE_2D, m_ErrorTexName);
+      glBegin(GL_QUADS);
+        glTexCoord2f(0.0, 0.0);
+        glVertex2f((Ord(tempGood)*38+4+mouse.x-mouse.down_x)*PixelWidth,
+                   -0.5+(17+mouse.down_y-mouse.y)*PixelWidth);
+        glTexCoord2f(1.0, 0.0);
+        glVertex2f((Ord(tempGood)*38+4+mouse.x-mouse.down_x)*PixelWidth+1.0,
+                   -0.5+(17+mouse.down_y-mouse.y)*PixelWidth);
+        glTexCoord2f(1.0, 1.0);
+        glVertex2f((Ord(tempGood)*38+4+mouse.x-mouse.down_x)*PixelWidth+1.0,
+                   -0.5+(17+mouse.down_y-mouse.y)*PixelWidth+1.0);
+        glTexCoord2f(0.0, 1.0);
+        glVertex2f((Ord(tempGood)*38+4+mouse.x-mouse.down_x)*PixelWidth,
+                   -0.5+(17+mouse.down_y-mouse.y)*PixelWidth+1.0);
+      glEnd;
+      glDisable(GL_TEXTURE_2D);
+    end;//if
+  end;//if
 end;//proc
 
 procedure TGui.DrawShipsInPort(const predefShips: TUnitArr);
@@ -1482,7 +1517,38 @@ begin
       end;//if
     end;//for
     glDisable(GL_TEXTURE_2D);
-  end;//if
+    
+    //draw dragged good
+    if mouse.down then
+    begin
+      i:= GetCargoBoxAtMouse(mouse.down_x, mouse.down_y);
+      if i<>-1 then
+      begin
+        if ShipArr[0].GetCargoAmountBySlot(i)>0 then
+        begin
+          glColor3f(1.0, 1.0, 1.0);
+          glEnable(GL_TEXTURE_2D);
+          if m_GoodTexNames[ShipArr[0].GetCargoGoodBySlot(i)]<>0 then glBindTexture(GL_TEXTURE_2D, m_GoodTexNames[ShipArr[0].GetCargoGoodBySlot(i)])
+          else glBindTexture(GL_TEXTURE_2D, m_ErrorTexName);
+          glBegin(GL_QUADS);
+            glTexCoord2f(0.0, 0.0);
+            glVertex2f(1.0+i+(mouse.x-mouse.down_x)*PixelWidth,
+                       (cGoodBarHeight+1+mouse.down_y-mouse.y)*PixelWidth);
+            glTexCoord2f(1.0, 0.0);
+            glVertex2f(1.0+i+(mouse.x-mouse.down_x)*PixelWidth+1.0,
+                       (cGoodBarHeight+1+mouse.down_y-mouse.y)*PixelWidth);
+            glTexCoord2f(1.0, 1.0);
+            glVertex2f(1.0+i+(mouse.x-mouse.down_x)*PixelWidth+1.0,
+                       (cGoodBarHeight+1+mouse.down_y-mouse.y)*PixelWidth+1.0);
+            glTexCoord2f(0.0, 1.0);
+            glVertex2f(1.0+i+(mouse.x-mouse.down_x)*PixelWidth,
+                       (cGoodBarHeight+1+mouse.down_y-mouse.y)*PixelWidth+1.0);
+          glEnd;
+          glDisable(GL_TEXTURE_2D);
+        end;//if
+      end//if i<>-1
+    end;//if mouse.down
+  end;//if length>0
 end;//proc DrawShipsInPort
 
 procedure TGui.DrawPeopleInEurope(const People: TUnitArr);
