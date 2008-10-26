@@ -2349,14 +2349,14 @@ function TGui.GetCargoBoxAtMouse(const m_x: LongInt=-1; m_y: LongInt=-1): ShortI
 begin
   if ((m_x=-1) or (m_y=-1)) then
   begin
-    if ((mouse.x<FieldWidth) or (mouse.x>=7*FieldWidth) or (mouse.y>cWindowHeight-cGoodBarHeight)
-         or (mouse.y<cWindowHeight-cGoodBarHeight-FieldWidth)) then
+    if ((mouse.x<FieldWidth) or (mouse.x>=7*FieldWidth) or (mouse.y>cWindowHeight-cGoodBarHeight-16)
+         or (mouse.y<cWindowHeight-cGoodBarHeight-16-FieldWidth)) then
       Result:= -1
     else Result:= (mouse.x-FieldWidth) div FieldWidth;
   end//if
   else begin
-    if ((m_x<FieldWidth) or (m_x>=7*FieldWidth) or (m_y>cWindowHeight-cGoodBarHeight)
-         or (m_y<cWindowHeight-cGoodBarHeight-FieldWidth)) then
+    if ((m_x<FieldWidth) or (m_x>=7*FieldWidth) or (m_y>cWindowHeight-cGoodBarHeight-16)
+         or (m_y<cWindowHeight-cGoodBarHeight-16-FieldWidth)) then
       Result:= -1
     else Result:= (m_x-FieldWidth) div FieldWidth;
   end;//else

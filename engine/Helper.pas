@@ -23,8 +23,8 @@ type
   function ToShortStrArr(const s1, s2, s3, s4, s5: ShortString): TShortStrArr; overload;
   function ToShortStrArr(const s1: ShortString; const arr: TShortStrArr): TShortStrArr; overload;
   function SpaceString(const len: Byte): string;
-  function Trim(const str1: string): string;
-  
+  function Trim(const str1: AnsiString): AnsiString;
+
   function Min(const a,b: Integer): Integer; overload;
   function Min(const a,b: Double): Double; overload;
 
@@ -91,7 +91,7 @@ begin
   if ((len and 1)<>0) then Result:= Result+cSpace01;
 end;//func
 
-function Trim(const str1: string): string;
+function Trim(const str1: AnsiString): AnsiString;
 var
   i, len: Integer;
 begin
