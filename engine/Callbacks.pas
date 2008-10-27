@@ -3,7 +3,7 @@ unit Callbacks;
 interface
 
 uses
-  Units, Map, Data, Colony, Goods;
+  Units, Map, Data, Colony, Goods, Nation;
 
 const
   CBT_ANY = 0;
@@ -13,6 +13,7 @@ const
   CBT_SAVE_GAME = 4;
   CBT_LOAD_GAME = 5;
   CBT_JOB_CHANGE = 6;
+  CBT_EURO_PORT_UNIT = 7;
 
 type
   TExitCallback = procedure (const option: Integer);
@@ -43,6 +44,10 @@ type
                      x_shift, y_shift: ShortInt;
                      AColony: TColony;
                    end;//rec
+  TEuroPortUnitData = record
+                        AUnit: TUnit;
+                        EuroNat: TEuropeanNation;
+                      end;//rec
 
   TCallbackRec = record
                    option: Integer;
@@ -56,6 +61,7 @@ type
                      4: (SaveGame: TSaveGameData);
                      5: (LoadGame: TLoadGameData);
                      6: (JobChange: TJobChangeData);
+                     7: (EuroPort: TEuroPortUnitData);
                  end;//rec
 
 const
@@ -145,6 +151,70 @@ begin
   Result:= True;
 end;//func
 
+function CBF_EuroPortUnit(const option: Integer; AUnit: TUnit; EuroNat: TEuropeanNation): Boolean;
+var amount: Byte;
+begin
+  Result:= False;
+  if ((AUnit=nil) or (EuroNat=nil)) then Exit;
+  case option of
+    0: begin //ship
+         if (AUnit.GetState=usWaitingForShip) then AUnit.SetState(usNormal)
+         else AUnit.SetState(usWaitingForShip);
+       end;
+    1: //muskets
+       if not EuroNat.IsBoycotted(gtMusket) then
+       begin
+         if (AUnit.HasMuskets) then
+         begin
+           EuroNat.SellGood(gtMusket, 50);
+           AUnit.GiveMuskets(False);
+         end//if
+         else begin
+           if EuroNat.GetGold>EuroNat.GetPrice(gtMusket, False)*50 then
+           begin
+             EuroNat.BuyGood(gtMusket, 50);
+             AUnit.GiveMuskets(True);
+           end;//if
+         end;//if
+       end; //if
+    2: //horses
+       if not EuroNat.IsBoycotted(gtHorses) then
+       begin
+         if (AUnit.HasHorses) then
+         begin
+           EuroNat.SellGood(gtHorses, 50);
+           AUnit.GiveHorses(False);
+         end//if
+         else begin
+           if EuroNat.GetGold>EuroNat.GetPrice(gtHorses, False)*50 then
+           begin
+             EuroNat.BuyGood(gtHorses, 50);
+             AUnit.GiveHorses(True);
+           end;//if
+         end;//if
+       end; //if
+    3: begin//tools
+         if not EuroNat.IsBoycotted(gtTool) then
+         begin
+           if (AUnit.GetToolAmount>0) then
+           begin
+             EuroNat.SellGood(gtTool, AUnit.GetToolAmount);
+             AUnit.GiveTools(0);
+           end//if
+           else begin
+             if (EuroNat.GetGold>EuroNat.GetPrice(gtTool, False)*(100-AUnit.GetToolAmount)) then
+             begin
+               EuroNat.BuyGood(gtTool, 100-AUnit.GetToolAmount);
+               AUnit.GiveTools(100);
+             end;//if
+           end;//if
+         end;//if no boycott
+       end;//3 (tools)
+    4: ;//no changes at all
+  end;//case
+  Result:= True;
+end;//func
+
 function HandleCallback(const cbRec: TCallbackRec): Boolean;
 begin
   case cbRec._type of
@@ -163,6 +233,7 @@ begin
     CBT_SAVE_GAME: Result:= CBF_SaveGame(cbRec.option, cbRec.SaveGame.AData);
     CBT_LOAD_GAME: Result:= CBF_LoadGame(cbRec.option, cbRec.LoadGame.AData);
     CBT_JOB_CHANGE: Result:= CBF_JobChange(cbRec.option, cbRec);
+    CBT_EURO_PORT_UNIT: Result:= CBF_EuroPortUnit(cbRec.option, cbRec.EuroPort.AUnit, cbRec.EuroPort.EuroNat);
   else
     Result:= False; //unknown callback type or type not supported
   end;//case

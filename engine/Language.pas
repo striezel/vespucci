@@ -10,7 +10,7 @@ type
   TSaveLoadString = (slsLoadChoose, slsLoadError, slsLoadSuccess, slsSaveChoose, slsSaveError, slsSaveSuccess, slsNoGameLoaded);
   TTransferString = (tsBoycotted, tsOutOfGold, tsOutOfSpace);
   TOtherString = (osLocation, osMoves, osEmpty, osNothing, osTax, osGold, osCost, osSaving);
-  TEuroPortString = (epsNotOnShip, epsGoOnShip, epsArm, epsDisarm, epsGiveHorses, epsNoHorses, epsGiveTools, epsNoTools, epsNoChanges);
+  TEuroPortString = (epsHeading, epsNotOnShip, epsGoOnShip, epsArm, epsDisarm, epsGiveHorses, epsNoHorses, epsGiveTools, epsNoTools, epsNoChanges);
   TLanguage = class
     private
       Menu: array[TMenuCategory] of string;
@@ -247,6 +247,7 @@ begin
                   +'schon bestehenden Kolonie, Eure Exzellenz.';
   BuildColony[4]:= 'Kolonien können nicht in den Bergen gebaut werden, Eure Exzellenz.';
   //for European ports
+  EuroPortManage[epsHeading]:= 'Optionen für Siedler im europäischen Hafen:';
   EuroPortManage[epsNotOnShip]:= 'Nicht aufs nächste Schiff gehen';
   EuroPortManage[epsGoOnShip]:= 'An Bord des nächsten Schiffes gehen';
   EuroPortManage[epsArm]:= 'Mit Musketen bewaffnen';
