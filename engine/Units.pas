@@ -272,7 +272,11 @@ begin
       //check ships for european route
       if IsShip and (AMap<>nil) then
         if ((AMap.tiles[PosX, PosY].GetType=ttOpenSea) and (AMap.tiles[newX, newY].GetType=ttOpenSea)) then
+        begin
           SendToEurope;
+          Result:= True;
+          Exit;
+        end;//if
       if direction<>dirNone then
       begin
         MovesLeft:= MovesLeft -1;
@@ -606,7 +610,7 @@ var temp: Byte;
 begin
   temp:= amount div 20;
   if temp>5 then temp:=5;
-  items:= (items or temp);
+  items:= temp or (items and (UNIT_HORSE_BIT or UNIT_MUSKET_BIT));
 end;//proc
 
 function TUnit.HasHorses: Boolean;

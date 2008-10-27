@@ -239,6 +239,7 @@ type
       function  GetExpectedSoonAtMouse(const m_x: LongInt=-1; m_y: LongInt=-1): ShortInt;
       function  GetToNewWorldAtMouse(const m_x: LongInt=-1; m_y: LongInt=-1): ShortInt;
       function  GetShipAtMouse(const m_x, m_y: LongInt): Integer;
+      function  GetUnitAtMouse(const m_x, m_y: LongInt): Integer;
       procedure EnqueueNewMessage(const msg_txt: AnsiString; const opts: TShortStrArr; const inCaption, inText: ShortString; cbRec: TCallbackRec);
       procedure GetNextMessage;//de-facto dequeue
       procedure HandleMenuSelection(const categ: TMenuCategory; const selected: Integer);
@@ -562,7 +563,6 @@ begin
          //end of 'B'
     'F': ;//fortify
     'S': ;//sentry
-    ' ': ;//space skips unit
     'C': begin
            if focused<>nil then CenterOn(focused.GetPosX, focused.GetPosY)
            else CenterOn(25, 35);//just for testing, yet
@@ -697,6 +697,7 @@ var pos_x, pos_y: Integer;
     tempGood: TGoodType;
     tempUArr: TUnitArr;
     tempAmount: Byte;
+    str_arr: TShortStrArr;
 begin
   {$IFDEF DEBUG_CODE}
     WriteLn('Entered TGui.MouseFunc');
@@ -886,8 +887,45 @@ begin
             if ((tempUArr[pos_y].GetState=usWaitingForShip) and (tempUnit.FreeCapacity>0)) then
               tempUnit.LoadUnit(tempUArr[pos_y]);
           tempUnit.SendToNewWorld;
+          Exit;
         end;//if
       end;//if
+
+      //check for clicked unit in port
+      pos_x:= GetUnitAtMouse(mouse.x, mouse.y);
+      pos_y:= GetUnitAtMouse(mouse.down_x, mouse.down_y);
+      if ((pos_x<>-1) and (pos_x=pos_y)) then
+      begin
+        tempUArr:= dat.GetAllNonShipsInEurope(europe.GetCount);
+        if pos_x<=High(tempUArr) then
+        begin
+          SetLength(str_arr, 5);
+          with dat.GetLang do
+          begin
+            if tempUArr[pos_x].GetState=usWaitingForShip then str_arr[0]:= GetEuroPort(epsNotOnShip)
+            else str_arr[0]:= GetEuroPort(epsGoOnShip);
+            if tempUArr[pos_x].HasMuskets then
+              str_arr[1]:= GetEuroPort(epsDisarm)+' ('+GetOthers(osSaving)+' '+IntToStr(europe.GetPrice(gtMusket, True)*50)+' '+GetOthers(osGold)+')'
+            else
+              str_arr[1]:= GetEuroPort(epsArm)+' ('+GetOthers(osCost)+' '+IntToStr(europe.GetPrice(gtMusket, False)*50)+' '+GetOthers(osGold)+')';
+            if tempUArr[pos_x].HasHorses then
+              str_arr[2]:= GetEuroPort(epsNoHorses)+' ('+GetOthers(osSaving)+' '+IntToStr(europe.GetPrice(gtHorses, True)*50)+' '+GetOthers(osGold)+')'
+            else str_arr[2]:= GetEuroPort(epsGiveHorses)+' ('+GetOthers(osCost)
+                   +' '+IntToStr(europe.GetPrice(gtHorses, False)*50)+' '+GetOthers(osGold)+')';
+            if tempUArr[pos_x].GetToolAmount>0 then str_arr[3]:= GetEuroPort(epsNoTools)
+                 +' ('+GetOthers(osSaving)+' '+IntToStr(europe.GetPrice(gtTool, True)*tempUArr[pos_x].GetToolAmount)+' '+GetOthers(osGold)+')'
+            else str_arr[3]:= GetEuroPort(epsGiveTools)+' ('+GetOthers(osCost)
+                   +' '+IntToStr(europe.GetPrice(gtTool, False)*(100-tempUArr[pos_x].GetToolAmount))+' '+GetOthers(osGold)+')';
+            str_arr[4]:= GetEuroPort(epsNoChanges);
+          end;//with
+          temp_cbr.option:=0;
+          temp_cbr._type:= CBT_EURO_PORT_UNIT;
+          temp_cbr.inputText:= '';
+          temp_cbr.EuroPort.AUnit:= tempUArr[pos_x];
+          temp_cbr.EuroPort.EuroNat:= europe;
+          ShowMessageOptions(dat.GetLang.GetEuroPort(epsHeading), str_arr, temp_cbr);
+        end;//if pos_x<>High(array)
+      end;//if pos_x<>-1
 
     end;//else if (button=LEFT) and (state=UP)
     {$IFDEF DEBUG_CODE}
@@ -1517,7 +1555,7 @@ begin
       end;//if
     end;//for
     glDisable(GL_TEXTURE_2D);
-    
+
     //draw dragged good
     if mouse.down then
     begin
@@ -2474,6 +2512,18 @@ begin
    Result:= (m_x-FieldWidth) div FieldWidth;
    Result:= Result+6*((cWindowHeight-(cGoodBarHeight+FieldWidth+17)-m_y)div FieldWidth);
  end;//else
+end;//func
+
+function TGui.GetUnitAtMouse(const m_x, m_y: LongInt): Integer;
+begin
+  //glVertex2f((cWindowWidth-6*FieldWidth)*PixelWidth+(i mod 6), (cGoodBarHeight+1)*PixelWidth+0.5 +(i div 6));
+  if ((m_x<=cWindowWidth-6*FieldWidth) or (m_x>=cWindowWidth) or
+      (m_y>=cWindowHeight-cGoodBarHeight-1-FieldWidth) or (m_y<=16)) then
+    Result:= -1
+  else begin
+    Result:= (m_x-(cWindowWidth-6*FieldWidth)) div FieldWidth;
+    Result:= Result+ 6*(((cWindowHeight-cGoodBarHeight-1-FieldWidth)-m_y) div FieldWidth);
+  end;//else
 end;//func
 
 end.
