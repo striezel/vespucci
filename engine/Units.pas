@@ -3,7 +3,7 @@ unit Units;
 interface
 
 uses
-  Goods, Map, Classes, Terrain;
+  Goods, Map, Classes, Terrain, PathFinder;
 
 const
   UNIT_ITEM_NONE: Byte = 0;
@@ -110,11 +110,11 @@ type
   //the AI stuff
   TTask = class
     protected
-      target: PUnit;
+      target: TUnit;
     public
       function Done: Boolean; virtual; abstract;
       function Execute: Boolean; virtual; abstract;
-      constructor Create(const target_unit: PUnit);
+      constructor Create(const target_unit: TUnit);
       destructor Destroy;
   end;//class
   PTask = ^TTask;
@@ -123,10 +123,10 @@ type
   TPloughTask = class(TTask)
     private
       m_X, m_Y: Byte;
-      ptrMap: PMap;
+      m_Map: TMap;
       RoundsLeft: Byte;
     public
-      constructor Create(const target_unit: PUnit; X, Y: Byte; const AMap: PMap);
+      constructor Create(const target_unit: TUnit; X, Y: Byte; const AMap: TMap);
       function Done: Boolean;
       function Execute: Boolean;
   end;//class
@@ -134,10 +134,10 @@ type
   TRoadTask = class(TTask)
     private
       m_X, m_Y: Byte;
-      ptrMap: PMap;
+      m_Map: TMap;
       RoundsLeft: Byte;
     public
-      constructor Create(const target_unit: PUnit; X, Y: Byte; const AMap: PMap);
+      constructor Create(const target_unit: TUnit; X, Y: Byte; const AMap: TMap);
       function Done: Boolean;
       function Execute: Boolean;
   end;//class
@@ -145,15 +145,27 @@ type
   TClearTask = class(TTask)
     private
       m_X, m_Y: Byte;
-      ptrMap: PMap;
+      m_Map: TMap;
       RoundsLeft: Byte;
     public
-      constructor Create(const target_unit: PUnit; X, Y: Byte; const AMap: PMap);
+      constructor Create(const target_unit: TUnit; X, Y: Byte; const AMap: TMap);
+      function Done: Boolean;
+      function Execute: Boolean;
+  end;//class
+
+  TGoToTask = class(TTask)
+    private
+      m_X, m_Y: Byte;
+      m_Map: TMap;
+      m_Path: TCoordArr;
+    public
+      constructor Create(const target_unit: TUnit; ToX, ToY: Byte; const AMap: TMap);
       function Done: Boolean;
       function Execute: Boolean;
   end;//class
 
   procedure ApplyDir(var x,y: Byte; const dir: TDirection);
+  function GetApplyingDirection(const from_x, from_y, to_x, to_y: Byte): TDirection;
   function GetUnitForGood(const AGood: TGoodType): TUnitType;
 
 implementation
@@ -170,6 +182,30 @@ begin
     dirSW, dirS, dirSE: if y<cMap_Y-1 then y:= y+1;
   end;//case
 end;//proc
+
+function GetApplyingDirection(const from_x, from_y, to_x, to_y: Byte): TDirection;
+begin
+  if (abs(from_x-to_x)>1) or (abs(from_y-to_y)>1) then Result:= dirNone
+  else begin
+    case from_x-to_x of
+      -1: case from_y-to_y of
+           -1: Result:= dirNE;
+            0: Result:= dirE;
+            1: Result:= dirSE;
+          end;//case
+       0: case from_y-to_y of
+           -1: Result:= dirN;
+            0: Result:= dirNone;
+            1: Result:= dirS;
+          end;//case
+       1: case from_y-to_y of
+           -1: Result:= dirNW;
+            0: Result:= dirW;
+            1: Result:= dirSW;
+          end;//case
+    end;//case
+  end;//else
+end;//func
 
 // ***************
 // *TUnit methods*
@@ -227,7 +263,11 @@ begin
   //check for task and execute, if present
   if AI_Task<>nil then
   begin
-    AI_Task.Execute;
+    WriteLn('Exec calling');
+    if (AI_Task is TGoToTask) then
+      (AI_Task as TGoToTask).Execute
+    else AI_Task.Execute;
+    WriteLn('Exec called.');
     if AI_Task.Done then
     begin
       AI_Task.Destroy;
@@ -698,7 +738,7 @@ end;//func
 
 //**** AI-related functions ****
 
-constructor TTask.Create(const target_unit: PUnit);
+constructor TTask.Create(const target_unit: TUnit);
 begin
   inherited Create;
   target:= target_unit;
@@ -711,18 +751,18 @@ end;//destruc
 
 //**** TPloughTask methods ****
 
-constructor TPloughTask.Create(const target_unit: PUnit; X, Y: Byte; const AMap: PMap);
+constructor TPloughTask.Create(const target_unit: TUnit; X, Y: Byte; const AMap: TMap);
 begin
   inherited Create(target_unit);
   m_X:= X;
   m_Y:= Y;
-  ptrMap:= AMap;
+  m_Map:= AMap;
   RoundsLeft:= 4;
   if target<>nil then
   begin
-    if target^.GetType = utPioneer then RoundsLeft:= 2;
+    if target.GetType = utPioneer then RoundsLeft:= 2;
   end;
-  if AMap^.tiles[m_X, m_Y].IsPloughed then RoundsLeft:= 0;
+  if AMap.tiles[m_X, m_Y].IsPloughed then RoundsLeft:= 0;
 end;//func
 
 function TPloughTask.Done: Boolean;
@@ -735,11 +775,11 @@ begin
   if RoundsLeft>0 then
   begin
     RoundsLeft:= RoundsLeft-1;
-    target^.MovesLeft:= 0;
+    target.MovesLeft:= 0;
     if RoundsLeft=0 then
     begin
-      target^.GiveTools(target^.GetToolAmount-20);
-      ptrMap^.tiles[m_X, m_Y].Plough;
+      target.GiveTools(target.GetToolAmount-20);
+      m_Map.tiles[m_X, m_Y].Plough;
     end;
     Result:= True;
   end//if
@@ -747,18 +787,18 @@ begin
 end;//func
 
 // **** TRoadTask methods ****
-constructor TRoadTask.Create(const target_unit: PUnit; X, Y: Byte; const AMap: PMap);
+constructor TRoadTask.Create(const target_unit: TUnit; X, Y: Byte; const AMap: TMap);
 begin
   inherited Create(target_unit);
   m_X:= X;
   m_Y:= Y;
-  ptrMap:= AMap;
+  m_Map:= AMap;
   RoundsLeft:= 2;
   if target<>nil then
   begin
-    if target^.GetType = utPioneer then RoundsLeft:= 1;
+    if target.GetType = utPioneer then RoundsLeft:= 1;
   end;
-  if AMap^.tiles[m_X, m_Y].HasRoad then RoundsLeft:= 0;
+  if AMap.tiles[m_X, m_Y].HasRoad then RoundsLeft:= 0;
 end;//func
 
 function TRoadTask.Done: Boolean;
@@ -771,11 +811,11 @@ begin
   if RoundsLeft>0 then
   begin
     RoundsLeft:= RoundsLeft-1;
-    target^.MovesLeft:= 0;
+    target.MovesLeft:= 0;
     if RoundsLeft=0 then
     begin
-      target^.GiveTools(target^.GetToolAmount-20);
-      ptrMap^.tiles[m_X, m_Y].CreateRoad;
+      target.GiveTools(target.GetToolAmount-20);
+      m_Map.tiles[m_X, m_Y].CreateRoad;
     end;
     Result:= True;
   end//if
@@ -783,18 +823,18 @@ begin
 end;//func
 
 // **** TClearTask methods ****
-constructor TClearTask.Create(const target_unit: PUnit; X, Y: Byte; const AMap: PMap);
+constructor TClearTask.Create(const target_unit: TUnit; X, Y: Byte; const AMap: TMap);
 begin
   inherited Create(target_unit);
   m_X:= X;
   m_Y:= Y;
-  ptrMap:= AMap;
+  m_Map:= AMap;
   RoundsLeft:= 6;
   if target<>nil then
   begin
-    if target^.GetType = utPioneer then RoundsLeft:= 3;
+    if target.GetType = utPioneer then RoundsLeft:= 3;
   end;
-  if not (AMap^.tiles[m_X, m_Y].HasForest) then RoundsLeft:= 0;
+  if not (AMap.tiles[m_X, m_Y].HasForest) then RoundsLeft:= 0;
 end;//func
 
 function TClearTask.Done: Boolean;
@@ -807,15 +847,54 @@ begin
   if RoundsLeft>0 then
   begin
     RoundsLeft:= RoundsLeft-1;
-    target^.MovesLeft:= 0;
+    target.MovesLeft:= 0;
     if RoundsLeft=0 then
     begin
-      target^.GiveTools(target^.GetToolAmount-20);
-      ptrMap^.tiles[m_X, m_Y].ClearForest;
+      target.GiveTools(target.GetToolAmount-20);
+      m_Map.tiles[m_X, m_Y].ClearForest;
     end;
     Result:= True;
   end//if
   else Result:= False;
+end;//func
+
+// go to task (pathfinding)
+constructor TGoToTask.Create(const target_unit: TUnit; ToX, ToY: Byte; const AMap: TMap);
+begin
+  inherited Create(target_unit);
+  m_X:= ToX;
+  m_Y:= ToY;
+  m_Map:= AMap;
+  SetLength(m_Path, 0);
+  if not FindPath(target_unit.GetPosX, target_unit.GetPosY, ToX, ToY, AMap, m_Path) then
+    SetLength(m_Path, 0);
+end;//construc
+
+function TGoToTask.Done: Boolean;
+begin
+  Result:= ((target.GetPosX=m_X) and (target.GetPosY=m_Y)) or (length(m_Path)<1);
+end;//func
+
+function TGoToTask.Execute: Boolean;
+var direc: TDirection;
+    x,y: Byte;
+begin
+  Result:= True;
+  while (target.MovesLeft>0) and (length(m_Path)>0) do
+  begin
+    x:= m_Path[High(m_Path)].x;
+    y:= m_Path[High(m_Path)].y;
+    direc:= GetApplyingDirection(target.GetPosX, target.GetPosY, x,y);
+    target.Move(direc, m_Map);
+    if (target.GetPosX<>x) or (target.GetPosY<>y) then
+    begin
+      //something went wrong here, abort the whole task
+      SetLength(m_Path, 0);
+      Result:= False;
+      Exit;
+    end//if
+    else SetLength(m_Path, length(m_Path)-1); //remove last waypoint
+  end;//while
 end;//func
 
 //general

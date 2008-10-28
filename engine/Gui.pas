@@ -259,7 +259,7 @@ type
       procedure WriteText(const msg_txt: string; const x, y: Single);
       procedure WriteHelvetica12(const msg_txt: string; const x, y: Single);
       procedure WriteTimesRoman24(const msg_txt: string; const x, y: Single);
-      
+
       function TextWidthTimesRoman24(const msg_txt: string): LongInt;
 
       procedure ShowMessageSimple(const msg_txt: AnsiString);
@@ -449,6 +449,7 @@ var tempUnit: TUnit;
     temp_Map: TMap;
     direc: TDirection;
     temp_col: TColony;
+    temp_task: TTask;
 begin
   {$IFDEF DEBUG_CODE}
     WriteLn('Entered TGui.KeyFunc');
@@ -536,7 +537,7 @@ begin
       ShowMessageOptions('Vespucci beenden?', ToShortStrArr('Nein', 'Ja'), temp_cb);
     end;//else
   end;//if KEY_ESCAPE
-  
+
   if InReport then
   begin
     case KEY of
@@ -949,7 +950,7 @@ begin
     {$ENDIF}
     Exit;
   end;//europe
-  
+
   if InReport then
   begin
     if ((button=GLUT_LEFT) and (state=GLUT_UP)) then report:= rtNone;
@@ -1786,7 +1787,7 @@ begin
   end;//for
   glDisable(GL_ALPHA_TEST);
   glDisable(GL_TEXTURE_2D);
-  
+
   //seperating lines
   glColor3f(0.0, 0.0, 0.0);
   glLineWidth(2.0);
@@ -1804,7 +1805,7 @@ begin
       glVertex2f(4+i-Ord(gtFood), 0.0);
     end;//for
   glEnd;
-  
+
   //print storage amounts
   if length(col_arr)>0 then
   begin
@@ -1827,7 +1828,7 @@ begin
       glVertex2f(j*PixelWidth-1.0, y_Fields-3.75);
     glEnd;
     glColor3ub(255, 0, 0);
-    WriteTimesRoman24('You have no colonies yet.', j*PixelWidth, y_Fields-4.5); 
+    WriteTimesRoman24('You have no colonies yet.', j*PixelWidth, y_Fields-4.5);
   end;//else
 end;//proc
 
