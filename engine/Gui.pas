@@ -3,7 +3,7 @@ unit Gui;
 interface
 
 uses
-  Map, Data, GL, GLU, GLUT, Terrain, Language, Colony, Nation, Goods, Units,
+  Map, Data, GL, {GLU,} GLUT, Terrain, Language, Colony, Nation, Goods, Units,
   SysUtils, BitmapReader, Callbacks, Helper, ErrorTexture;
 
 const
@@ -191,6 +191,7 @@ type
       europe: TEuropeanNation;
       focused: TUnit;
       dat: TData;
+      report: TReportType;
       //text messages
       msg: record
              txt: AnsiString;
@@ -227,6 +228,7 @@ type
       procedure DrawPeopleInEurope(const People: TUnitArr);
       procedure DrawExpectedSoon(const ExpSoon: TUnitArr);
       procedure DrawShipsToNewWorld(const ToNewWorld: TUnitArr);
+      procedure DrawReport;
       procedure DrawMenu;
       procedure GetSquareAtMouse(var sq_x, sq_y: Integer);
       function  GetGoodAtMouse(const m_x: LongInt=-1; const m_y: LongInt=-1): TGoodType;
@@ -256,6 +258,9 @@ type
       procedure CenterOn(const x, y: Integer);
       procedure WriteText(const msg_txt: string; const x, y: Single);
       procedure WriteHelvetica12(const msg_txt: string; const x, y: Single);
+      procedure WriteTimesRoman24(const msg_txt: string; const x, y: Single);
+      
+      function TextWidthTimesRoman24(const msg_txt: string): LongInt;
 
       procedure ShowMessageSimple(const msg_txt: AnsiString);
       procedure ShowMessageOptions(const msg_txt: AnsiString; const opts: TShortStrArr; cbRec: TCallbackRec);
@@ -264,6 +269,7 @@ type
       function InMenu: Boolean;
       function InColony: Boolean;
       function InEurope: Boolean;
+      function InReport: Boolean;
       function InWoodenMode: Boolean;
       function GetFocusedUnit: TUnit;
   end;//class TGui
@@ -303,6 +309,7 @@ begin
   Ship.LoadUnit(passenger);
   menu_cat:= mcNone;
   selected_menu_option:= 1;
+  report:= rtNone;
   cur_colony:= nil;
   europe:= nil;
   focused:= nil;
@@ -522,14 +529,23 @@ begin
   begin
     if InColony then cur_colony:= nil
     else if InEurope then europe:= nil
+    else if InReport then report:= rtNone
     else begin
       temp_cb._type:= CBT_EXIT;
       temp_cb.cbExit:= @CBF_Exit;
       ShowMessageOptions('Vespucci beenden?', ToShortStrArr('Nein', 'Ja'), temp_cb);
     end;//else
   end;//if KEY_ESCAPE
+  
+  if InReport then
+  begin
+    case KEY of
+      KEY_RETURN, KEY_SPACE: report:= rtNone;
+    end;//case
+    Exit;
+  end;//if InReport
 
-  if Wooden_Mode or InEurope or InColony then Exit; //rest is only for america view
+  if Wooden_Mode or InEurope or InColony or InReport then Exit; //rest is only for america view
 
   case UpCase(char(Key)) of
     'B': //build colony
@@ -933,6 +949,15 @@ begin
     {$ENDIF}
     Exit;
   end;//europe
+  
+  if InReport then
+  begin
+    if ((button=GLUT_LEFT) and (state=GLUT_UP)) then report:= rtNone;
+    {$IFDEF DEBUG_CODE}
+    WriteLn('Exiting TGui.MouseFunc');
+    {$ENDIF}
+    Exit;
+  end;//report
 
   //handle map view's mouse events here
   if ((button=GLUT_LEFT) and (state=GLUT_UP)) then
@@ -942,7 +967,11 @@ begin
       GetMenuSelectionAtMouse(temp_cat, pos_x);
       WriteLn('GUI got selection: cat.: ', Ord(temp_cat), '; sel.: ', pos_x);//for debug
       if (pos_x=0) and (temp_cat=menu_cat) then menu_cat:= mcNone
-      else if (pos_x=0) then menu_cat:= temp_cat
+      else if (pos_x=0) then
+      begin
+        menu_cat:= temp_cat;
+        selected_menu_option:= 1;
+      end//if
       else if (pos_x<>-1) and (temp_cat=menu_cat) then
       begin
         HandleMenuSelection(menu_cat, pos_x);
@@ -1069,6 +1098,10 @@ begin
     DrawMenuBar;
     DrawMenu;
   end//if
+  else if InReport then
+  begin
+    DrawReport;
+  end//if
   else begin
     //draw the normal america view with map and stuff
 
@@ -1155,6 +1188,7 @@ begin
               glTexCoord2f(1.0, 1.0);
               glVertex2f(i-OffsetX+1, -j+y_Fields+OffsetY);//j
             glEnd;
+            glDisable(GL_ALPHA_TEST);
             glDisable(GL_TEXTURE_2D);
           end;//if
         end;//if
@@ -1179,6 +1213,7 @@ begin
               glTexCoord2f(1.0, 1.0);
               glVertex2f(i-OffsetX+1, -j+y_Fields+OffsetY);//j
             glEnd;
+            glDisable(GL_ALPHA_TEST);
             glDisable(GL_TEXTURE_2D);
           end;//if
         end;//if
@@ -1722,6 +1757,80 @@ begin
   end;//if
 end;//proc
 
+procedure TGui.DrawReport;
+var i, j: Integer;
+    col_arr: TColonyArr;
+begin
+  //only economy implemented yet
+  if report<>rtEconomy then Exit;
+  col_arr:= dat.GetColonyList(dat.player_nation);
+
+  //draw good icons
+  glEnable(GL_TEXTURE_2D);
+  glEnable(GL_ALPHA_TEST);
+  glColor3f(1.0, 1.0, 1.0);
+  for i:= Ord(gtFood) to Ord(gtMusket) do
+  begin
+    if m_GoodTexNames[TGoodType(i)]<>0 then glBindTexture(GL_TEXTURE_2D, m_GoodTexNames[TGoodType(i)])
+    else glBindTexture(GL_TEXTURE_2D, m_ErrorTexName);
+    glBegin(GL_QUADS);
+      glTexCoord2f(0.0, 0.0);
+      glVertex2f(4+i-Ord(gtFood), y_Fields-2);
+      glTexCoord2f(1.0, 0.0);
+      glVertex2f(4+i-Ord(gtFood)+1, y_Fields-2);
+      glTexCoord2f(1.0, 1.0);
+      glVertex2f(4+i-Ord(gtFood)+1, y_Fields-1);
+      glTexCoord2f(0.0, 1.0);
+      glVertex2f(4+i-Ord(gtFood), y_Fields-1);
+    glEnd;
+  end;//for
+  glDisable(GL_ALPHA_TEST);
+  glDisable(GL_TEXTURE_2D);
+  
+  //seperating lines
+  glColor3f(0.0, 0.0, 0.0);
+  glLineWidth(2.0);
+  glBegin(GL_LINES);
+    for i:= y_Fields-2 downto 1 do
+    begin
+      glVertex2f(0.0, i);
+      glVertex2f(cWindowWidth*PixelWidth, i);
+      glVertex2f(0.0, i-0.5);
+      glVertex2f(cWindowWidth*PixelWidth, i-0.5);
+    end;//for
+    for i:= Ord(gtFood) to Ord(gtMusket) do
+    begin
+      glVertex2f(4+i-Ord(gtFood), y_Fields-2);
+      glVertex2f(4+i-Ord(gtFood), 0.0);
+    end;//for
+  glEnd;
+  
+  //print storage amounts
+  if length(col_arr)>0 then
+  begin
+    glColor3ubv(@cMenuTextColour[0]);
+    for i:= 0 to High(col_arr) do
+    begin
+      WriteText(col_arr[i].GetName, PixelWidth, y_Fields-2.5+4*PixelWidth-i*0.5);
+      for j:= Ord(gtFood) to Ord(gtMusket) do
+        WriteText(IntToStr(col_arr[i].GetStore(TGoodType(j))), 4+2*PixelWidth+j-Ord(gtFood), y_Fields-2.5+4*PixelWidth-i*0.5)
+    end;//for
+  end//if
+  else begin
+    glColor3f(0.0, 0.0, 0.0);
+    i:= TextWidthTimesRoman24('You have no colonies yet.');
+    j:= (cWindowWidth-i) div 2;
+    glBegin(GL_QUADS);
+      glVertex2f(j*PixelWidth-1.0, y_Fields-4.75);
+      glVertex2f((i+j)*PixelWidth+1.0, y_Fields-4.75);
+      glVertex2f((i+j)*PixelWidth+1.0, y_Fields-3.75);
+      glVertex2f(j*PixelWidth-1.0, y_Fields-3.75);
+    glEnd;
+    glColor3ub(255, 0, 0);
+    WriteTimesRoman24('You have no colonies yet.', j*PixelWidth, y_Fields-4.5); 
+  end;//else
+end;//proc
+
 procedure TGui.DrawMenu;
 var count, i, max_len: Integer;
     offset: GLfloat;
@@ -1940,6 +2049,31 @@ begin
   {$ENDIF}
 end;//proc
 
+procedure TGui.WriteTimesRoman24(const msg_txt: string; const x, y: Single);
+var i: Integer;
+begin
+  {$IFDEF DEBUG_CODE}
+    WriteLn('Entered TGui.WriteTimes24');
+  {$ENDIF}
+  glRasterPos3f(x, y, 0.2);
+  for i:= 1 to length(msg_txt) do
+    if (Ord(msg_txt[i]) >=32){ and (Ord(msg_txt[i]) <=127)} then
+    begin
+      glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, Ord(msg_txt[i]));
+    end;
+  {$IFDEF DEBUG_CODE}
+    WriteLn('Leaving TGui.WriteTimes24');
+  {$ENDIF}
+end;//proc
+
+function TGui.TextWidthTimesRoman24(const msg_txt: string): LongInt;
+var i: LongInt;
+begin
+  Result:= 0;
+  for i:= 1 to length(msg_txt) do
+    Result:= Result+glutBitmapWidth(GLUT_BITMAP_TIMES_ROMAN_24, Ord(msg_txt[i]));
+end;//func
+
 procedure TGui.DrawMenuBar;
 var s: string;
     i: Integer;
@@ -2112,6 +2246,11 @@ end;//func
 function TGui.InEurope: Boolean;
 begin
   Result:= europe<>nil;
+end;//func
+
+function TGui.InReport: Boolean;
+begin
+  Result:= (report<>rtNone);
 end;//func
 
 function TGui.InWoodenMode: Boolean;
@@ -2341,6 +2480,7 @@ end;//proc
 
 procedure TGui.HandleMenuSelection(const categ: TMenuCategory; const selected: Integer);
 var temp_cb: TCallbackRec;
+    tempUnit: TUnit;
     str_arr: TShortStrArr;
 begin
   case categ of
@@ -2375,6 +2515,36 @@ begin
                 2: if focused<>nil then CenterOn(focused.GetPosX, focused.GetPosY); //center view
               end;//case
             end;//mcView
+    mcOrders: begin
+                case selected of
+                  1: //fortify
+                     if focused<>nil then
+                       if focused.GetState=usFortified then focused.SetState(usNormal)
+                       else focused.SetState(usFortified);
+                  2: //no orders
+                     if focused<>nil then
+                     begin
+                       focused.MovesLeft:= 0;
+                       tempUnit:= dat.GetFirstLazyUnit(dat.player_nation);
+                       if tempUnit<>nil then
+                       begin
+                         focused:= tempUnit;
+                         CenterOn(focused.GetPosX, focused.GetPosY);
+                       end//if
+                       else begin
+                         //no units left, start new round
+                         dat.AdvanceYear;
+                         dat.NewRound(dat.player_nation);
+                         focused:= dat.GetFirstLazyUnit(dat.player_nation);
+                       end;//else
+                     end; //2 of mcOrders
+                end;//case
+              end;//mcOrders
+    mcReports: begin
+                 case selected of
+                   1: report:= rtEconomy;
+                 end;//case
+               end;//mcReports
   end;//case
 end;//proc
 
