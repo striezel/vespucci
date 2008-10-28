@@ -71,6 +71,7 @@ type
               //colonies
               function NewColony(const x,y: Byte; const num_Nation: Integer; const AName: ShortString): TColony;
               function GetColonyInXY(const x,y: Byte): TColony;
+              function GetColonyList(const num_nation: Integer): TColonyArr;
               function FreeForSettlement(const x,y:Byte): Boolean;
               //others
               procedure NewRound(const num_Nation: Integer);
@@ -392,6 +393,21 @@ begin
         Result:= m_Colonies[i];
         break;
       end;//if
+end;//func
+
+function TData.GetColonyList(const num_nation: Integer): TColonyArr;
+var i: Integer;
+begin
+  SetLength(Result, 0);
+  for i:= 0 to Colony_max do
+    if m_Colonies[i]<>nil then
+    begin
+      if (m_Colonies[i].GetNation=num_nation) then
+      begin
+          SetLength(Result, length(Result)+1);
+          Result[High(Result)]:= m_Colonies[i];
+      end;//if
+    end;//if <>nil
 end;//func
 
 function TData.FreeForSettlement(const x,y:Byte): Boolean;

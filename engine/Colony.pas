@@ -58,6 +58,8 @@ type
                                                       end;//rec
   end;//class
   PColony = ^TColony;
+  
+  TColonyArr = array of TColony;
 
 implementation
 

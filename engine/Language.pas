@@ -11,6 +11,7 @@ type
   TTransferString = (tsBoycotted, tsOutOfGold, tsOutOfSpace);
   TOtherString = (osLocation, osMoves, osEmpty, osNothing, osTax, osGold, osCost, osSaving);
   TEuroPortString = (epsHeading, epsNotOnShip, epsGoOnShip, epsArm, epsDisarm, epsGiveHorses, epsNoHorses, epsGiveTools, epsNoTools, epsNoChanges);
+  TReportType = (rtNone, rtEconomy, rtColony, rtFleet);
   TLanguage = class
     private
       Menu: array[TMenuCategory] of string;
