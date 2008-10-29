@@ -449,6 +449,7 @@ var tempUnit: TUnit;
     temp_Map: TMap;
     direc: TDirection;
     temp_col: TColony;
+    tempTask: TTask;
 begin
   {$IFDEF DEBUG_CODE}
     WriteLn('Entered TGui.KeyFunc');
@@ -596,6 +597,13 @@ begin
            ShowMessageSimple('Nummer Sechs.');
            ShowMessageOptions('Sieben mal sieben ist...', ToShortStrArr('7', '49', 'vierzig und neun', 'nicht definiert'), cEmptyCallback);
          end;
+    'G': // G is for testing only
+         begin
+           WriteLn('Creating Go To Task.');
+           tempTask:= TGoToTask.Create(focused, 3, 18, dat.GetMap);
+           WriteLn('Assigning Go To Task.');
+           focused.SetTask(tempTask);
+         end;//'G' test
   end;//case
 
   if (focused=nil) then

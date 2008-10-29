@@ -35,6 +35,7 @@ type
                   a_last: Integer;
                   procedure SwapElements(const n1, n2: Integer);
                   procedure Sift(const element: Integer);
+                  procedure Heapify;
                   function  LessEqual(const n1, n2: Integer): Boolean;
                 public
                   constructor Create;
@@ -48,7 +49,7 @@ type
               end;//class
 
   function Heuristic(const from_x, from_y, to_x, to_y: Byte): Integer;
-  
+
   function FindPath(const from_x, from_y, target_x, target_y: Byte; AMap: TMap; var path: TCoordArr): Boolean;
 
 implementation
@@ -122,6 +123,14 @@ begin
   end;//if
 end;//proc
 
+procedure THeap.Heapify;
+var i: Integer;
+begin
+  if a_last>0 then
+    for i:= (a_last-1) div 2 downto 0 do
+      Sift(i);
+end;//proc
+
 function THeap.LessEqual(const n1, n2: Integer): Boolean;
 begin
   Result:= (Nodes[a[n1].content.x, a[n1].content.y].cost_est <= Nodes[a[n2].content.x, a[n2].content.y].cost_est);
@@ -143,27 +152,34 @@ var idx, p: Integer;
 begin
   if ((newNode.x>=cMap_X) or (newNode.y>=cMap_Y)) then Result:= False
   else begin
-    //make sure that there is enough space
-    if High(a)<a_last+1 then SetLength(a, length(a)+5);
-
-    //insert
-    a[a_last+1].content.x:= newNode.x;
-    a[a_last+1].content.y:= newNode.y;
-    Nodes[newNode.x,newNode.y]:= newNode;
-    a_last:= a_last+1;
-    Presence[newNode.x,newNode.y]:= True;
-
-    //tauschen, bis an richtiger Stelle
-    idx:= a_last;
-    while idx>0 do
+    if Presence[newNode.x,newNode.y] then
     begin
-      p:= Parent(idx);
-      if LessEqual(p, idx) then break
-      else begin
-        SwapElements(p, idx);
-        idx:= p;
-      end;//else
-    end;//while
+      Nodes[newNode.x,newNode.y]:= newNode;
+      Heapify;
+    end//if
+    else begin
+      //make sure that there is enough space
+      if High(a)<a_last+1 then SetLength(a, length(a)+5);
+
+      //insert
+      a[a_last+1].content.x:= newNode.x;
+      a[a_last+1].content.y:= newNode.y;
+      Nodes[newNode.x,newNode.y]:= newNode;
+      a_last:= a_last+1;
+      Presence[newNode.x,newNode.y]:= True;
+
+      //tauschen, bis an richtiger Stelle
+      idx:= a_last;
+      while idx>0 do
+      begin
+        p:= Parent(idx);
+        if LessEqual(p, idx) then break
+        else begin
+          SwapElements(p, idx);
+          idx:= p;
+        end;//else
+      end;//while
+    end;//else
     Result:= True;
   end;//else
 end;//func
@@ -207,27 +223,29 @@ var open, closed: THeap;
     node, temp: TSearchNode;
     i,j: Integer;
 begin
+  WriteLn('Entered FindPath.');
   SetLength(path, 0);
   //check for land/ sea transition and exit, if positive
   if (AMap.tiles[from_x, from_y].IsWater xor AMap.tiles[target_x, target_y].IsWater) then Exit;
-  
-  
+
+
   open:= THeap.Create;
   closed:= THeap.Create;
-  
+
   node.cost_real:= 0;
   node.cost_est:= Heuristic(from_x, from_y, target_x, target_y);
   node.x:= from_x;
   node.y:= from_y;
   node.Parent.x:= cNotANode;
   node.Parent.y:= cNotANode;
-  
+
   open.AddNode(node);
-  
+  WriteLn('Entering repeat loop.');
   repeat
     node:= open.RemoveMin;
     if ((node.x=target_x) and (node.y=target_y)) then
     begin
+      WriteLn('Found path! :)');
       //Pfad gefunden :)
       Result:= True;
       //to do: add all nodes to path!
@@ -240,13 +258,15 @@ begin
         path[High(path)].y:= temp.y;
         temp:= closed.GetNode(temp.Parent.x, temp.Parent.y);
       end;//while
-      
+
       //end it
-      
-      break;
+      open.Destroy;
+      closed.Destroy;
+      Exit;
     end;
 
     //ExpandNode
+    WriteLn('Expanding node: ', node.x, ',', node.y);
 
     for i:= -1 to 1 do
       for j:= -1 to 1 do
@@ -254,21 +274,25 @@ begin
         begin
           temp.x:= node.x+i;
           temp.y:= node.y+i;
-          if AMap.tiles[node.x,node.y].IsWater=AMap.tiles[temp.x,temp.y].IsWater then
+          if not closed.IsNodePresent(temp.x, temp.y) then
           begin
-            temp.Parent.x:= node.x;
-            temp.Parent.y:= node.y;
-            temp.cost_real:= node.cost_real+1;
-            temp.cost_est:= temp.cost_real+ Heuristic(temp.x, temp.y, target_x, target_y);
-            if not open.IsNodePresent(temp.x, temp.y) or (open.GetNode(temp.x, temp.y).cost_est>temp.cost_est) then
-              open.AddNode(temp);
-          end;//if WaterCheck successful
+            if AMap.tiles[node.x,node.y].IsWater=AMap.tiles[temp.x,temp.y].IsWater then
+            begin
+              temp.Parent.x:= node.x;
+              temp.Parent.y:= node.y;
+              temp.cost_real:= node.cost_real+1;
+              temp.cost_est:= temp.cost_real+ Heuristic(temp.x, temp.y, target_x, target_y);
+              if not open.IsNodePresent(temp.x, temp.y) or (open.GetNode(temp.x, temp.y).cost_est>temp.cost_est) then
+                open.AddNode(temp);
+            end;//if WaterCheck successful
+          end;//if closed.contains(temp)
         end;//if
 
     //end of ExpandNode
 
     closed.AddNode(node);
   until open.Empty;
+  WriteLn('Open list is empty :(');
   open.Destroy;
   closed.Destroy;
   Result:= False;

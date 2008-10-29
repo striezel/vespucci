@@ -115,7 +115,7 @@ type
       function Done: Boolean; virtual; abstract;
       function Execute: Boolean; virtual; abstract;
       constructor Create(const target_unit: TUnit);
-      destructor Destroy;
+      destructor Destroy; virtual;
   end;//class
   PTask = ^TTask;
 
@@ -127,8 +127,8 @@ type
       RoundsLeft: Byte;
     public
       constructor Create(const target_unit: TUnit; X, Y: Byte; const AMap: TMap);
-      function Done: Boolean;
-      function Execute: Boolean;
+      function Done: Boolean; override;
+      function Execute: Boolean; override;
   end;//class
 
   TRoadTask = class(TTask)
@@ -138,8 +138,8 @@ type
       RoundsLeft: Byte;
     public
       constructor Create(const target_unit: TUnit; X, Y: Byte; const AMap: TMap);
-      function Done: Boolean;
-      function Execute: Boolean;
+      function Done: Boolean; override;
+      function Execute: Boolean; override;
   end;//class
 
   TClearTask = class(TTask)
@@ -149,8 +149,8 @@ type
       RoundsLeft: Byte;
     public
       constructor Create(const target_unit: TUnit; X, Y: Byte; const AMap: TMap);
-      function Done: Boolean;
-      function Execute: Boolean;
+      function Done: Boolean; override;
+      function Execute: Boolean; override;
   end;//class
 
   TGoToTask = class(TTask)
@@ -160,8 +160,9 @@ type
       m_Path: TCoordArr;
     public
       constructor Create(const target_unit: TUnit; ToX, ToY: Byte; const AMap: TMap);
-      function Done: Boolean;
-      function Execute: Boolean;
+      destructor Destroy; override;
+      function Done: Boolean; override;
+      function Execute: Boolean; override;
   end;//class
 
   procedure ApplyDir(var x,y: Byte; const dir: TDirection);
@@ -264,10 +265,8 @@ begin
   if AI_Task<>nil then
   begin
     WriteLn('Exec calling');
-    if (AI_Task is TGoToTask) then
-      (AI_Task as TGoToTask).Execute
-    else AI_Task.Execute;
-    WriteLn('Exec called.');
+    AI_Task.Execute;
+
     if AI_Task.Done then
     begin
       AI_Task.Destroy;
@@ -310,7 +309,7 @@ begin
     if allow then
     begin
       //check ships for european route
-      if IsShip and (AMap<>nil) then
+      if IsShip and (AMap<>nil) and (AI_Task=nil) then //no european route for non-ships or AI tasks
         if ((AMap.tiles[PosX, PosY].GetType=ttOpenSea) and (AMap.tiles[newX, newY].GetType=ttOpenSea)) then
         begin
           SendToEurope;
@@ -896,6 +895,12 @@ begin
     else SetLength(m_Path, length(m_Path)-1); //remove last waypoint
   end;//while
 end;//func
+
+destructor TGoToTask.Destroy;
+begin
+  SetLength(m_Path, 0);
+  inherited Destroy;
+end;//destruc
 
 //general
 function GetUnitForGood(const AGood: TGoodType): TUnitType;
