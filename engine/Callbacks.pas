@@ -152,7 +152,6 @@ begin
 end;//func
 
 function CBF_EuroPortUnit(const option: Integer; AUnit: TUnit; EuroNat: TEuropeanNation): Boolean;
-var amount: Byte;
 begin
   Result:= False;
   if ((AUnit=nil) or (EuroNat=nil)) then Exit;

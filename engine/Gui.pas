@@ -449,7 +449,6 @@ var tempUnit: TUnit;
     temp_Map: TMap;
     direc: TDirection;
     temp_col: TColony;
-    temp_task: TTask;
 begin
   {$IFDEF DEBUG_CODE}
     WriteLn('Entered TGui.KeyFunc');
