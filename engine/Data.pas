@@ -43,7 +43,7 @@ type
               lang: TLanguage;
               //relative path
               base_dir: string;
-              //loading routines (maybe save routines shuold be here, too?)
+              //loading routines (maybe save routines should be here, too?)
               function LoadUnitFromStream(var AUnit: TUnit; var fs: TFileStream): Boolean;
               function LoadColonyFromStream(var AColony: TColony; var fs: TFileStream): Boolean;
               procedure InitializeNations;
