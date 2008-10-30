@@ -27,6 +27,24 @@ const
   cNationSioux = 11;
   cNationApache = 12;
 
+  //the colours
+  cNationColours: array[cMin_Nations..cMaxIndian] of array[0..2] of Byte
+                =( //europeans
+                   (255, 0, 0), //England
+                   (50, 50, 255), //France
+                   (255, 255, 0), //Spain
+                   (255, 128, 0), //Holland
+                   //indians
+                   (100, 140, 190), //Arawak
+                   (200, 160, 30), //Aztec
+                   (240, 240, 200), //Inca
+                   (0, 100, 0), //Tupi
+                   (120, 160, 80), //Cherokee
+                   (110, 60, 25), //Iroquois
+                   (140, 0, 0), //Sioux
+                   (190, 170, 130) //Apache
+                 );
+
 type
 
   TNation = class

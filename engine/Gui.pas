@@ -135,14 +135,14 @@ const
        'brave.bmp', //utBrave
        'brave_horse.bmp'//utBraveOnHorse
     );
-  
+
   cStateTexNames: array[TUnitState] of string =(
        'normal.bmp', //usNormal
        'fortified.bmp', //usFortified
        'waitship.bmp', //usWaiting forShip
        'goto.bmp' //usGoTo
     );
-  
+
   cColonyTexNames: array [0..0] of string =(
        'colony.bmp' //normal colony
     );
@@ -240,6 +240,8 @@ type
       procedure DrawShipsToNewWorld(const ToNewWorld: TUnitArr);
       procedure DrawReport;
       procedure DrawMenu;
+      procedure DrawUnitIcon(const the_Unit: TUnit; const left, bottom: GLfloat;
+                  const UseErrorIfTexNotPresent: Boolean = False; const ShowState: Boolean = False);
       procedure DrawStateIcon(const state: TUnitState; const left, bottom: GLfloat);
       procedure GetSquareAtMouse(var sq_x, sq_y: Integer);
       function  GetGoodAtMouse(const m_x: LongInt=-1; const m_y: LongInt=-1): TGoodType;
@@ -313,9 +315,9 @@ begin
   Wooden_Mode:= True;
   MiniMapOffset_Y:= 0;
   dat:= TData.Create;
-  Ship:= dat.NewUnit(utCaravel, cNationEngland, 36, 13);
+  Ship:= dat.NewUnit(utCaravel, dat.player_nation, 36, 13);
   WriteLn('First caravel created.');
-  passenger:= dat.NewUnit(utColonist, cNationEngland, 36, 13);
+  passenger:= dat.NewUnit(utColonist, dat.player_nation, 36, 13);
   passenger.GiveTools(100);
   Ship.LoadUnit(passenger);
   menu_cat:= mcNone;
@@ -335,7 +337,7 @@ begin
 
   ptrGui:= @self;
   {//wait until we have texture for regulars
-  passenger:= dat.NewUnit(utRegular, cNationEngland, 36, 13);
+  passenger:= dat.NewUnit(utRegular, dat.player_nation, 36, 13);
   Ship.LoadUnit(passenger);}
   //set texture names to "empty" and then load them
   glEnable(GL_TEXTURE_2D);
@@ -576,63 +578,46 @@ begin
 
   if Wooden_Mode or InEurope or InColony or InReport then Exit; //rest is only for america view
 
-  case UpCase(char(Key)) of
-    'B': //build colony
-         if focused<>nil then
-         begin
-           temp_Map:= dat.GetMap;
-           if (focused.IsShip or temp_Map.tiles[focused.GetPosX, focused.GetPosY].IsWater) then
-             ShowMessageSimple(dat.GetLang.GetBuildColony(2))
-           else begin
-             if temp_Map.tiles[focused.GetPosX, focused.GetPosY].GetType=ttMountains then
-               ShowMessageSimple(dat.GetLang.GetBuildColony(4))
+  if not Special then
+  begin
+    case UpCase(char(Key)) of
+      'B': //build colony
+           if focused<>nil then
+           begin
+             temp_Map:= dat.GetMap;
+             if (focused.IsShip or temp_Map.tiles[focused.GetPosX, focused.GetPosY].IsWater) then
+               ShowMessageSimple(dat.GetLang.GetBuildColony(2))
              else begin
-               if dat.FreeForSettlement(focused.GetPosX, focused.GetPosY) then
-               begin
-                 temp_cb.inputText:= '';
-                 temp_cb._type:= CBT_BUILD_COLONY;
-                 temp_cb.BuildColony.x:= focused.GetPosX;
-                 temp_cb.BuildColony.y:= focused.GetPosY;
-                 temp_cb.BuildColony.num_nation:= dat.player_nation;
-                 temp_cb.BuildColony.founder:= focused;
-                 temp_cb.BuildColony.AMap:= temp_Map;
-                 temp_cb.BuildColony.AData:= dat;
-                 ShowMessageInput(dat.GetLang.GetBuildColony(0), dat.GetLang.GetBuildColony(1), 'Plymouth', temp_cb);
-                 focused:= nil;
-               end
-               else
-                 ShowMessageSimple(dat.GetLang.GetBuildColony(3));
-             end;//else
+               if temp_Map.tiles[focused.GetPosX, focused.GetPosY].GetType=ttMountains then
+                 ShowMessageSimple(dat.GetLang.GetBuildColony(4))
+               else begin
+                 if dat.FreeForSettlement(focused.GetPosX, focused.GetPosY) then
+                 begin
+                   temp_cb.inputText:= '';
+                   temp_cb._type:= CBT_BUILD_COLONY;
+                   temp_cb.BuildColony.x:= focused.GetPosX;
+                   temp_cb.BuildColony.y:= focused.GetPosY;
+                   temp_cb.BuildColony.num_nation:= dat.player_nation;
+                   temp_cb.BuildColony.founder:= focused;
+                   temp_cb.BuildColony.AMap:= temp_Map;
+                   temp_cb.BuildColony.AData:= dat;
+                   ShowMessageInput(dat.GetLang.GetBuildColony(0), dat.GetLang.GetBuildColony(1), 'Plymouth', temp_cb);
+                   focused:= nil;
+                 end
+                 else
+                   ShowMessageSimple(dat.GetLang.GetBuildColony(3));
+               end;//else
+             end;//if
            end;//if
-         end;//if
-         //end of 'B'
-    'F': ;//fortify
-    'S': ;//sentry
-    'C': begin
-           if focused<>nil then CenterOn(focused.GetPosX, focused.GetPosY)
-           else CenterOn(25, 35);//just for testing, yet
-         end;
-    //T is for testing only
-    'T': begin
-           {$IFDEF DEBUG_CODE}
-             ShowMessageSimple('DEBUG: Paramstr(0): '+ Paramstr(0)+cSpace60+ 'ParamCount: '+ IntToStr(ParamCount));
-           {$ENDIF}
-           ShowMessageSimple('Dies ist ein Test./ This is a test.');
-           ShowMessageSimple('Nummer zwei.');
-           ShowMessageOptions('Nummer drei.', ToShortStrArr('1', '2', '3'), cEmptyCallback);
-           ShowMessageSimple('Nummer zum vierten Male. :o');
-           ShowMessageInput('Number five. Please insert a text here, for testing.', 'Your text:', '(leer)', cEmptyCallback);
-           ShowMessageSimple('Nummer Sechs.');
-           ShowMessageOptions('Sieben mal sieben ist...', ToShortStrArr('7', '49', 'vierzig und neun', 'nicht definiert'), cEmptyCallback);
-         end;
-    'G': // G is for testing only
-         begin
-           WriteLn('Creating Go To Task.');
-           tempTask:= TGoToTask.Create(focused, 3, 18, dat.GetMap);
-           WriteLn('Assigning Go To Task.');
-           focused.SetTask(tempTask);
-         end;//'G' test
-  end;//case
+           //end of 'B'
+      'F': ;//fortify
+      'S': ;//sentry
+      'C': begin
+             if focused<>nil then CenterOn(focused.GetPosX, focused.GetPosY)
+             else CenterOn(25, 35);//just for testing, yet
+           end;
+    end;//case
+  end;//if not Special
 
   if (focused=nil) then
   begin
@@ -1212,7 +1197,8 @@ begin
           begin
             glEnable(GL_TEXTURE_2D);
             glEnable(GL_ALPHA_TEST);
-            glBindTexture(GL_TEXTURE_2D, m_UnitTexNames[tempUnit.GetType]);
+            DrawUnitIcon(tempUnit, i-OffsetX, -j-1+y_Fields+OffsetY, False, True);
+            {glBindTexture(GL_TEXTURE_2D, m_UnitTexNames[tempUnit.GetType]);
             glBegin(GL_QUADS);
               glColor3f(1.0, 1.0, 1.0);
               glTexCoord2f(0.0, 1.0);
@@ -1223,7 +1209,7 @@ begin
               glVertex2f(i-OffsetX+1, -j-1+y_Fields+OffsetY);//j+1
               glTexCoord2f(1.0, 1.0);
               glVertex2f(i-OffsetX+1, -j+y_Fields+OffsetY);//j
-            glEnd;
+            glEnd;}
             glDisable(GL_ALPHA_TEST);
             glDisable(GL_TEXTURE_2D);
           end;//if
@@ -1336,7 +1322,6 @@ begin
 
   //show the text messages, if present
   DrawMessage;
-
   glutSwapBuffers();
   {$IFDEF DEBUG_CODE}
     WriteLn('Leaving TGui.Draw');
@@ -1414,7 +1399,8 @@ begin
       begin
         glEnable(GL_TEXTURE_2D);
         glEnable(GL_ALPHA_TEST);
-        if m_UnitTexNames[cur_colony.GetUnitInField(i,j).GetType]<>0 then
+        DrawUnitIcon(cur_colony.GetUnitInField(i,j), i+x_Fields+2.0, y_Fields-3.0-j, True, False);
+        {if m_UnitTexNames[cur_colony.GetUnitInField(i,j).GetType]<>0 then
           glBindTexture(GL_TEXTURE_2D, m_UnitTexNames[cur_colony.GetUnitInField(i,j).GetType])
         else glBindTexture(GL_TEXTURE_2D, m_ErrorTexName);
         glBegin(GL_QUADS);
@@ -1427,7 +1413,7 @@ begin
           glVertex2f(i+x_Fields+3.0, y_Fields-2.0-j);
           glTexCoord2f(0.0, 1.0);
           glVertex2f(i+x_Fields+2.0, y_Fields-2.0-j);
-        glEnd;
+        glEnd;}
         glDisable(GL_ALPHA_TEST);
         glDisable(GL_TEXTURE_2D);
       end;//if
@@ -1906,6 +1892,46 @@ begin
       WriteText(dat.GetLang.GetMenuOption(menu_cat, i), 0.5+offset, 3*PixelWidth+ y_Fields-i*0.5);
   end;//if
 end;//proc DrawMenu
+
+procedure TGui.DrawUnitIcon(const the_Unit: TUnit; const left, bottom: GLfloat;
+            const UseErrorIfTexNotPresent: Boolean = False; const ShowState: Boolean = False);
+begin
+  if the_Unit<>nil then
+  begin
+    if (m_UnitTexNames[the_Unit.GetType]=0) and not UseErrorIfTexNotPresent then Exit
+    else if m_UnitTexNames[the_Unit.GetType]=0 then glBindTexture(GL_TEXTURE_2D, m_ErrorTexName)
+    else glBindTexture(GL_TEXTURE_2D, m_UnitTexNames[the_Unit.GetType]);
+    //the unit itself
+    glBegin(GL_QUADS);
+      glColor3f(1.0, 1.0, 1.0);
+      glTexCoord2f(0.0, 0.0);
+      glVertex2f(left, bottom);
+      glTexCoord2f(1.0, 0.0);
+      glVertex2f(left+1.0, bottom);
+      glTexCoord2f(1.0, 1.0);
+      glVertex2f(left+1.0, bottom+1.0);
+      glTexCoord2f(0.0, 1.0);
+      glVertex2f(left, bottom+1.0);
+    glEnd;
+    if ShowState and (m_StateTexNames[the_Unit.GetState]<>0) then
+    begin
+      //the state icon
+      glBindTexture(GL_TEXTURE_2D, m_StateTexNames[the_Unit.GetState]);
+      glBegin(GL_QUADS);
+        if (the_Unit.GetNation in [cMin_Nations..cMaxIndian]) then
+          glColor3ubv(@cNationColours[the_Unit.GetNation,0]);
+        glTexCoord2f(0.0, 0.0);
+        glVertex2f(left, bottom);
+        glTexCoord2f(1.0, 0.0);
+        glVertex2f(left+1.0, bottom);
+        glTexCoord2f(1.0, 1.0);
+        glVertex2f(left+1.0, bottom+1.0);
+        glTexCoord2f(0.0, 1.0);
+        glVertex2f(left, bottom+1.0);
+      glEnd;
+    end;//if icon
+  end;//if
+end;//proc
 
 procedure TGui.DrawStateIcon(const state: TUnitState; const left, bottom: GLfloat);
 begin
