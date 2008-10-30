@@ -240,7 +240,6 @@ begin
   node.Parent.y:= cNotANode;
 
   open.AddNode(node);
-  WriteLn('Entering repeat loop.');
   repeat
     node:= open.RemoveMin;
     if ((node.x=target_x) and (node.y=target_y)) then
@@ -248,8 +247,7 @@ begin
       WriteLn('Found path! :)');
       //Pfad gefunden :)
       Result:= True;
-      //to do: add all nodes to path!
-      //adding them
+      //add all nodes to path
       temp:= node;
       while temp.x<>cNotANode do
       begin
@@ -266,14 +264,12 @@ begin
     end;
 
     //ExpandNode
-    WriteLn('Expanding node: ', node.x, ',', node.y);
-
     for i:= -1 to 1 do
       for j:= -1 to 1 do
         if (((i<>0) or (j<>0)) and (node.x+i in [0..cMap_X-1]) and (node.y+j in [0..cMap_Y-1])) then
         begin
           temp.x:= node.x+i;
-          temp.y:= node.y+i;
+          temp.y:= node.y+j;
           if not closed.IsNodePresent(temp.x, temp.y) then
           begin
             if AMap.tiles[node.x,node.y].IsWater=AMap.tiles[temp.x,temp.y].IsWater then

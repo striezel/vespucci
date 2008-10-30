@@ -17,6 +17,7 @@ const
   good_img_path = img_path+'goods'+path_delimiter;
   terrain_img_path = img_path+'terrain'+path_delimiter;
   unit_img_path = img_path+'units'+path_delimiter;
+  state_img_path = unit_img_path+'state'+path_delimiter;
   colony_img_path = img_path+'colony'+path_delimiter;
   save_path = data_path+'saves'+path_delimiter;
 

@@ -135,6 +135,14 @@ const
        'brave.bmp', //utBrave
        'brave_horse.bmp'//utBraveOnHorse
     );
+  
+  cStateTexNames: array[TUnitState] of string =(
+       'normal.bmp', //usNormal
+       'fortified.bmp', //usFortified
+       'waitship.bmp', //usWaiting forShip
+       'goto.bmp' //usGoTo
+    );
+  
   cColonyTexNames: array [0..0] of string =(
        'colony.bmp' //normal colony
     );
@@ -212,6 +220,8 @@ type
       m_UnitTexNames: array [TUnitType] of GLuint;
       //colony texture "names" ( " " " " )
       m_ColonyTexNames: array [0..0] of GLuint;
+      //state icon "names" (as in OpenGL names)
+      m_StateTexNames: array[TUnitState] of GLuint;
       //Error Texture (yellow sign with black "!" on it)
       m_ErrorTexName: GLuint;
 
@@ -230,6 +240,7 @@ type
       procedure DrawShipsToNewWorld(const ToNewWorld: TUnitArr);
       procedure DrawReport;
       procedure DrawMenu;
+      procedure DrawStateIcon(const state: TUnitState; const left, bottom: GLfloat);
       procedure GetSquareAtMouse(var sq_x, sq_y: Integer);
       function  GetGoodAtMouse(const m_x: LongInt=-1; const m_y: LongInt=-1): TGoodType;
       function  GetMenuCategoryAtMouse: TMenuCategory;
@@ -373,6 +384,23 @@ begin
       GetAlphaByColor(tempTex, AlphaTex);
       glGenTextures(1, @m_UnitTexNames[TUnitType(i)]);
       glBindTexture(GL_TEXTURE_2D, m_UnitTexNames[TUnitType(i)]);
+      glTexImage2D(GL_TEXTURE_2D, 0, 4, 32, 32, 0, GL_RGBA, GL_UNSIGNED_BYTE, @AlphaTex[0].r);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    end;//if
+  end;//for
+  //unit state textures
+  for i:= Ord(Low(TUnitState)) to Ord(High(TUnitState)) do
+  begin
+    m_StateTexNames[TUnitState(i)]:= 0;
+    if ReadBitmapToArr32RGB(dat.GetPathBase+state_img_path+cStateTexNames[TUnitState(i)], tempTex, err_str) then
+    begin
+      //change order of color components from blue, green, red (as in file) to
+      //  red, green, blue (as needed for GL)
+      SwapRGB_To_BGR(tempTex);
+      GetAlphaByColor(tempTex, AlphaTex);
+      glGenTextures(1, @m_StateTexNames[TUnitState(i)]);
+      glBindTexture(GL_TEXTURE_2D, m_StateTexNames[TUnitState(i)]);
       glTexImage2D(GL_TEXTURE_2D, 0, 4, 32, 32, 0, GL_RGBA, GL_UNSIGNED_BYTE, @AlphaTex[0].r);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -1688,6 +1716,7 @@ begin
         glTexCoord2f(0.0, 1.0);
         glVertex2f((cWindowWidth-6*FieldWidth)*PixelWidth+(i mod 6), (cGoodBarHeight+1)*PixelWidth+1.5 +(i div 6));
       glEnd;
+      DrawStateIcon(PeopleArr[i].GetState, (cWindowWidth-6*FieldWidth)*PixelWidth+(i mod 6), (cGoodBarHeight+1)*PixelWidth+0.5 +(i div 6));
     end;//for
     glDisable(GL_TEXTURE_2D);
   end;//if
@@ -1877,6 +1906,25 @@ begin
       WriteText(dat.GetLang.GetMenuOption(menu_cat, i), 0.5+offset, 3*PixelWidth+ y_Fields-i*0.5);
   end;//if
 end;//proc DrawMenu
+
+procedure TGui.DrawStateIcon(const state: TUnitState; const left, bottom: GLfloat);
+begin
+  if m_StateTexNames[state]<>0 then
+  begin
+    glBindTexture(GL_TEXTURE_2D, m_StateTexNames[state]);
+    glBegin(GL_QUADS);
+      glColor3f(1.0, 0.0, 0.0);
+      glTexCoord2f(0.0, 0.0);
+      glVertex2f(left, bottom);
+      glTexCoord2f(1.0, 0.0);
+      glVertex2f(left+1.0, bottom);
+      glTexCoord2f(1.0, 1.0);
+      glVertex2f(left+1.0, bottom+1.0);
+      glTexCoord2f(0.0, 1.0);
+      glVertex2f(left, bottom+1.0);
+    glEnd;
+  end;//if
+end;//proc DrawStateIcon
 
 procedure TGui.DrawMessage;
 var i, msg_lines, msg_opts: Integer;
