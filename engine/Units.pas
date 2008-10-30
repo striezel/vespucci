@@ -30,7 +30,7 @@ type
 
                utBrave, utBraveOnHorse);
   TUnitLocation = (ulAmerica, ulInColony, ulGoToEurope, ulGoToNewWorld, ulEurope, ulEmbarked);
-  TUnitState = (usNormal,{-} usFortified,{F} usWaitingForShip{S});
+  TUnitState = (usNormal,{-} usFortified,{F} usWaitingForShip{S}, usGoTo{G});
   TDirection = (dirSW, dirS, dirSE, dirE, dirNE, dirN, dirNW, dirW, dirNone);
 
   TTask = class;
@@ -154,7 +154,7 @@ type
   end;//class
 
   TGoToTask = class(TTask)
-    private
+    protected
       m_X, m_Y: Byte;
       m_Map: TMap;
       m_Path: TCoordArr;
@@ -188,18 +188,18 @@ function GetApplyingDirection(const from_x, from_y, to_x, to_y: Byte): TDirectio
 begin
   if (abs(from_x-to_x)>1) or (abs(from_y-to_y)>1) then Result:= dirNone
   else begin
-    case from_x-to_x of
-      -1: case from_y-to_y of
+    case to_x-from_x of
+       1: case to_y-from_y of
            -1: Result:= dirNE;
             0: Result:= dirE;
             1: Result:= dirSE;
           end;//case
-       0: case from_y-to_y of
+       0: case to_y-from_y of
            -1: Result:= dirN;
             0: Result:= dirNone;
             1: Result:= dirS;
           end;//case
-       1: case from_y-to_y of
+      -1: case to_y-from_y of
            -1: Result:= dirNW;
             0: Result:= dirW;
             1: Result:= dirSW;
@@ -884,12 +884,24 @@ begin
     x:= m_Path[High(m_Path)].x;
     y:= m_Path[High(m_Path)].y;
     direc:= GetApplyingDirection(target.GetPosX, target.GetPosY, x,y);
+    
+    //debug only
+    WriteLn('-GoTo.Execute:');
+    WriteLn('-- from: ',target.GetPosX,',',target.GetPosY,'  to: ',x,',',y);
+    WriteLn('-- apply dir.: ', Ord(direc));
+    //end debug
+    
     target.Move(direc, m_Map);
     if (target.GetPosX<>x) or (target.GetPosY<>y) then
     begin
       //something went wrong here, abort the whole task
       SetLength(m_Path, 0);
       Result:= False;
+      
+      //debug only
+      WriteLn('-- direction application failed!');
+      //end debug
+      
       Exit;
     end//if
     else SetLength(m_Path, length(m_Path)-1); //remove last waypoint
