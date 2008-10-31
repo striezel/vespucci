@@ -14,6 +14,7 @@ const
   CBT_LOAD_GAME = 5;
   CBT_JOB_CHANGE = 6;
   CBT_EURO_PORT_UNIT = 7;
+  CBT_EURO_PORT_BUY = 8;
 
 type
   TExitCallback = procedure (const option: Integer);
@@ -48,6 +49,10 @@ type
                         AUnit: TUnit;
                         EuroNat: TEuropeanNation;
                       end;//rec
+  TEuroBuyData = record
+                   AData: TData;
+                   EuroNat: TEuropeanNation;
+                 end;//rec
 
   TCallbackRec = record
                    option: Integer;
@@ -62,6 +67,7 @@ type
                      5: (LoadGame: TLoadGameData);
                      6: (JobChange: TJobChangeData);
                      7: (EuroPort: TEuroPortUnitData);
+                     8: (EuroBuy: TEuroBuyData);
                  end;//rec
 
 const
@@ -214,6 +220,31 @@ begin
   Result:= True;
 end;//func
 
+function CBF_EuroPortBuy(const option: Integer; AData: TData; EuroNat: TEuropeanNation): Boolean;
+var buy_unit: TUnitType;
+    new_unit: TUnit;
+begin
+  Result:= (option=0);
+  if (EuroNat=nil) or (AData=nil) or (option=0) then Exit;
+  case option of
+    1: buy_unit:= utCaravel;
+    2: buy_unit:= utTradingShip;
+    3: buy_unit:= utGalleon;
+    4: buy_unit:= utPrivateer;
+    5: buy_unit:= utFrigate;
+  else buy_unit:= utCriminal;//should not happen
+  end;//case
+  if buy_unit=utCriminal then Exit;
+  //buy it
+  If EuroNat.GetGold>=cShipPrices[buy_unit] then
+  begin
+    new_unit:= AData.NewUnit(buy_unit, EuroNat.GetCount, cMap_X-1, cMap_Y div 2);
+    new_unit.SetLocation(ulEurope);
+    EuroNat.DecreaseGold(cShipPrices[buy_unit]);
+    Result:= True;
+  end;//if
+end;//func
+
 function HandleCallback(const cbRec: TCallbackRec): Boolean;
 begin
   case cbRec._type of
@@ -233,6 +264,7 @@ begin
     CBT_LOAD_GAME: Result:= CBF_LoadGame(cbRec.option, cbRec.LoadGame.AData);
     CBT_JOB_CHANGE: Result:= CBF_JobChange(cbRec.option, cbRec);
     CBT_EURO_PORT_UNIT: Result:= CBF_EuroPortUnit(cbRec.option, cbRec.EuroPort.AUnit, cbRec.EuroPort.EuroNat);
+    CBT_EURO_PORT_BUY: Result:= CBF_EuroPortBuy(cbRec.option, cbRec.EuroBuy.AData, cbRec.EuroBuy.EuroNat);
   else
     Result:= False; //unknown callback type or type not supported
   end;//case
