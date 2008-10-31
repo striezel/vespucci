@@ -234,6 +234,7 @@ type
       procedure DrawColonyView;
       procedure DrawEuropeanView;
       procedure DrawGoodDraggedFromBar;
+      procedure DrawEuropeButtons;
       procedure DrawShipsInPort(const predefShips: TUnitArr);
       procedure DrawPeopleInEurope(const People: TUnitArr);
       procedure DrawExpectedSoon(const ExpSoon: TUnitArr);
@@ -255,6 +256,7 @@ type
       function  GetToNewWorldAtMouse(const m_x: LongInt=-1; m_y: LongInt=-1): ShortInt;
       function  GetShipAtMouse(const m_x, m_y: LongInt): Integer;
       function  GetUnitAtMouse(const m_x, m_y: LongInt): Integer;
+      function  GetButtonAtMouse(const m_x, m_y: LongInt): Integer;
       procedure EnqueueNewMessage(const msg_txt: AnsiString; const opts: TShortStrArr; const inCaption, inText: ShortString; cbRec: TCallbackRec);
       procedure GetNextMessage;//de-facto dequeue
       procedure HandleMenuSelection(const categ: TMenuCategory; const selected: Integer);
@@ -320,6 +322,10 @@ begin
   passenger:= dat.NewUnit(utColonist, dat.player_nation, 36, 13);
   passenger.GiveTools(100);
   Ship.LoadUnit(passenger);
+  
+  
+  dat.NewUnit(utScout, dat.player_nation, 26, 11);
+  
   menu_cat:= mcNone;
   selected_menu_option:= 1;
   report:= rtNone;
@@ -961,8 +967,27 @@ begin
           temp_cbr.EuroPort.AUnit:= tempUArr[pos_x];
           temp_cbr.EuroPort.EuroNat:= europe;
           ShowMessageOptions(dat.GetLang.GetEuroPort(epsHeading), str_arr, temp_cbr);
+          Exit;
         end;//if pos_x<>High(array)
       end;//if pos_x<>-1
+
+      //check for button "Buy"
+      if GetButtonAtMouse(mouse.x, mouse.y)=1 then
+      begin
+        SetLength(str_arr, Ord(utFrigate)-Ord(utCaravel)+2);
+        str_arr[0]:= dat.GetLang.GetOthers(osNothing);
+        for pos_x:= Ord(utCaravel) to Ord(utFrigate) do
+          with dat.GetLang do
+            str_arr[1+pos_x-Ord(utCaravel)]:= GetUnitName(TUnitType(pos_x))+' ('+GetOthers(osCost)
+                 +' '+IntToStr(cShipPrices[TUnitType(pos_x)])+' '+GetOthers(osGold)+')';
+        temp_cbr.option:=0;
+        temp_cbr._type:= CBT_EURO_PORT_BUY;
+        temp_cbr.inputText:= '';
+        temp_cbr.EuroBuy.EuroNat:= europe;
+        temp_cbr.EuroBuy.AData:= dat;
+        ShowMessageOptions('Which of the following ships do you want to buy?', str_arr, temp_cbr);
+      end;//if ButtonAtMouse=1
+
 
     end;//else if (button=LEFT) and (state=UP)
     {$IFDEF DEBUG_CODE}
@@ -1489,6 +1514,9 @@ begin
   DrawPeopleInEurope(Colonists);
   DrawExpectedSoon(Expected);
   DrawShipsToNewWorld(NewWorld);
+  
+  DrawEuropeButtons;
+  
   DrawGoodDraggedFromBar;
 end;//proc
 
@@ -1522,6 +1550,28 @@ begin
       glDisable(GL_TEXTURE_2D);
     end;//if
   end;//if
+end;//proc
+
+procedure TGui.DrawEuropeButtons;
+begin
+  glBegin(GL_QUADS);
+    glColor3f(0.5, 0.5, 1.0);
+    glVertex2f(9.0, cGoodBarHeight*PixelWidth);
+    glVertex2f(12.0, cGoodBarHeight*PixelWidth);
+    glVertex2f(12.0, cGoodBarHeight*PixelWidth+1.0);
+    glVertex2f(9.0, cGoodBarHeight*PixelWidth+1.0);
+  glEnd;
+  glLineWidth(2.0);
+  glBegin(GL_LINE_LOOP);
+    glColor3f(0.75, 0.75, 1.0);
+    glVertex2f(9.0, cGoodBarHeight*PixelWidth);
+    glVertex2f(12.0, cGoodBarHeight*PixelWidth);
+    glColor3f(0.25, 0.25, 1.0);
+    glVertex2f(12.0, cGoodBarHeight*PixelWidth+1.0);
+    glVertex2f(9.0, cGoodBarHeight*PixelWidth+1.0);
+  glEnd;
+  glColor3f(0.2, 0.2, 0.2);
+  WriteText('Buy Ship', 9.5, cGoodBarHeight*PixelWidth+0.25);
 end;//proc
 
 procedure TGui.DrawShipsInPort(const predefShips: TUnitArr);
@@ -2776,6 +2826,13 @@ begin
     Result:= (m_x-(cWindowWidth-6*FieldWidth)) div FieldWidth;
     Result:= Result+ 6*(((cWindowHeight-cGoodBarHeight-1-FieldWidth)-m_y) div FieldWidth);
   end;//else
+end;//func
+
+function TGui.GetButtonAtMouse(const m_x, m_y: LongInt): Integer;
+begin
+  if ((m_x>=9*FieldWidth) and (m_x<=12*FieldWidth) and (m_y<=cWindowHeight-cGoodBarHeight-(FieldWidth div 2))
+      and (m_y>=cWindowHeight-cGoodBarHeight-FieldWidth-(FieldWidth div 2))) then Result:= 1
+  else Result:= -1;
 end;//func
 
 end.
