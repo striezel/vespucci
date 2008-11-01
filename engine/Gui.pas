@@ -1740,6 +1740,7 @@ begin
       if m_UnitTexNames[PeopleArr[i].GetType]<>0 then glBindTexture(GL_TEXTURE_2D, m_UnitTexNames[PeopleArr[i].GetType])
       else glBindTexture(GL_TEXTURE_2D, m_ErrorTexName);
       glBegin(GL_QUADS);
+        glColor3f(1.0, 1.0, 1.0);
         glTexCoord2f(0.0, 0.0);
         glVertex2f((cWindowWidth-6*FieldWidth)*PixelWidth+(i mod 6), (cGoodBarHeight+1)*PixelWidth+0.5 +(i div 6));
         glTexCoord2f(1.0, 0.0);

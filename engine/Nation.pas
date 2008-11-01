@@ -7,6 +7,7 @@ uses
 
 const
   cMin_Nations = 1;
+  cMinEuropean = 1;
   cMax_Nations = 4;
   cMaxEuropean = 4;
   cMinIndian = 5;
@@ -57,7 +58,9 @@ type
       function IsIndian: Boolean; virtual; abstract;
       function IsEuropean: Boolean; virtual; abstract;
       function GetCount: LongInt;
+      procedure ChangeCount(const new_num: LongInt);
       function GetName: string;
+      procedure ChangeName(var new_name: string);
       function SaveToStream(var fs: TFileStream): Boolean; virtual;
   end;//class
   PNation = ^TNation;
@@ -93,6 +96,8 @@ type
       //tax rate for this nation in percent
       function GetTaxRate: Byte;
       procedure IncreaseTax(const AddedPercentage: Byte);
+      //ChangeTaxRate only used during loading; use IncreaseTax on other occassions
+      procedure ChangeTaxRate(const NewPercentage: Byte);
 
       function IsBoycotted(const AGood: TGoodType): Boolean;
       procedure DoBoycott(const AGood: TGoodType);
@@ -100,15 +105,18 @@ type
 
       function GetGold: LongInt;
       procedure DecreaseGold(const amount: LongInt);
+      procedure IncreaseGold(const amount: LongInt);
       function GetPrice(const AGood: TGoodType; low: Boolean): Byte;
       //increases price if good, if below upper limit
       procedure AdvancePrice(const AGood: TGoodType);
       //decrease price, if above lower limit
       procedure DropPrice(const AGood: TGoodType);
+      //set new price, if within limits
+      procedure ChangePrice(const AGood: TGoodType; const NewPrice: Byte);
       //functions to buy and sell goods, just does the gold-related stuff
       function BuyGood(const AGood: TGoodType; const num: Byte): Boolean;
       function SellGood(const AGood: TGoodType; const num: Byte): Boolean;
-      
+
       function SaveToStream(var fs: TFileStream): Boolean; override;
   end;//class
   PEuropeanNation = ^TEuropeanNation;
@@ -133,10 +141,20 @@ begin
   Result:= m_NameStr;
 end;//func
 
+procedure TNation.ChangeName(var new_name: string);
+begin
+  if new_name<>'' then m_NameStr:= new_name;
+end;//proc
+
 function TNation.GetCount: LongInt;
 begin
   Result:= m_count;
 end;//func
+
+procedure TNation.ChangeCount(const new_num: LongInt);
+begin
+  m_count:= new_num;
+end;//proc
 
 function TNation.SaveToStream(var fs: TFileStream): Boolean;
 var i: LongInt;
@@ -230,6 +248,11 @@ begin
     m_TaxRate:= m_TaxRate + AddedPercentage;
 end;//proc
 
+procedure TEuropeanNation.ChangeTaxRate(const NewPercentage: Byte);
+begin
+  if NewPercentage<100 then m_TaxRate:= NewPercentage;
+end;//proc
+
 function TEuropeanNation.IsBoycotted(const AGood: TGoodType): Boolean;
 begin
   Result:= m_Boycotted[AGood];
@@ -257,6 +280,12 @@ begin
   else m_Gold:= 0;
 end;//proc
 
+procedure TEuropeanNation.IncreaseGold(const amount: LongInt);
+begin
+  if amount>=0 then m_Gold:= m_Gold + amount
+  else DecreaseGold(-amount);
+end;//proc
+
 function TEuropeanNation.GetPrice(const AGood: TGoodType; low: Boolean): Byte;
 begin
   if low then Result:= m_Prices[AGood]
@@ -279,6 +308,13 @@ begin
     m_Prices[AGood]:= m_Prices[AGood]-1;
     //should display a message to the player
   end;//if
+end;//proc
+
+procedure TEuropeanNation.ChangePrice(const AGood: TGoodType; const NewPrice: Byte);
+begin
+  if NewPrice<cGoodPrices[AGood].min then m_Prices[AGood]:= cGoodPrices[AGood].min
+  else if NewPrice+cGoodPrices[AGood].diff>cGoodPrices[AGood].max then m_Prices[AGood]:= cGoodPrices[AGood].max
+  else m_Prices[AGood]:= NewPrice;
 end;//proc
 
 //tries to "buy" goods, but only does the money related stuff; returns true on success

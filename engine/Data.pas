@@ -24,6 +24,7 @@ const
   cDataFileHeader = 'VDD';
   cColonyFileHeader = 'VCD';
   cUnitFileHeader = 'VUD';
+  cNationFileHeader = 'VND';
 
 type
   TData = class
@@ -46,6 +47,7 @@ type
               //loading routines (maybe save routines should be here, too?)
               function LoadUnitFromStream(var AUnit: TUnit; var fs: TFileStream): Boolean;
               function LoadColonyFromStream(var AColony: TColony; var fs: TFileStream): Boolean;
+              function LoadNationFromStream(var ANat: TNation; var fs: TFileStream): Boolean;
               procedure InitializeNations;
               procedure InitializeMap;
               procedure DeInitColonies;
@@ -460,7 +462,8 @@ begin
       data<n>.vdd - simple data
       map<n>.vmd - map itself
       units<n>.vud - all units
-      colony.vcd - all colonies
+      colony<n>.vcd - all colonies
+      nations<n>.vnd - european nations
   }
   if m_Map=nil then
   begin
@@ -566,6 +569,23 @@ begin
   fs:= nil;
   if not Result then
     err:= 'TData.SaveData: Error while writing colony file "'+GetPathBase+save_path +'colony'+IntToStr(n)+'.vcd';
+  
+  //nations
+  try
+    fs:= TFileStream.Create(GetPathBase+save_path +'nations'+IntToStr(n)+'.vnd', fmCreate or fmShareDenyNone);
+  except
+    if fs<>nil then fs.Free;
+    Result:= False;
+    Exit;
+  end;//tryxcept
+
+  for i:= cMinEuropean to cMaxEuropean do
+    Result:= Result and Nations[i].SaveToStream(fs);
+  fs.Free;
+  fs:= nil;
+  if not Result then
+    err:= 'TData.SaveData: Error while writing nation file "'+GetPathBase+save_path +'nations'+IntToStr(n)+'.vnd';
+  
 end;//func SaveData
 
 function TData.LoadData(const n: Word; var err: string): Boolean;
@@ -587,7 +607,8 @@ begin
       data<n>.vdd - simple data
       map<n>.vmd - map itself
       units<n>.vud - all units
-      colony.vcd - all colonies
+      colony<n>.vcd - all colonies
+      nations<n>.vnd - european nations
   }
   if not (FileExists(GetPathBase+save_path+'data'+IntToStr(n)+'.vdd') and
          FileExists(GetPathBase+save_path+'map'+IntToStr(n)+'.vmd') and
@@ -762,7 +783,33 @@ begin
   if not Result then
   begin
     err:= 'TData.LoadData: error while loading colonies.';
-    //Exit;
+    Exit;
+  end;//if
+  
+  //nations
+  for i:= cMin_Nations to cMaxIndian do
+    if Nations[i]<>nil then
+    begin
+      Nations[i].Destroy;
+      Nations[i]:= nil;
+    end;//if
+  InitializeNations;
+  try
+    fs:= TFileStream.Create(GetPathBase+save_path +'nations'+IntToStr(n)+'.vnd', fmOpenRead or fmShareDenyNone);
+  except
+    if fs<>nil then fs.Free;
+    err:= 'TData.LoadData: could not open file "'+GetPathBase+save_path +'nations'+IntToStr(n)+'.vnd'+'" for reading.';
+    Result:= False;
+    Exit;
+  end;//tryxcept
+  for i:= cMinEuropean to cMaxEuropean do
+    Result:= Result and LoadNationFromStream(Nations[i], fs);
+  fs.Free;
+  fs:= nil;
+    
+  if not Result then
+  begin
+    err:= 'TData.LoadData: error while loading nations.';
   end;//if
 end;//func LoadData
 
@@ -909,6 +956,51 @@ begin
   end;//for
 end;//func
 
+function TData.LoadNationFromStream(var ANat: TNation; var fs: TFileStream): Boolean;
+var i: LongInt;
+    temp_str: string;
+    tr: Byte;
+    boycott: Boolean;
+begin
+  Result:= False;
+  if ((fs=nil) or (ANat=nil)) then  Exit;
+  Result:= (fs.Read(i, sizeof(LongInt))=sizeof(LongInt));
+  ANat.ChangeCount(i);
+  Result:= Result and (fs.Read(i, sizeof(LongInt))=sizeof(LongInt));
+  if (i<=0) or (i>255) then
+  begin
+    Result:= False; //string to short or to long
+    Exit;
+  end;//if
+  temp_str:= SpaceString(i);
+  Result:= Result and (fs.Read(temp_str[1], i)=i);
+  temp_str:= Trim(temp_str);
+  ANat.ChangeName(temp_str);
+  if ANat.IsEuropean then
+  begin
+    Result:= Result and (fs.Read(i, sizeof(LongInt))=sizeof(LongInt));
+    if (i<=0) or (i>255) then
+    begin
+      Result:= False; //string to short or to long
+      Exit;
+    end;//if
+    temp_str:= SpaceString(i);
+    Result:= Result and (fs.Read(temp_str[1], i)=i);
+    (ANat as TEuropeanNation).ChangeLeaderName(Trim(temp_str));
+    Result:= Result and (fs.Read(i, sizeof(LongInt))=sizeof(LongInt));
+    (ANat as TEuropeanNation).IncreaseGold(i-(ANat as TEuropeanNation).GetGold);
+    Result:= Result and (fs.Read(tr, sizeof(Byte))=sizeof(Byte));
+    (ANat as TEuropeanNation).ChangeTaxRate(tr);
+    for i:= Ord(Low(TGoodType)) to Ord(High(TGoodType)) do
+    begin
+      Result:= Result and (fs.Read(Boycott, sizeof(Boolean))=sizeof(Boolean));
+      if Boycott then (ANat as TEuropeanNation).DoBoycott(TGoodType(i)) else (ANat as TEuropeanNation).UndoBoycott(TGoodType(i));
+      Result:= Result and (fs.Read(tr, sizeof(Byte))=sizeof(Byte));
+      (ANat as TEuropeanNation).ChangePrice(TGoodType(i), tr);
+    end;//for
+  end;//if
+end;//func
+
 function TData.GetSaveInfo(const n: Word): string;
 var fs: TFileStream;
     status, temp_Autumn: Boolean;
@@ -956,12 +1048,13 @@ begin
   {data<n>.vdd - simple data
       map<n>.vmd - map itself
       units<n>.vud - all units
-      colony.vcd - all colonies}
+      colony<n>.vcd - all colonies
+      nations<n>.vnd - european nations}
 
   SetLength(Result, 10);
   for i:=1 to 10 do
   begin
-    if (FileExists(GetPathBase+save_path +'data'+IntToStr(i)+'.vdd') and FileExists(GetPathBase+save_path +'map'+IntToStr(i)+'.vmd') and FileExists(GetPathBase+save_path +'units'+IntToStr(i)+'.vud') and FileExists(GetPathBase+save_path +'colony'+IntToStr(i)+'.vcd')) then
+    if (FileExists(GetPathBase+save_path +'data'+IntToStr(i)+'.vdd') and FileExists(GetPathBase+save_path +'map'+IntToStr(i)+'.vmd') and FileExists(GetPathBase+save_path +'units'+IntToStr(i)+'.vud') and FileExists(GetPathBase+save_path +'colony'+IntToStr(i)+'.vcd') and FileExists(GetPathBase+save_path +'nations'+IntToStr(i)+'.vnd')) then
     Result[i-1]:= GetSaveInfo(i)
     else Result[i-1]:= '('+lang.GetOthers(osEmpty)+')';
   end;//for
