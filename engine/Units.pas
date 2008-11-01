@@ -36,6 +36,30 @@ type
 const
   cShipPrices: array [utCaravel..utFrigate] of Integer
                 =( 1000, 2000, 3000, 2000, 5000);
+  cUnitPrices: array [utFarmer..utRegular] of LongInt =(
+                 1100, //utFarmer
+                 1000, //utFisher
+                 -1, //utFurHunter
+                 900, //utSilverMiner
+                 700, //utWoodcutter
+                 600, //utOreMiner
+                 -1, //utSugarplanter
+                 -1, //utCottonplanter
+                 -1, //utTobaccoplanter
+                 1500, //utPreacher
+                 1900, //utStatesman
+                 1000, //utCarpenter
+                 1100, //utDistiller
+                 1300, //utWeaver
+                 1200, //utTobacconist
+                 950, //utFurTrader
+                 1050, //utSmith
+                 850, //utWeaponSmith
+                 -1, //utScout
+                 1200, //utPioneer
+                 1400, //utMissionary
+                 2000 //utRegular
+               );
 
 type
 
@@ -174,6 +198,7 @@ type
   procedure ApplyDir(var x,y: Byte; const dir: TDirection);
   function GetApplyingDirection(const from_x, from_y, to_x, to_y: Byte): TDirection;
   function GetUnitForGood(const AGood: TGoodType): TUnitType;
+  function HasExpertStatus(const AGood: TGoodType; const ut: TUnitType): Boolean;
 
 implementation
 
@@ -903,11 +928,9 @@ begin
       //something went wrong here, abort the whole task
       SetLength(m_Path, 0);
       Result:= False;
-
       //debug only
       WriteLn('-- direction application failed!');
       //end debug
-
       Exit;
     end//if
     else SetLength(m_Path, length(m_Path)-1); //remove last waypoint
@@ -946,6 +969,11 @@ begin
   else
     Result:= utCriminal;
   end;//case
+end;//func
+
+function HasExpertStatus(const AGood: TGoodType; const ut: TUnitType): Boolean;
+begin
+  Result:= ((GetUnitForGood(AGood)=ut) and (ut<>utCriminal));
 end;//func
 
 end.

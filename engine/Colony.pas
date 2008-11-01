@@ -245,7 +245,8 @@ begin
         if (UnitsInFields[i,j].u<>nil) then
           if ((self.PosX+i>=0) and (self.PosX+i<cMap_X) and (self.PosY+j>=0) and (self.PosY+j<cMap_Y)) then
             Store[UnitsInFields[i,j].GoesFor]:= Store[UnitsInFields[i,j].GoesFor] +
-             AMap.tiles[self.PosX+i, self.PosY+j].GetGoodProduction(UnitsInFields[i,j].GoesFor);
+             AMap.tiles[self.PosX+i, self.PosY+j].GetGoodProduction(UnitsInFields[i,j].GoesFor,
+                      HasExpertStatus(UnitsInFields[i,j].GoesFor, UnitsInFields[i,j].u.GetType));
     //calculate production in base (=central) field
     Store[gtFood]:= Store[gtFood]+AMap.tiles[PosX, PosY].GetColonyFood;
     Store[AMap.tiles[PosX, PosY].GetColonyGoodType]:=

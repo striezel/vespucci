@@ -629,8 +629,14 @@ begin
     case Key of
       GLUT_KEY_LEFT, KEY_NUMPAD4: if (OffsetX>0) then OffsetX:= OffsetX-1;{Move map left}
       GLUT_KEY_RIGHT, KEY_NUMPAD6: if (OffsetX<cMap_X-x_Fields) then OffsetX:= OffsetX+1;{Move map right}
-      GLUT_KEY_DOWN, KEY_NUMPAD2: if (OffsetY<cMap_y-y_Fields) then OffsetY:= OffsetY+1; {Move map down}
-      GLUT_KEY_UP, KEY_NUMPAD8: if (OffsetY>0) then OffsetY:= OffsetY-1; {Move map up}
+      GLUT_KEY_DOWN, KEY_NUMPAD2: begin
+                                    if (OffsetY<cMap_Y-y_Fields) then OffsetY:= OffsetY+1; {Move map down}
+                                    if MiniMapOffset_Y<cMap_Y-Minimap_y_Fields then MiniMapOffset_Y:= MiniMapOffset_Y+1;
+                                  end;//KEY_DOWN
+      GLUT_KEY_UP, KEY_NUMPAD8: begin
+                                  if (OffsetY>0) then OffsetY:= OffsetY-1; {Move map up}
+                                  if MiniMapOffset_Y>0 then MiniMapOffset_Y:= MiniMapOffset_Y-1;
+                                end;//KEY_UP
       KEY_SPACE: //try to get next unit
                  begin
                    focused:= dat.GetFirstLazyUnit(dat.player_nation);
@@ -969,21 +975,42 @@ begin
       end;//if pos_x<>-1
 
       //check for button "Buy"
-      if GetButtonAtMouse(mouse.x, mouse.y)=1 then
-      begin
-        SetLength(str_arr, Ord(utFrigate)-Ord(utCaravel)+2);
-        str_arr[0]:= dat.GetLang.GetOthers(osNothing);
-        for pos_x:= Ord(utCaravel) to Ord(utFrigate) do
-          with dat.GetLang do
-            str_arr[1+pos_x-Ord(utCaravel)]:= GetUnitName(TUnitType(pos_x))+' ('+GetOthers(osCost)
-                 +' '+IntToStr(cShipPrices[TUnitType(pos_x)])+' '+GetOthers(osGold)+')';
-        temp_cbr.option:=0;
-        temp_cbr._type:= CBT_EURO_PORT_BUY;
-        temp_cbr.inputText:= '';
-        temp_cbr.EuroBuy.EuroNat:= europe;
-        temp_cbr.EuroBuy.AData:= dat;
-        ShowMessageOptions('Which of the following ships do you want to buy?', str_arr, temp_cbr);
-      end;//if ButtonAtMouse=1
+      case GetButtonAtMouse(mouse.x, mouse.y) of
+        1: begin
+             SetLength(str_arr, Ord(utFrigate)-Ord(utCaravel)+2);
+             str_arr[0]:= dat.GetLang.GetOthers(osNothing);
+             for pos_x:= Ord(utCaravel) to Ord(utFrigate) do
+               with dat.GetLang do
+                 str_arr[1+pos_x-Ord(utCaravel)]:= StretchTo59(GetUnitName(TUnitType(pos_x))+':',GetOthers(osCost)
+                      +' '+IntToStr(cShipPrices[TUnitType(pos_x)])+' '+GetOthers(osGold));
+             temp_cbr.option:=0;
+             temp_cbr._type:= CBT_EURO_PORT_BUY;
+             temp_cbr.inputText:= '';
+             temp_cbr.EuroBuy.EuroNat:= europe;
+             temp_cbr.EuroBuy.AData:= dat;
+             ShowMessageOptions('Which of the following ships do you want to buy?', str_arr, temp_cbr);
+           end;//case ButtonAtMouse=1 ("Buy Ships")
+        2: begin
+             SetLength(str_arr, 1);
+             str_arr[0]:= dat.GetLang.GetOthers(osNothing);
+             for pos_x:= Ord(utFarmer) to Ord(utRegular) do
+               if cUnitPrices[TUnitType(pos_x)]>0 then
+               begin
+                 SetLength(str_arr, length(str_arr)+1);
+                 with dat.GetLang do
+                   str_arr[High(str_arr)]:= StretchTo59(GetUnitName(TUnitType(pos_x))+':',GetOthers(osCost)
+                                   +' '+IntToStr(cUnitPrices[TUnitType(pos_x)])+' '+GetOthers(osGold));
+               end;//if
+             temp_cbr.option:= 0;
+             temp_cbr._type:= CBT_EURO_PORT_TRAIN;
+             temp_cbr.inputText:= '';
+             temp_cbr.EuroTrain.EuroNat:= europe;
+             temp_cbr.EuroTrain.AData:= dat;
+             ShowMessageOptions('Die königliche Universität kann uns Spezialisten liefern, wenn wir die'
+                               +'richtigen Leute bestechen. Welche Fertigkeit sollen wir anfordern?',
+                               str_arr, temp_cbr);
+           end;//case ButtonAtMouse=2 ("Train units")
+      end;//case
 
 
     end;//else if (button=LEFT) and (state=UP)
@@ -1444,7 +1471,9 @@ begin
   GetColonyFieldAtMouse(i,j);
   if ((i<>-2) and (cur_colony.GetUnitInField(i,j)<>nil)) then
   begin
-    tempStr:= IntToStr(local_Map.tiles[i+cur_colony.GetPosX,j+cur_colony.GetPosY].GetGoodProduction(cur_colony.GetUnitInFieldGood(i,j)))
+    tempStr:= IntToStr(local_Map.tiles[i+cur_colony.GetPosX,j+cur_colony.GetPosY].GetGoodProduction(
+                   cur_colony.GetUnitInFieldGood(i,j), (cur_colony.GetUnitInField(i,j).GetType=GetUnitForGood(cur_colony.GetUnitInFieldGood(i,j)))
+                   and (cur_colony.GetUnitInField(i,j).GetType<>utCriminal)))
                +' '+dat.GetLang.GetGoodName(cur_colony.GetUnitInFieldGood(i,j));
     str_width:= length(tempStr)*8;
     glColor3ubv(@cMenuTextColour[0]);
@@ -1553,13 +1582,20 @@ procedure TGui.DrawEuropeButtons;
 begin
   glBegin(GL_QUADS);
     glColor3f(0.5, 0.5, 1.0);
+    //"Buy ships" button
     glVertex2f(9.0, cGoodBarHeight*PixelWidth);
     glVertex2f(12.0, cGoodBarHeight*PixelWidth);
     glVertex2f(12.0, cGoodBarHeight*PixelWidth+1.0);
     glVertex2f(9.0, cGoodBarHeight*PixelWidth+1.0);
+    //"Train units" button
+    glVertex2f(9.0, cGoodBarHeight*PixelWidth+1.5);
+    glVertex2f(12.0, cGoodBarHeight*PixelWidth+1.5);
+    glVertex2f(12.0, cGoodBarHeight*PixelWidth+2.5);
+    glVertex2f(9.0, cGoodBarHeight*PixelWidth+2.5);
   glEnd;
   glLineWidth(2.0);
   glBegin(GL_LINE_LOOP);
+    //"Buy Ships" button
     glColor3f(0.75, 0.75, 1.0);
     glVertex2f(9.0, cGoodBarHeight*PixelWidth);
     glVertex2f(12.0, cGoodBarHeight*PixelWidth);
@@ -1567,8 +1603,18 @@ begin
     glVertex2f(12.0, cGoodBarHeight*PixelWidth+1.0);
     glVertex2f(9.0, cGoodBarHeight*PixelWidth+1.0);
   glEnd;
+  glBegin(GL_LINE_LOOP);
+    //"Train units" button
+    glColor3f(0.75, 0.75, 1.0);
+    glVertex2f(9.0, cGoodBarHeight*PixelWidth+1.5);
+    glVertex2f(12.0, cGoodBarHeight*PixelWidth+1.5);
+    glColor3f(0.25, 0.25, 1.0);
+    glVertex2f(12.0, cGoodBarHeight*PixelWidth+2.5);
+    glVertex2f(9.0, cGoodBarHeight*PixelWidth+2.5);
+  glEnd;
   glColor3f(0.2, 0.2, 0.2);
   WriteText('Buy Ship', 9.5, cGoodBarHeight*PixelWidth+0.25);
+  WriteText('Train units', 9.125, cGoodBarHeight*PixelWidth+1.75);
 end;//proc
 
 procedure TGui.DrawShipsInPort(const predefShips: TUnitArr);
@@ -2828,8 +2874,12 @@ end;//func
 
 function TGui.GetButtonAtMouse(const m_x, m_y: LongInt): Integer;
 begin
-  if ((m_x>=9*FieldWidth) and (m_x<=12*FieldWidth) and (m_y<=cWindowHeight-cGoodBarHeight-(FieldWidth div 2))
-      and (m_y>=cWindowHeight-cGoodBarHeight-FieldWidth-(FieldWidth div 2))) then Result:= 1
+  if ((m_x>=9*FieldWidth) and (m_x<=12*FieldWidth) and (m_y<=cWindowHeight-cGoodBarHeight-(FieldWidth div 2))) then
+  begin
+      if (m_y>=cWindowHeight-cGoodBarHeight-FieldWidth-(FieldWidth div 2)) then Result:= 1
+      else if ((m_y>=cWindowHeight-cGoodBarHeight-3*FieldWidth) and (m_y<=cWindowHeight-cGoodBarHeight-2*FieldWidth)) then Result:= 2
+      else Result:= -1;
+  end//if
   else Result:= -1;
 end;//func
 

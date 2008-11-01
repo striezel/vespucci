@@ -67,7 +67,7 @@ type
       function IsPloughed: Boolean;
       function IsWater: Boolean;
 
-      function GetGoodProduction(const AGood: TGoodType): Byte;
+      function GetGoodProduction(const AGood: TGoodType; const expert: Boolean): Byte;
       //for colony base fields
       function GetColonyFood: Byte;
       function GetColonyGoodType: TGoodType;
@@ -176,40 +176,47 @@ begin
   Result:= m_Type in [ttSea, ttOpenSea];
 end;
 
-function TTerrain.GetGoodProduction(const AGood: TGoodType): Byte;
+function TTerrain.GetGoodProduction(const AGood: TGoodType; const expert: Boolean): Byte;
 begin
   Result:= 0;
   case m_Type of
     //ttArctic: Result:= 0;
     ttSea, ttOpenSea: if AGood= gtFood then
                       begin
-                        Result:= 4;
-                        if m_Special {fish} then Result:= 7;
+                        Result:= 2;
+                        if m_Special {fish} then Result:= 5;
+                        if expert then Result:= Result*2;
                       end;//if
     ttPlains: if AGood = gtFood then
               begin
                 Result:= 5;
-                if m_Special {wheat} then Result:= Result+2;
+                if m_Special {wheat} then
+                  if expert then Result:= Result+4
+                  else Result:= Result+2;
                 if m_Ploughed then Result:= Result+1;
                 if m_River then Result:= Result+1;
+                if expert then Result:= Result+3;
               end
               else if AGood = gtCotton then
               begin
                 Result:= 2;
                 if m_Ploughed then Result:= Result+1;
                 if m_River then Result:= Result+1;
+                if expert then Result:= Result*2;
               end
               else if AGood = gtOre then
               begin
                 Result:= Result +1;
                 if m_Road then Result:= Result+1;
                 if m_River then Result:= Result+1;
+                if expert then Result:= Result*2;
               end;
     ttGrassland: if AGood = gtFood then
                  begin
                    Result:= 3;
                    if m_Ploughed then Result:= Result+1;
                    if m_River then Result:= Result+1;
+                   if expert then Result:= Result+3;
                  end
                  else if AGood = gtTobacco then
                  begin
@@ -217,12 +224,14 @@ begin
                    if m_Ploughed then Result:= Result+1;
                    if m_River then Result:= Result+1;
                    if m_Special {best tobacco} then Result:= Result*2;
+                   if expert then Result:= Result*2;
                  end;
     ttPrairie: if AGood = gtFood then
                begin
                  Result:= 3;
                  if m_Ploughed then Result:= Result+1;
                  if m_River then Result:= Result+1;
+                 if expert then Result:= Result+3;
                end
                else if AGood = gtCotton then
                begin
@@ -230,12 +239,14 @@ begin
                  if m_Ploughed then Result:= Result+1;
                  if m_River then Result:= Result+1;
                  if m_Special {best cotton} then Result:= Result*2;
+                 if expert then Result:= Result*2;
                end;
     ttSavannah: if AGood = gtFood then
                 begin
                   Result:= 4;
                   if m_Ploughed then Result:= Result+1;
                   if m_River then Result:= Result+1;
+                  if expert then Result:= Result+3;
                 end
                 else if AGood = gtSugar then
                 begin
@@ -243,18 +254,21 @@ begin
                   if m_Ploughed then Result:= Result+1;
                   if m_River then Result:= Result+1;
                   if m_Special {best sugar} then Result:= Result*2;
+                  if expert then Result:= Result*2;
                 end;
     ttMarsh: if AGood = gtFood then
              begin
                Result:= 3;
                if m_Ploughed then Result:= Result+1;
                if m_River then Result:= Result+1;
+               if expert then Result:= Result+3;
              end
              else if AGood = gtTobacco then
              begin
                Result:= 2;
                if m_Ploughed then Result:= Result+1;
                if m_River then Result:= Result+1;
+               if expert then Result:= Result*2;
              end
              else if AGood = gtOre then
              begin
@@ -262,18 +276,21 @@ begin
                if m_Road then Result:= Result+1;
                if m_River then Result:= Result+1;
                if m_Special {Minerals} then Result:= Result+3;
+               if expert then Result:= Result*2;
              end;
     ttSwamp: if AGood = gtFood then
              begin
                Result:= 3;
                if m_Ploughed then Result:= Result+1;
                if m_River then Result:= Result+1;
+               if expert then Result:= Result+3;
              end
              else if AGood = gtSugar then
              begin
                Result:= 2;
                if m_Ploughed then Result:= Result+1;
                if m_River then Result:= Result+1;
+               if expert then Result:= Result*2;
              end
              else if AGood = gtOre then
              begin
@@ -281,6 +298,7 @@ begin
                if m_Road then Result:= Result+1;
                if m_River then Result:= Result+1;
                if m_Special {Minerals} then Result:= Result+3;
+               if expert then Result:= Result*2;
              end;
     ttDesert: if AGood = gtFood then
               begin
@@ -288,24 +306,28 @@ begin
                 if m_Ploughed then Result:= Result+1;
                 if m_River then Result:= Result+1;
                 if m_Special {Oasis} then Result:= Result+2;
+                if expert then Result:= Result+3;
               end
               else if AGood = gtCotton then
               begin
                 Result:= 1;
                 if m_Ploughed then Result:= Result+1;
                 if m_River then Result:= Result+1;
+                if expert then Result:= Result*2;
               end
               else if AGood = gtOre then
               begin
                 Result:= 2;
                 if m_Road then Result:= Result+1;
                 if m_River then Result:= Result+1;
+                if expert then Result:= Result*2;
               end;
     ttTundra: if AGood = gtFood then
               begin
                 Result:= 3;
                 if m_Ploughed then Result:= Result+1;
                 if m_River then Result:= Result+1;
+                if expert then Result:= Result+3;
               end
               else if AGood = gtOre then
               begin
@@ -313,6 +335,7 @@ begin
                 if m_Road then Result:= Result+1;
                 if m_River then Result:= Result+1;
                 if m_Special {Minerals} then Result:= Result+3;
+                if expert then Result:= Result*2;
               end;
     ttBoreal: if AGood = gtFood then
               begin
@@ -320,6 +343,7 @@ begin
                 if m_River then Result:= Result+1;
                 //if m_Ploughed then Result:= Result+1; //forest cannot be ploughed
                 if m_Special {deer} then Result:= Result+2;
+                if expert then Result:= Result+3;
               end
               else if AGood = gtFur then
               begin
@@ -327,18 +351,21 @@ begin
                 if m_River then Result:= Result+1;
                 if m_Road then Result:= Result+1;
                 if m_Special {deer} then Result:= Result+2;
+                if expert then Result:= Result*2;
               end
               else if AGood = gtWood then
               begin
                 Result:= 4;
                 if m_River then Result:= Result+1;
                 if m_Road then Result:= Result+1;
+                if expert then Result:= Result*2;
               end
               else if AGood = gtOre then
               begin
                 Result:= 1;
                 if m_River then Result:= Result+1;
                 if m_Road then Result:= Result+1;
+                if expert then Result:= Result*2;
               end;
     //"Feuchtwald"
     ttWetland: if AGood = gtFood then
@@ -346,24 +373,28 @@ begin
                  Result:= 2;
                  if m_River then Result:= Result+1;
                  //if m_Ploughed then Result:= Result+1; //forest cannot be ploughed
+                 if expert then Result:= Result+3;
                end
                else if AGood = gtTobacco then
                begin
                  Result:= 1;
                  if m_River then Result:= Result+1;
                  //if m_Ploughed then Result:= Result+1; //forest cannot be ploughed
+                 if expert then Result:= Result*2;
                end
                else if AGood = gtFur then
                begin
                  Result:= 2;
                  if m_River then Result:= Result+2;//yes, it's two instead of one
                  if m_Road then Result:= Result+2;
+                 if expert then Result:= Result*2;
                end
                else if AGood = gtWood then
                begin
                  Result:= 4;
                  if m_River then Result:= Result+2;//yes, it's two instead of one
                  if m_Road then Result:= Result+2;
+                 if expert then Result:= Result*2;
                end
                else if AGood = gtOre then
                begin
@@ -371,6 +402,7 @@ begin
                  if m_River then Result:= Result+1;
                  if m_Road then Result:= Result+1;
                  if m_Special {Minerals} then Result:= Result+3;
+                 if expert then Result:= Result*2;
                end;
     ttScrubForest: if AGood = gtFood then
                    begin
@@ -378,43 +410,51 @@ begin
                      if m_River then Result:= Result+1;
                      //if m_Ploughed then Result:= Result+1; //forest cannot be ploughed
                      if m_Special {Oasis} then Result:= Result+2;
+                     if expert then Result:= Result+3;
                    end
                    else if AGood = gtCotton then
                    begin
                      Result:= 1;
                      if m_River then Result:= Result+1;
                      //if m_Ploughed then Result:= Result+1; //forest cannot be ploughed
+                     if expert then Result:= Result*2;
                    end
                    else if AGood = gtFur then
                    begin
                      Result:= 2;
                      if m_River then Result:= Result+2;//yes, that's two
                      if m_Road then Result:= Result+2;
+                     if expert then Result:= Result*2;
                    end
                    else if AGood = gtWood then
                    begin
                      Result:= 2;
                      if m_River then Result:= Result+2;//yes, that's two
                      if m_Road then Result:= Result+2;
+                     if expert then Result:= Result*2;
                    end
                    else if AGood = gtOre then
                    begin
                      Result:= 1;
                      if m_River then Result:= Result+1;
                      if m_Road then Result:= Result+1;
+                     if expert then Result:= Result*2;
                    end;
     ttBroadleaf: if AGood = gtFood then
                  begin
                    Result:= 2;
                    if m_River then Result:= Result+1;
                    //if m_Ploughed then Result:= Result+1; //forest cannot be ploughed
-                   if m_Special {deer} then Result:= Result+2;
+                   if m_Special {deer} then
+                     if expert then Result:= Result+4
+                     else Result:= Result+2;
+                   if expert then Result:= Result+3;
                  end
                  else if AGood = gtCotton then
                  begin
                    Result:= 1;
                    if m_River then Result:= Result+1;
-                   //if m_Ploughed then Result:= Result+1; //forest cannot be ploughed
+                   if expert then Result:= Result*2;
                  end
                  else if AGood = gtFur then
                  begin
@@ -422,24 +462,27 @@ begin
                    if m_River then Result:= Result+2;//yes, it's two, not one
                    if m_Road then Result:= Result+2;
                    if m_Special {deer} then Result:= Result+2;
+                   if expert then Result:= Result*2;
                  end
                  else if AGood = gtWood then
                  begin
                    Result:= 4;
                    if m_River then Result:= Result+2;//yes, it's two, not one
                    if m_Road then Result:= Result+2;
+                   if expert then Result:= Result*2;
                  end;
     ttMixedForest: if AGood = gtFood then
                    begin
                      Result:= 3;
                      if m_River then Result:= Result+1;
                      //if m_Ploughed then Result:= Result+1; //forest cannot be ploughed
+                     if expert then Result:= Result+3;
                    end
                    else if AGood = gtCotton then
                    begin
                      Result:= 1;
                      if m_River then Result:= Result+1;
-                     //if m_Ploughed then Result:= Result+1; //forest cannot be ploughed
+                     if expert then Result:= Result*2;
                    end
                    else if AGood = gtFur then
                    begin
@@ -447,30 +490,34 @@ begin
                      if m_River then Result:= Result+2;//yes, two :)
                      if m_Road then Result:= Result+2;
                      if m_Special {beaver} then Result:= Result +3;
+                     if expert then Result:= Result*2;
                    end
                    else if AGood = gtWood then
                    begin
                      Result:= 6;
                      if m_River then Result:= Result+2;//yes, two :)
                      if m_Road then Result:= Result+2;
+                     if expert then Result:= Result*2;
                    end;//if
     ttConiferForest: if AGood = gtFood then
                      begin
                        Result:= 2;
                        if m_River then Result:= Result+1;
                        //if m_Ploughed then Result:= Result+1; //forest cannot be ploughed
+                       if expert then Result:= Result+3;
                      end
                      else if AGood = gtTobacco then
                      begin
                        Result:= 1;
                        if m_River then Result:= Result+1;
-                       //if m_Ploughed then Result:= Result+1; //forest cannot be ploughed
+                       if expert then Result:= Result*2;
                      end
                      else if AGood = gtFur then
                      begin
                        Result:= 2;
                        if m_River then Result:= Result+2; //yes, it's a +2
                        if m_Road then Result:= Result+2;
+                       if expert then Result:= Result*2;
                      end
                      else if AGood = gtWood then
                      begin
@@ -478,30 +525,34 @@ begin
                        if m_River then Result:= Result+2; //yes, it's a +2
                        if m_Road then Result:= Result+2;
                        if m_Special {best wood} then Result:= Result+4;
+                       if expert then Result:= Result*2;
                      end;
     ttRainForest: if AGood = gtFood then
                   begin
                     Result:= 2;
                     if m_River then Result:= Result+1;
                     //if m_Ploughed then Result:= Result+1; //forest cannot be ploughed
+                    if expert then Result:= Result+3;
                   end
                   else if AGood = gtSugar then
                   begin
                     Result:= 1;
                     if m_River then Result:= Result+1;
-                    //if m_Ploughed then Result:= Result+1; //forest cannot be ploughed
+                    if expert then Result:= Result*2;
                   end
                   else if AGood = gtFur then
                   begin
                     Result:= 1;
                     if m_River then Result:= Result+2;//a two here
                     if m_Road then Result:= Result+2;
+                    if expert then Result:= Result*2;
                   end
                   else if AGood = gtWood then
                   begin
                     Result:= 4;
                     if m_River then Result:= Result+2;//a two here
                     if m_Road then Result:= Result+2;
+                    if expert then Result:= Result*2;
                   end
                   else if AGood = gtOre then
                   begin
@@ -509,24 +560,27 @@ begin
                     if m_River then Result:= Result+1;
                     if m_Road then Result:= Result+1;
                     if m_Special {Minerals} then Result:= Result+3;
+                    if expert then Result:= Result*2;
                   end;
     ttTropicalForest: if AGood = gtFood then
                       begin
                         Result:= 3;
                         if m_River then Result:= Result+1;
                         //if m_Ploughed then Result:= Result+1; //forest cannot be ploughed
+                        if expert then Result:= Result+3;
                       end
                       else if AGood = gtSugar then
                       begin
                         Result:= 1;
                         if m_River then Result:= Result+1;
-                        //if m_Ploughed then Result:= Result+1; //forest cannot be ploughed
+                        if expert then Result:= Result*2;
                       end
                       else if AGood = gtFur then
                       begin
                         Result:= 2;
                         if m_River then Result:= Result+2;//yes, it's two
                         if m_Road then Result:= Result+2;
+                        if expert then Result:= Result*2;
                       end
                       else if AGood = gtWood then
                       begin
@@ -534,12 +588,14 @@ begin
                         if m_River then Result:= Result+2;//yes, it's two
                         if m_Road then Result:= Result+2;
                         if m_Special {best wood} then Result:= Result+4;
+                        if expert then Result:= Result*2;
                       end;
     ttHills: if AGood = gtFood then
              begin
                Result:= 2;
                if m_River then Result:= Result+1;
                //if m_Ploughed then Result:= Result+1; //hills cannot be ploughed
+               if expert then Result:= Result+3;
              end
              else if AGood = gtOre then
              begin
@@ -547,12 +603,14 @@ begin
                if m_River then Result:= Result+1;
                if m_Road then Result:= Result+1;
                if m_Special {Ore} then Result:= Result+2;
+               if expert then Result:= Result*2;
              end;
     ttMountains: if AGood = gtOre then
                  begin
                    Result:= 4;
                    if m_River then Result:= Result+1;
                    if m_Road then Result:= Result+1;
+                   if expert then Result:= Result*2;
                  end
                  else if AGood = gtSilver then
                  begin
@@ -560,6 +618,7 @@ begin
                    if m_River then Result:= Result+1;
                    if m_Road then Result:= Result+1;
                    if m_Special {Silver} then Result:= Result+4;
+                   if expert then Result:= Result*2;
                  end;
   end;//case
 end;//func
