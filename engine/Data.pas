@@ -29,7 +29,7 @@ const
 type
   TData = class
             private
-              Year: Integer;
+              Year: LongInt;
               Autumn: Boolean;
               Nations: array [cMin_Nations..cMaxIndian] of TNation;
               //the units
@@ -53,10 +53,10 @@ type
               procedure DeInitColonies;
               procedure DeInitUnits;
             public
-              player_nation: Integer;
+              player_nation: LongInt;
               constructor Create;
               destructor Destroy;
-              function GetYear: Integer;
+              function GetYear: LongInt;
               function IsAutumn: Boolean;
               function GetNation(const count: Integer): TNation;
               function GetNationPointer(const count: Integer): PNation;
@@ -170,7 +170,7 @@ begin
   Unit_max:= -1;
 end;//proc
 
-function TData.GetYear: Integer;
+function TData.GetYear: LongInt;
 begin
   Result:= Year;
 end;//func
@@ -569,7 +569,7 @@ begin
   fs:= nil;
   if not Result then
     err:= 'TData.SaveData: Error while writing colony file "'+GetPathBase+save_path +'colony'+IntToStr(n)+'.vcd';
-  
+
   //nations
   try
     fs:= TFileStream.Create(GetPathBase+save_path +'nations'+IntToStr(n)+'.vnd', fmCreate or fmShareDenyNone);
@@ -585,7 +585,7 @@ begin
   fs:= nil;
   if not Result then
     err:= 'TData.SaveData: Error while writing nation file "'+GetPathBase+save_path +'nations'+IntToStr(n)+'.vnd';
-  
+
 end;//func SaveData
 
 function TData.LoadData(const n: Word; var err: string): Boolean;
@@ -785,7 +785,7 @@ begin
     err:= 'TData.LoadData: error while loading colonies.';
     Exit;
   end;//if
-  
+
   //nations
   for i:= cMin_Nations to cMaxIndian do
     if Nations[i]<>nil then
@@ -803,10 +803,13 @@ begin
     Exit;
   end;//tryxcept
   for i:= cMinEuropean to cMaxEuropean do
+  begin
     Result:= Result and LoadNationFromStream(Nations[i], fs);
+    Result:= Result and (Nations[i].GetCount=i);
+  end;//for
   fs.Free;
   fs:= nil;
-    
+
   if not Result then
   begin
     err:= 'TData.LoadData: error while loading nations.';
@@ -1005,7 +1008,7 @@ function TData.GetSaveInfo(const n: Word): string;
 var fs: TFileStream;
     status, temp_Autumn: Boolean;
     temp_str: string;
-    temp_Year, temp_nation, temp_len: Integer;
+    temp_Year, temp_nation, temp_len: LongInt;
 begin
   if ((n=0) or not FileExists(GetPathBase+save_path +'data'+IntToStr(n)+'.vdd')) then
     Result:= '('+lang.GetOthers(osEmpty)+')'
@@ -1098,7 +1101,7 @@ begin
   for i:= Ord(gtFood) to Ord(gtSilver) do
   begin
     Result[i]:= lang.GetUnitName(GetUnitForGood(TGoodType(i)))+':  '
-               +IntToStr(m_Map.tiles[ACol.GetPosX+x_shift,ACol.GetPosY+y_shift].GetGoodProduction(TGoodType(i)))
+               +IntToStr(m_Map.tiles[ACol.GetPosX+x_shift,ACol.GetPosY+y_shift].GetGoodProduction(TGoodType(i), HasExpertStatus(TGoodType(i), UnitType)))
                +' '+lang.GetGoodName(TGoodType(i));
   end;//for
 end;//func

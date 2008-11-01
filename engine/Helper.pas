@@ -24,6 +24,7 @@ type
   function ToShortStrArr(const s1: ShortString; const arr: TShortStrArr): TShortStrArr; overload;
   function SpaceString(const len: Byte): string;
   function Trim(const str1: AnsiString): AnsiString;
+  function StretchTo59(const s1, s2: ShortString): ShortString;
 
   function Min(const a,b: Integer): Integer; overload;
   function Min(const a,b: Double): Double; overload;
@@ -103,6 +104,14 @@ begin
     while str1[len] <= ' ' do Dec(len);
     Result := copy(str1, i, len-i+1);
   end;//else
+end;//func
+
+function StretchTo59(const s1, s2: ShortString): ShortString;
+begin
+  Result:= Trim(s1);
+  if length(Result)+length(Trim(s2))<59 then
+    Result:= Result+SpaceString(59-length(Result)-length(Trim(s2)))+Trim(s2)
+  else Result:= Result +' '+Trim(s2);
 end;//func
 
 function Min(const a,b: Integer): Integer; overload;

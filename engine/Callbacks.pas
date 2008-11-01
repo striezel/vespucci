@@ -15,6 +15,7 @@ const
   CBT_JOB_CHANGE = 6;
   CBT_EURO_PORT_UNIT = 7;
   CBT_EURO_PORT_BUY = 8;
+  CBT_EURO_PORT_TRAIN = 9;
 
 type
   TExitCallback = procedure (const option: Integer);
@@ -53,6 +54,10 @@ type
                    AData: TData;
                    EuroNat: TEuropeanNation;
                  end;//rec
+  TEuroTrainData = record
+                     AData: TData;
+                     EuroNat: TEuropeanNation;
+                   end;//rec
 
   TCallbackRec = record
                    option: Integer;
@@ -68,6 +73,7 @@ type
                      6: (JobChange: TJobChangeData);
                      7: (EuroPort: TEuroPortUnitData);
                      8: (EuroBuy: TEuroBuyData);
+                     9: (EuroTrain: TEuroTrainData);
                  end;//rec
 
 const
@@ -245,6 +251,43 @@ begin
   end;//if
 end;//func
 
+function CBF_EuroPortTrain(const option: Integer; AData: TData; EuroNat: TEuropeanNation): Boolean;
+var train_unit: TUnitType;
+    new_unit: TUnit;
+begin
+  Result:= False;
+  if (EuroNat=nil) or (AData=nil) or (option=0) then Exit;
+  case option of
+    1: train_unit:= utFarmer;
+    2: train_unit:= utFisher;
+    3: train_unit:= utSilverMiner;
+    4: train_unit:= utWoodcutter;
+    5: train_unit:= utOreMiner;
+    6: train_unit:= utPreacher;
+    7: train_unit:= utStatesman;
+    8: train_unit:= utCarpenter;
+    9: train_unit:= utDistiller;
+    10: train_unit:= utWeaver;
+    11: train_unit:= utTobacconist;
+    12: train_unit:= utFurTrader;
+    13: train_unit:= utSmith;
+    14: train_unit:= utWeaponSmith;
+    15: train_unit:= utPioneer;
+    16: train_unit:= utMissionary;
+    17: train_unit:= utRegular;
+  else train_unit:= utCriminal;//should not happen here
+  end;//case
+  if train_unit=utCriminal then Exit;
+  if EuroNat.GetGold>cUnitPrices[train_unit] then
+  begin
+    new_unit:= AData.NewUnit(train_unit, EuroNat.GetCount, cMap_X-1, cMap_Y div 2);
+    new_unit.SetLocation(ulEurope);
+    new_unit.SetState(usWaitingForShip);
+    EuroNat.DecreaseGold(cUnitPrices[train_unit]);
+    Result:= True;
+  end;//if
+end;//func
+
 function HandleCallback(const cbRec: TCallbackRec): Boolean;
 begin
   case cbRec._type of
@@ -265,8 +308,9 @@ begin
     CBT_JOB_CHANGE: Result:= CBF_JobChange(cbRec.option, cbRec);
     CBT_EURO_PORT_UNIT: Result:= CBF_EuroPortUnit(cbRec.option, cbRec.EuroPort.AUnit, cbRec.EuroPort.EuroNat);
     CBT_EURO_PORT_BUY: Result:= CBF_EuroPortBuy(cbRec.option, cbRec.EuroBuy.AData, cbRec.EuroBuy.EuroNat);
+    CBT_EURO_PORT_TRAIN: Result:= CBF_EuroPortTrain(cbRec.option, cbRec.EuroTrain.AData, cbRec.EuroTrain.EuroNat);
   else
-    Result:= False; //unknown callback type or type not supported
+    Result:= False; //unknown callback type or type not supported/ implemented
   end;//case
 end;//proc
 
