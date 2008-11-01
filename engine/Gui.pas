@@ -322,10 +322,9 @@ begin
   passenger:= dat.NewUnit(utColonist, dat.player_nation, 36, 13);
   passenger.GiveTools(100);
   Ship.LoadUnit(passenger);
-  
-  
-  dat.NewUnit(utScout, dat.player_nation, 26, 11);
-  
+  passenger:= dat.NewUnit(utRegular, dat.player_nation, 36, 13);
+  Ship.LoadUnit(passenger);
+
   menu_cat:= mcNone;
   selected_menu_option:= 1;
   report:= rtNone;
@@ -342,9 +341,7 @@ begin
   msg_queue.last:= nil;
 
   ptrGui:= @self;
-  {//wait until we have texture for regulars
-  passenger:= dat.NewUnit(utRegular, dat.player_nation, 36, 13);
-  Ship.LoadUnit(passenger);}
+
   //set texture names to "empty" and then load them
   glEnable(GL_TEXTURE_2D);
   //terrain textures
@@ -1514,9 +1511,9 @@ begin
   DrawPeopleInEurope(Colonists);
   DrawExpectedSoon(Expected);
   DrawShipsToNewWorld(NewWorld);
-  
+
   DrawEuropeButtons;
-  
+
   DrawGoodDraggedFromBar;
 end;//proc
 

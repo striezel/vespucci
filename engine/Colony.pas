@@ -26,7 +26,7 @@ type
 
   TColony = class(TSettlement)
     public
-      constructor Create(const X, Y: Integer; const ANation: Integer; const AName: string);
+      constructor Create(const X, Y: Integer; const ANation: LongInt; const AName: string);
       destructor Destroy;
       function GetName: string;
       procedure SetName(const new_name: string);
@@ -58,7 +58,7 @@ type
                                                       end;//rec
   end;//class
   PColony = ^TColony;
-  
+
   TColonyArr = array of TColony;
 
 implementation
