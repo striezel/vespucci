@@ -3,7 +3,7 @@ unit Data;
 interface
 
 uses
-  Nation, Language, Units, Colony, Map, Goods, Classes, SysUtils, Helper;
+  Nation, Language, Units, Colony, Tribe, Map, Goods, Classes, SysUtils, Helper;
 
 const
 {$IFDEF Win32}
@@ -19,6 +19,7 @@ const
   unit_img_path = img_path+'units'+path_delimiter;
   state_img_path = unit_img_path+'state'+path_delimiter;
   colony_img_path = img_path+'colony'+path_delimiter;
+  tribe_img_path = img_path+'tribe'+path_delimiter;
   save_path = data_path+'saves'+path_delimiter;
 
   cDataFileHeader = 'VDD';
@@ -38,6 +39,9 @@ type
               //the colonies
               m_Colonies: array of TColony;
               Colony_max: Integer;
+              //the tribes
+              m_Tribes: array of TTribe;
+              Tribe_max: Integer;
               //map
               m_Map: TMap;
               //language
@@ -50,7 +54,9 @@ type
               function LoadNationFromStream(var ANat: TNation; var fs: TFileStream): Boolean;
               procedure InitializeNations;
               procedure InitializeMap;
+              procedure InitTribes_America;
               procedure DeInitColonies;
+              procedure DeInitTribes;
               procedure DeInitUnits;
             public
               player_nation: LongInt;
@@ -75,6 +81,10 @@ type
               function NewColony(const x,y: Byte; const num_Nation: Integer; const AName: ShortString): TColony;
               function GetColonyInXY(const x,y: Byte): TColony;
               function GetColonyList(const num_nation: Integer): TColonyArr;
+              //tribes
+              function NewTribe(const x,y: Byte; const num_Nation: Integer; const Teaches: TUnitType): TTribe;
+              function GetTribeInXY(const x,y: Byte): TTribe;
+              //general (settlements)
               function FreeForSettlement(const x,y:Byte): Boolean;
               //others
               procedure NewRound(const num_Nation: Integer);
@@ -108,6 +118,9 @@ begin
   //colonies
   SetLength(m_Colonies, 0);
   Colony_max:= -1;
+  //tribes
+  SetLength(m_Tribes, 0);
+  Tribe_max:= -1;
   InitializeMap;
 end;//construc
 
@@ -117,6 +130,7 @@ begin
   for i:= cMin_Nations to cMaxIndian do
     if Nations[i]<>nil then Nations[i].Destroy;
   DeInitColonies;
+  DeInitTribes;
   DeInitUnits;
   lang.Destroy;
   m_Map.Destroy;
@@ -133,13 +147,25 @@ begin
     Nations[i]:= TIndianNation.Create(i, lang.GetNationName(i));
 end;//proc
 
+procedure TData.InitTribes_America;
+var i: Integer;
+begin
+  for i:= 0 to High(cTribeLocationsAmerica) do
+  begin
+    NewTribe(cTribeLocationsAmerica[i].x, cTribeLocationsAmerica[i].y, cTribeLocationsAmerica[i].Nation, utSugarPlanter);
+  end;//for
+end;//proc
+
 procedure TData.InitializeMap;
 begin
   m_Map:= TMap.Create;
   if FileExists(GetPathBase+america_map_path) then
   begin
     if m_Map.LoadFromFile(GetPathBase+america_map_path) then
-      WriteLn('Map "'+GetPathBase+america_map_path+'" successfully loaded.')
+    begin
+      WriteLn('Map "'+GetPathBase+america_map_path+'" successfully loaded.');
+      InitTribes_America;
+    end//if
     else begin
       WriteLn('Couldn''t load map file "'+GetPathBase+america_map_path+'" properly. Using generation routine instead.');
       m_Map.Generate(0.7);
@@ -159,6 +185,15 @@ begin
     if m_Colonies[i]<>nil then m_Colonies[i].Destroy;
   SetLength(m_Colonies, 0);
   Colony_max:= -1;
+end;//proc
+
+procedure TData.DeInitTribes;
+var i: Integer;
+begin
+  for i:= Tribe_max downto 0 do
+    if m_Tribes[i]<>nil then m_Tribes[i].Destroy;
+  SetLength(m_Tribes, 0);
+  Tribe_max:= -1;
 end;//proc
 
 procedure TData.DeInitUnits;
@@ -413,6 +448,34 @@ begin
     end;//if <>nil
 end;//func
 
+function TData.NewTribe(const x,y: Byte; const num_Nation: Integer; const Teaches: TUnitType): TTribe;
+var i: Integer;
+begin
+  if (Tribe_max+1>High(m_Tribes)) then
+  begin
+    SetLength(m_Tribes, High(m_Tribes)+5);
+    //"initialize" new tribes
+    for i:=Tribe_max+1 to High(m_Tribes) do
+      m_Tribes[i]:= nil;
+  end;//if
+  m_Tribes[Tribe_max+1]:= TTribe.Create(x, y, num_nation, Teaches);
+  Tribe_max:= Tribe_max+1;
+  Result:= m_Tribes[Tribe_max];
+end;//func
+
+function TData.GetTribeInXY(const x,y: Byte): TTribe;
+var i: Integer;
+begin
+  Result:= nil;
+  for i:= 0 to Tribe_max do
+    if m_Tribes[i]<>nil then
+      if ((m_Tribes[i].GetPosX=x) and (m_Tribes[i].GetPosY=y)) then
+      begin
+        Result:= m_Tribes[i];
+        break;
+      end;//if
+end;//func
+
 function TData.FreeForSettlement(const x,y:Byte): Boolean;
 var i,j: Integer;
 begin
@@ -597,6 +660,7 @@ var fs: TFileStream;
     temp_colony: TColony;
 begin
   Result:= False;
+  DeInitTribes;
   if m_Map=nil then InitializeMap;
   if not DirectoryExists(GetPathBase+save_path) then
   begin

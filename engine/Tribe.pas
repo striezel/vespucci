@@ -5,6 +5,30 @@ interface
 uses
   Settlement, Nation, Units;
 
+const
+  cTribeLocationsAmerica: array [0..12] of record
+                     Nation: LongInt;
+                     x,y: Byte;
+                   end //rec
+    =(
+      (Nation: cNationAztec ; x: 11; y: 23;),
+      (Nation: cNationAztec ; x: 16; y: 26;),
+      (Nation: cNationAztec ; x: 23; y: 27;),
+      (Nation: cNationAztec ; x: 25; y: 33;),
+      
+      (Nation: cNationInca ; x: 26; y: 42;),
+      (Nation: cNationInca ; x: 34; y: 59;),
+      (Nation: cNationInca ; x: 34; y: 65;),
+      (Nation: cNationInca ; x: 35; y: 51;),
+      (Nation: cNationInca ; x: 36; y: 55;),
+      
+      (Nation: cNationCherokee ; x: 20; y: 20;),
+      (Nation: cNationCherokee ; x: 21; y: 17;),
+      (Nation: cNationCherokee ; x: 24; y: 19;),
+      (Nation: cNationCherokee ; x: 27; y: 22;)
+    );
+    
+
 type
   TTribe = class(TSettlement)
     public

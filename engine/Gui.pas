@@ -3,8 +3,8 @@ unit Gui;
 interface
 
 uses
-  Map, Data, GL, {GLU,} GLUT, Terrain, Language, Colony, Nation, Goods, Units,
-  SysUtils, BitmapReader, Callbacks, Helper, ErrorTexture;
+  Map, Data, GL, {GLU,} GLUT, Terrain, Language, Colony, Tribe, Nation, Goods,
+  Units, SysUtils, BitmapReader, Callbacks, Helper, ErrorTexture;
 
 const
   x_Fields = 15;
@@ -146,6 +146,17 @@ const
   cColonyTexNames: array [0..0] of string =(
        'colony.bmp' //normal colony
     );
+  
+  cTribeTexNames: array [cMinIndian..cMaxIndian] of string =(
+       'tents.bmp', //cNationArawak
+       'aztec.bmp', //cNationAztec
+       'inca.bmp', //cNationInca
+       'tents.bmp', //cNationTupi
+       'tents.bmp', //cNationCherokee
+       'tents.bmp', //cNationIroquois
+       'tents.bmp', //cNationSioux
+       'tents.bmp' //cNationApache
+    );
 
   cWindowCaption = 'Vespucci v0.01';
 
@@ -218,10 +229,12 @@ type
       m_GoodTexNames: array [TGoodType] of GLuint;
       //unit texture "names" (as in OpenGL names)
       m_UnitTexNames: array [TUnitType] of GLuint;
-      //colony texture "names" ( " " " " )
-      m_ColonyTexNames: array [0..0] of GLuint;
       //state icon "names" (as in OpenGL names)
       m_StateTexNames: array[TUnitState] of GLuint;
+      //colony texture "names" ( " " " " )
+      m_ColonyTexNames: array [0..0] of GLuint;
+      //Tribe texture "names" ( " " " " )
+      m_TribeTexNames: array [cMinIndian..cMaxIndian] of GLuint;
       //Error Texture (yellow sign with black "!" on it)
       m_ErrorTexName: GLuint;
 
@@ -425,6 +438,48 @@ begin
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   end;//if
+  //tribe textures
+  for i:= cMinIndian to cMaxIndian do
+    m_TribeTexNames[i]:= 0;
+  if ReadBitmapToArr32RGB(dat.GetPathBase+tribe_img_path+cTribeTexNames[cNationCherokee], tempTex, err_str) then
+  begin
+    //change order of color components from blue, green, red (as in file) to
+    //  red, green, blue (as needed for GL)
+    SwapRGB_To_BGR(tempTex);
+    GetAlphaByColor(tempTex, AlphaTex);
+    glGenTextures(1, @m_TribeTexNames[cNationCherokee]);
+    glBindTexture(GL_TEXTURE_2D, m_TribeTexNames[cNationCherokee]);
+    glTexImage2D(GL_TEXTURE_2D, 0, 4, 32, 32, 0, GL_RGBA, GL_UNSIGNED_BYTE, @AlphaTex[0].r);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    for i:= cMinIndian to cMaxIndian do
+      m_TribeTexNames[i]:= m_TribeTexNames[cNationCherokee];
+  end;//if
+  if ReadBitmapToArr32RGB(dat.GetPathBase+tribe_img_path+cTribeTexNames[cNationAztec], tempTex, err_str) then
+  begin
+    //change order of color components from blue, green, red (as in file) to
+    //  red, green, blue (as needed for GL)
+    SwapRGB_To_BGR(tempTex);
+    GetAlphaByColor(tempTex, AlphaTex);
+    glGenTextures(1, @m_TribeTexNames[cNationAztec]);
+    glBindTexture(GL_TEXTURE_2D, m_TribeTexNames[cNationAztec]);
+    glTexImage2D(GL_TEXTURE_2D, 0, 4, 32, 32, 0, GL_RGBA, GL_UNSIGNED_BYTE, @AlphaTex[0].r);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  end;
+  if ReadBitmapToArr32RGB(dat.GetPathBase+tribe_img_path+cTribeTexNames[cNationInca], tempTex, err_str) then
+  begin
+    //change order of color components from blue, green, red (as in file) to
+    //  red, green, blue (as needed for GL)
+    SwapRGB_To_BGR(tempTex);
+    GetAlphaByColor(tempTex, AlphaTex);
+    glGenTextures(1, @m_TribeTexNames[cNationInca]);
+    glBindTexture(GL_TEXTURE_2D, m_TribeTexNames[cNationInca]);
+    glTexImage2D(GL_TEXTURE_2D, 0, 4, 32, 32, 0, GL_RGBA, GL_UNSIGNED_BYTE, @AlphaTex[0].r);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  end;
+
   //error texture
   m_ErrorTexName:= 0;
   GetAlphaByColor(cErrorTex, AlphaTex);
@@ -1134,6 +1189,7 @@ procedure TGui.Draw;
 var i, j: Integer;
     tempUnit: TUnit;
     tempColony: TColony;
+    tempTribe: TTribe;
     tempMap: TMap;
 begin
   {$IFDEF DEBUG_CODE}
@@ -1287,7 +1343,35 @@ begin
             glDisable(GL_ALPHA_TEST);
             glDisable(GL_TEXTURE_2D);
           end;//if
-        end;//if
+        end//if
+        else begin
+          tempTribe:= dat.GetTribeInXY(i,j);
+          if tempTribe<>nil then
+          begin
+            if tempTribe.GetNation in [cMinIndian..cMaxIndian] then
+            begin
+              if (m_TribeTexNames[tempTribe.GetNation]<>0) then
+              begin
+                glEnable(GL_TEXTURE_2D);
+                glEnable(GL_ALPHA_TEST);
+                glBindTexture(GL_TEXTURE_2D, m_TribeTexNames[tempTribe.GetNation]);
+                glBegin(GL_QUADS);
+                  glColor3f(1.0, 1.0, 1.0);
+                  glTexCoord2f(0.0, 1.0);
+                  glVertex2f(i-OffsetX, -j+y_Fields+OffsetY);//j: f(j)=-j+y_Fields+OffsetY
+                  glTexCoord2f(0.0, 0.0);
+                  glVertex2f(i-OffsetX, -j-1+y_Fields+OffsetY);//j+1
+                  glTexCoord2f(1.0, 0.0);
+                  glVertex2f(i-OffsetX+1, -j-1+y_Fields+OffsetY);//j+1
+                  glTexCoord2f(1.0, 1.0);
+                  glVertex2f(i-OffsetX+1, -j+y_Fields+OffsetY);//j
+                glEnd;
+                glDisable(GL_ALPHA_TEST);
+                glDisable(GL_TEXTURE_2D);
+              end;//if
+            end;//if
+          end;//if
+        end;//else
       end;//for
     //end of map
 
