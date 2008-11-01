@@ -3,12 +3,12 @@ unit Tribe;
 interface
 
 uses
-  Settlement, Nation, Units, MsgSys;
+  Settlement, Nation, Units;
 
 type
   TTribe = class(TSettlement)
     public
-      constructor Create(const X, Y: Integer; const ANation: Integer; KnownFor: TUnitType);
+      constructor Create(const X, Y: Integer; const ANation: LongInt; KnownFor: TUnitType);
       procedure Teach(var AUnit: TUnit);
     private
       m_KnownFor: TUnitType;
@@ -20,8 +20,8 @@ implementation
 
 // **** TTribe functions ****
 
-constructor TTribe.Create(const X, Y: Integer; const ANation: Integer; KnownFor: TUnitType);
-var i: Integer;
+constructor TTribe.Create(const X, Y: Integer; const ANation: LongInt; KnownFor: TUnitType);
+var i: LongInt;
 begin
   //sets Nation and position
   inherited Create(X, Y, ANation);

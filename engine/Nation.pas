@@ -3,7 +3,7 @@ unit Nation;
 interface
 
 uses
-  Goods;
+  Goods, Classes;
 
 const
   cMin_Nations = 1;
@@ -49,21 +49,22 @@ type
 
   TNation = class
     private
-      m_count: Integer;
+      m_count: LongInt;
       m_NameStr: string;
     public
-      constructor Create(const num: Integer; const NameStr: string);
+      constructor Create(const num: LongInt; const NameStr: string);
       destructor Destroy;
       function IsIndian: Boolean; virtual; abstract;
       function IsEuropean: Boolean; virtual; abstract;
-      function GetCount: Integer;
+      function GetCount: LongInt;
       function GetName: string;
+      function SaveToStream(var fs: TFileStream): Boolean; virtual;
   end;//class
   PNation = ^TNation;
 
   TIndianNation = class(TNation)
     public
-      constructor Create(const num: Integer; const NameStr: string);
+      constructor Create(const num: LongInt; const NameStr: string);
       function IsIndian: Boolean; override;
       function IsEuropean: Boolean; override;
   end;//class
@@ -74,13 +75,13 @@ type
       //Name of nation's leader
       m_Leader: string;
       //amount of gold owned by this nation
-      m_Gold: Integer;
+      m_Gold: LongInt;
       //tax rate (in %) for this nation
       m_TaxRate: Byte; //can't be more than 100% ;) so a Byte will do
       m_Boycotted: array [TGoodType] of Boolean;
       m_Prices: array [TGoodType] of Byte;
     public
-      constructor Create(const num: Integer; const NameStr: string;
+      constructor Create(const num: LongInt; const NameStr: string;
                          const NameOfLeader: string);
       destructor Destroy;
 
@@ -97,8 +98,8 @@ type
       procedure DoBoycott(const AGood: TGoodType);
       procedure UndoBoycott(const AGood: TGoodType);
 
-      function GetGold: Integer;
-      procedure DecreaseGold(const amount: Integer);
+      function GetGold: LongInt;
+      procedure DecreaseGold(const amount: LongInt);
       function GetPrice(const AGood: TGoodType; low: Boolean): Byte;
       //increases price if good, if below upper limit
       procedure AdvancePrice(const AGood: TGoodType);
@@ -107,6 +108,8 @@ type
       //functions to buy and sell goods, just does the gold-related stuff
       function BuyGood(const AGood: TGoodType; const num: Byte): Boolean;
       function SellGood(const AGood: TGoodType; const num: Byte): Boolean;
+      
+      function SaveToStream(var fs: TFileStream): Boolean; override;
   end;//class
   PEuropeanNation = ^TEuropeanNation;
 
@@ -114,7 +117,7 @@ implementation
 
 //**** functions of TNation ****
 
-constructor TNation.Create(const num: Integer; const NameStr: string);
+constructor TNation.Create(const num: LongInt; const NameStr: string);
 begin
   m_count:= num;
   m_NameStr:= NameStr;
@@ -130,15 +133,26 @@ begin
   Result:= m_NameStr;
 end;//func
 
-function TNation.GetCount: Integer;
+function TNation.GetCount: LongInt;
 begin
   Result:= m_count;
+end;//func
+
+function TNation.SaveToStream(var fs: TFileStream): Boolean;
+var i: LongInt;
+begin
+  Result:= False;
+  if fs=nil then Exit;
+  Result:= (fs.Write(m_Count, sizeof(LongInt))=sizeof(LongInt));
+  i:= length(m_NameStr);
+  Result:= Result and (fs.Write(i, sizeof(LongInt))=sizeof(LongInt));
+  Result:= Result and (fs.Write(m_NameStr[1], length(m_NameStr))=length(m_NameStr));
 end;//func
 
 
 // **** functions of TIndianNation ****
 
-constructor TIndianNation.Create(const num: Integer; const NameStr: string);
+constructor TIndianNation.Create(const num: LongInt; const NameStr: string);
 begin
   inherited Create(num, NameStr);
   //check number and pick a default in case of invalidity
@@ -159,7 +173,7 @@ end;//func
 
 //**** functions of TEuropeanNation ****
 
-constructor TEuropeanNation.Create(const num: Integer; const NameStr: string;
+constructor TEuropeanNation.Create(const num: LongInt; const NameStr: string;
                                    const NameOfLeader: string);
 var gt: TGoodType;
 begin
@@ -237,7 +251,7 @@ begin
   Result:= m_Gold;
 end;//func
 
-procedure TEuropeanNation.DecreaseGold(const amount: Integer);
+procedure TEuropeanNation.DecreaseGold(const amount: LongInt);
 begin
   if m_Gold>amount then m_Gold:= m_Gold - amount
   else m_Gold:= 0;
@@ -289,6 +303,27 @@ begin
     //should display message about gain & tax to the player -> GUI
     Result:= True;
   end;//else
+end;//func
+
+function TEuropeanNation.SaveToStream(var fs: TFileStream): Boolean;
+var i: LongInt;
+begin
+  Result:= False;
+  if fs=nil then Exit;
+  Result:= (fs.Write(m_Count, sizeof(LongInt))=sizeof(LongInt));
+  i:= length(m_NameStr);
+  Result:= Result and (fs.Write(i, sizeof(LongInt))=sizeof(LongInt));
+  Result:= Result and (fs.Write(m_NameStr[1], length(m_NameStr))=length(m_NameStr));
+  i:= length(m_Leader);
+  Result:= Result and (fs.Write(i, sizeof(LongInt))=sizeof(LongInt));
+  Result:= Result and (fs.Write(m_Leader[1], length(m_Leader))=length(m_Leader));
+  Result:= Result and (fs.Write(m_Gold, sizeof(LongInt))=sizeof(LongInt));
+  Result:= Result and (fs.Write(m_TaxRate, sizeof(Byte))=sizeof(Byte));
+  for i:= Ord(Low(TGoodType)) to Ord(High(TGoodType)) do
+  begin
+    Result:= Result and (fs.Write(m_Boycotted[TGoodType(i)], sizeof(Boolean))=sizeof(Boolean));
+    Result:= Result and (fs.Write(m_Prices[TGoodType(i)], sizeof(Byte))=sizeof(Byte));
+  end;//for
 end;//func
 
 end.

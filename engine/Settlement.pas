@@ -5,15 +5,15 @@ interface
 type
   TSettlement = class
     public
-      constructor Create(const X, Y: Integer; const ANation: Integer);
+      constructor Create(const X, Y: Integer; const ANation: LongInt);
       destructor Destroy;
-      function GetNation: Integer;
-      procedure ChangeNation(const new_nation: Integer);
+      function GetNation: LongInt;
+      procedure ChangeNation(const new_nation: LongInt);
       function GetPosX: Integer;
       function GetPosY: Integer;
       procedure SetPosition(const x,y: Integer);
     protected
-      m_Nation: Integer;
+      m_Nation: LongInt;
       PosX, PosY: Integer;
   end;//class
   PSettlement = ^TSettlement;
@@ -22,7 +22,7 @@ implementation
 
 // **** TSettlement functions ****
 
-constructor TSettlement.Create(const X, Y: Integer; const ANation: Integer);
+constructor TSettlement.Create(const X, Y: Integer; const ANation: LongInt);
 begin
   //no settlements outside of range or at border row/column (index: 0) allowed
   if X>0 then PosX:= X else PosX:= 1;
@@ -35,12 +35,12 @@ begin
   inherited Destroy;
 end;//destruc
 
-function TSettlement.GetNation: Integer;
+function TSettlement.GetNation: LongInt;
 begin
   Result:= m_Nation;
 end;//func
 
-procedure TSettlement.ChangeNation(const new_nation: Integer);
+procedure TSettlement.ChangeNation(const new_nation: LongInt);
 begin
   if new_nation>=0 then m_Nation:= new_nation;
 end;//proc
