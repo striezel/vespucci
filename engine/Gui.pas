@@ -146,7 +146,7 @@ const
   cColonyTexNames: array [0..0] of string =(
        'colony.bmp' //normal colony
     );
-  
+
   cTribeTexNames: array [cMinIndian..cMaxIndian] of string =(
        'tents.bmp', //cNationArawak
        'aztec.bmp', //cNationAztec
@@ -2486,7 +2486,7 @@ begin
   if europe<>nil then
   begin
     with dat.GetLang do
-      s:= GetNationName(dat.player_nation)+'. '+GetSeason(dat.IsAutumn)+' '+IntToStr(dat.GetYear)
+      s:= GetPortName(europe.GetCount)+', '+GetNationName(europe.GetCount)+'. '+GetSeason(dat.IsAutumn)+' '+IntToStr(dat.GetYear)
         +'. '+GetOthers(osTax)+': '+IntToStr(europe.GetTaxRate)+'. '+GetOthers(osGold)+': '+IntToStr(europe.GetGold)+'°';
     glColor3ubv(@cMenuTextColour[0]);
     WriteText(s, ((cWindowWidth-8*length(s)) div 2)*PixelWidth, 12.0+5.0*PixelWidth);

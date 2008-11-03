@@ -483,11 +483,12 @@ begin
   for i:= x-2 to x+2 do
     for j:= y-2 to y+2 do
       if ((i>=0) and (j>=0)) then
-        if (GetColonyInXY(i,j)<>nil) or ((i=x) and (j=y) and (GetTribeInXY(i,j)<>nil)) then
+        if (GetColonyInXY(i,j)<>nil) then
         begin
           Result:= False;
           Exit; //maybe simple "break;" won't do - we are in a "double loop"
         end;//if
+  if (GetTribeInXY(x,y)<>nil) then Result:= False;
 end;//func
 
 procedure TData.NewRound(const num_Nation: Integer);
