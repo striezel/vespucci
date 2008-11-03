@@ -99,6 +99,7 @@ type
       function FreeCapacity: Byte;
       function EmbarkedPassengers: Byte;
       function GetFirstEmbarkedPassenger: TUnit;
+      function GetPassengerBySlot(const slot: Byte): TUnit;
       function LoadGood(const AGood: TGoodType; const num: Byte): Boolean;
       function UnloadGood(const AGood: TGoodType; const num: Byte): Byte;
       function LoadUnit(AUnit: TUnit): Boolean;
@@ -193,6 +194,8 @@ type
       destructor Destroy; override;
       function Done: Boolean; override;
       function Execute: Boolean; override;
+      function DestinationX: Byte;
+      function DestinationY: Byte;
   end;//class
 
   procedure ApplyDir(var x,y: Byte; const dir: TDirection);
@@ -562,10 +565,16 @@ function TUnit.GetFirstEmbarkedPassenger: TUnit;
 var i: Integer;
 begin
   Result:= nil;
-  for i:= 0 to 5 do
+  for i:= 5 downto 0 do
   begin
     if passengers[i]<>nil then Result:= passengers[i];
   end;//for
+end;//func
+
+function TUnit.GetPassengerBySlot(const slot: Byte): TUnit;
+begin
+  if slot>5 then Result:= nil
+  else Result:= passengers[slot];
 end;//func
 
 {*tries to load num units of good 'AGood'; maximum is 100
@@ -935,6 +944,16 @@ begin
     end//if
     else SetLength(m_Path, length(m_Path)-1); //remove last waypoint
   end;//while
+end;//func
+
+function TGoToTask.DestinationX: Byte;
+begin
+  Result:= m_X;
+end;//func
+
+function TGoToTask.DestinationY: Byte;
+begin
+  Result:= m_Y;
 end;//func
 
 destructor TGoToTask.Destroy;

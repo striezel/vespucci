@@ -3,7 +3,7 @@ unit Gui;
 interface
 
 uses
-  Map, Data, GL, {GLU,} GLUT, Terrain, Language, Colony, Tribe, Nation, Goods,
+  Map, Data, GL, GLUT, Terrain, Language, Colony, Tribe, Nation, Goods,
   Units, SysUtils, BitmapReader, Callbacks, Helper, ErrorTexture;
 
 const
@@ -23,6 +23,8 @@ const
 
   cShipsInExpectedSoon = 5;
   cShipsInToNewWorld = 5;
+  
+  cFleetReportUnitsPerPage = y_Fields-2;
 
   BorderWidth: Single = 0.0625; // =1/16, i.e. 2px
   BorderColour: array[0..2] of Byte = (0,0,0); //black
@@ -1959,77 +1961,186 @@ begin
 end;//proc
 
 procedure TGui.DrawReport;
-var i, j: Integer;
+var i, j, freight_offset: Integer;
     col_arr: TColonyArr;
+    u_arr: TUnitArr;
 begin
-  //only economy implemented yet
-  if report<>rtEconomy then Exit;
-  col_arr:= dat.GetColonyList(dat.player_nation);
+  //only economy and fleet implemented yet
+  case Report of
+    rtEconomy: begin
+                 col_arr:= dat.GetColonyList(dat.player_nation);
 
-  //draw good icons
-  glEnable(GL_TEXTURE_2D);
-  glEnable(GL_ALPHA_TEST);
-  glColor3f(1.0, 1.0, 1.0);
-  for i:= Ord(gtFood) to Ord(gtMusket) do
-  begin
-    if m_GoodTexNames[TGoodType(i)]<>0 then glBindTexture(GL_TEXTURE_2D, m_GoodTexNames[TGoodType(i)])
-    else glBindTexture(GL_TEXTURE_2D, m_ErrorTexName);
-    glBegin(GL_QUADS);
-      glTexCoord2f(0.0, 0.0);
-      glVertex2f(4+i-Ord(gtFood), y_Fields-2);
-      glTexCoord2f(1.0, 0.0);
-      glVertex2f(4+i-Ord(gtFood)+1, y_Fields-2);
-      glTexCoord2f(1.0, 1.0);
-      glVertex2f(4+i-Ord(gtFood)+1, y_Fields-1);
-      glTexCoord2f(0.0, 1.0);
-      glVertex2f(4+i-Ord(gtFood), y_Fields-1);
-    glEnd;
-  end;//for
-  glDisable(GL_ALPHA_TEST);
-  glDisable(GL_TEXTURE_2D);
+                 //draw good icons
+                 glEnable(GL_TEXTURE_2D);
+                 glEnable(GL_ALPHA_TEST);
+                 glColor3f(1.0, 1.0, 1.0);
+                 for i:= Ord(gtFood) to Ord(gtMusket) do
+                 begin
+                   if m_GoodTexNames[TGoodType(i)]<>0 then glBindTexture(GL_TEXTURE_2D, m_GoodTexNames[TGoodType(i)])
+                   else glBindTexture(GL_TEXTURE_2D, m_ErrorTexName);
+                   glBegin(GL_QUADS);
+                     glTexCoord2f(0.0, 0.0);
+                     glVertex2f(4+i-Ord(gtFood), y_Fields-2);
+                     glTexCoord2f(1.0, 0.0);
+                     glVertex2f(4+i-Ord(gtFood)+1, y_Fields-2);
+                     glTexCoord2f(1.0, 1.0);
+                     glVertex2f(4+i-Ord(gtFood)+1, y_Fields-1);
+                     glTexCoord2f(0.0, 1.0);
+                     glVertex2f(4+i-Ord(gtFood), y_Fields-1);
+                   glEnd;
+                 end;//for
+                 glDisable(GL_ALPHA_TEST);
+                 glDisable(GL_TEXTURE_2D);
 
-  //seperating lines
-  glColor3f(0.0, 0.0, 0.0);
-  glLineWidth(2.0);
-  glBegin(GL_LINES);
-    for i:= y_Fields-2 downto 1 do
-    begin
-      glVertex2f(0.0, i);
-      glVertex2f(cWindowWidth*PixelWidth, i);
-      glVertex2f(0.0, i-0.5);
-      glVertex2f(cWindowWidth*PixelWidth, i-0.5);
-    end;//for
-    for i:= Ord(gtFood) to Ord(gtMusket) do
-    begin
-      glVertex2f(4+i-Ord(gtFood), y_Fields-2);
-      glVertex2f(4+i-Ord(gtFood), 0.0);
-    end;//for
-  glEnd;
+                 //seperating lines
+                 glColor3f(0.0, 0.0, 0.0);
+                 glLineWidth(2.0);
+                 glBegin(GL_LINES);
+                   for i:= y_Fields-2 downto 1 do
+                   begin
+                     glVertex2f(0.0, i);
+                     glVertex2f(cWindowWidth*PixelWidth, i);
+                     glVertex2f(0.0, i-0.5);
+                     glVertex2f(cWindowWidth*PixelWidth, i-0.5);
+                   end;//for
+                   for i:= Ord(gtFood) to Ord(gtMusket) do
+                   begin
+                     glVertex2f(4+i-Ord(gtFood), y_Fields-2);
+                     glVertex2f(4+i-Ord(gtFood), 0.0);
+                   end;//for
+                 glEnd;
 
-  //print storage amounts
-  if length(col_arr)>0 then
-  begin
-    glColor3ubv(@cMenuTextColour[0]);
-    for i:= 0 to High(col_arr) do
-    begin
-      WriteText(col_arr[i].GetName, PixelWidth, y_Fields-2.5+4*PixelWidth-i*0.5);
-      for j:= Ord(gtFood) to Ord(gtMusket) do
-        WriteText(IntToStr(col_arr[i].GetStore(TGoodType(j))), 4+2*PixelWidth+j-Ord(gtFood), y_Fields-2.5+4*PixelWidth-i*0.5)
-    end;//for
-  end//if
-  else begin
-    glColor3f(0.0, 0.0, 0.0);
-    i:= TextWidthTimesRoman24('You have no colonies yet.');
-    j:= (cWindowWidth-i) div 2;
-    glBegin(GL_QUADS);
-      glVertex2f(j*PixelWidth-1.0, y_Fields-4.75);
-      glVertex2f((i+j)*PixelWidth+1.0, y_Fields-4.75);
-      glVertex2f((i+j)*PixelWidth+1.0, y_Fields-3.75);
-      glVertex2f(j*PixelWidth-1.0, y_Fields-3.75);
-    glEnd;
-    glColor3ub(255, 0, 0);
-    WriteTimesRoman24('You have no colonies yet.', j*PixelWidth, y_Fields-4.5);
-  end;//else
+                 //print storage amounts
+                 if length(col_arr)>0 then
+                 begin
+                   glColor3ubv(@cMenuTextColour[0]);
+                   for i:= 0 to High(col_arr) do
+                   begin
+                     WriteText(col_arr[i].GetName, PixelWidth, y_Fields-2.5+4*PixelWidth-i*0.5);
+                     for j:= Ord(gtFood) to Ord(gtMusket) do
+                       WriteText(IntToStr(col_arr[i].GetStore(TGoodType(j))), 4+2*PixelWidth+j-Ord(gtFood), y_Fields-2.5+4*PixelWidth-i*0.5)
+                   end;//for
+                 end//if
+                 else begin
+                   glColor3f(0.0, 0.0, 0.0);
+                   i:= TextWidthTimesRoman24('You have no colonies yet.');
+                   j:= (cWindowWidth-i) div 2;
+                   glBegin(GL_QUADS);
+                     glVertex2f(j*PixelWidth-1.0, y_Fields-4.75);
+                     glVertex2f((i+j)*PixelWidth+1.0, y_Fields-4.75);
+                     glVertex2f((i+j)*PixelWidth+1.0, y_Fields-3.75);
+                     glVertex2f(j*PixelWidth-1.0, y_Fields-3.75);
+                   glEnd;
+                   glColor3ub(255, 0, 0);
+                   WriteTimesRoman24('You have no colonies yet.', j*PixelWidth, y_Fields-4.5);
+                 end;//else
+               end;//case rtEconomy
+    rtFleet: begin
+               u_arr:= dat.GetAllShips(dat.player_nation);
+               
+               //headings
+               glColor3ubv(@cMenuTextColour[0]);
+               WriteText(dat.GetLang.GetOthers(osShip), 0.5, y_Fields-0.75);
+               WriteText(dat.GetLang.GetOthers(osFreight), 5.5, y_Fields-0.75);
+               WriteText(dat.GetLang.GetOthers(osLocation), 11.5, y_Fields-0.75);
+               WriteText(dat.GetLang.GetOthers(osDestination), 15.5, y_Fields-0.75);
+               //line grid
+               glColor3f(0.0, 0.0, 0.0);
+               glLineWidth(2.0);
+               glBegin(GL_LINES);
+                 for i:= y_Fields-1 downto 1 do
+                 begin
+                   glVertex2f(0.0, i);
+                   glVertex2f(cWindowWidth*PixelWidth, i);
+                 end;//for
+                 glVertex2f(5.0, y_Fields-1);
+                 glVertex2f(5.0, 1);
+                 glVertex2f(11.0, y_Fields-1);
+                 glVertex2f(11.0, 1);
+                 glVertex2f(15.0, y_Fields-1);
+                 glVertex2f(15.0, 1);
+               glEnd;
+               
+               //display ships
+               if length(u_arr)>0 then
+               begin
+                 for i:= 0 to Min(High(u_arr),cFleetReportUnitsPerPage-1) do
+                 begin
+                   //unit and name
+                   glEnable(GL_ALPHA_TEST);
+                   glEnable(GL_TEXTURE_2D);
+                   DrawUnitIcon(u_arr[i], 0.0, y_Fields-2-i, True, True);
+                   glDisable(GL_TEXTURE_2D);
+                   glDisable(GL_ALPHA_TEST);
+                   glColor3ubv(@cMenuTextColour[0]);
+                   WriteText(dat.GetLang.GetUnitName(u_arr[i].GetType), 1.125, y_Fields-2-i+3*PixelWidth);
+                   
+                   freight_offset:= 5;
+                   //draw goods in ship
+                   for j:= 0 to u_arr[i].FreightCapacity-1 do
+                   begin
+                     if u_arr[i].GetCargoAmountBySlot(j)>0 then
+                     begin
+                       glEnable(GL_ALPHA_TEST);
+                       glEnable(GL_TEXTURE_2D);
+                       if m_GoodTexNames[u_arr[i].GetCargoGoodBySlot(j)]<>0 then
+                         glBindTexture(GL_TEXTURE_2D, m_GoodTexNames[u_arr[i].GetCargoGoodBySlot(j)])
+                       else glBindTexture(GL_TEXTURE_2D, m_ErrorTexName);
+                       glBegin(GL_QUADS);
+                         glColor3f(1.0, 1.0, 1.0);
+                         glTexCoord2f(0.0, 0.0);
+                         glVertex2f(freight_offset, y_Fields-2-i);
+                         glTexCoord2f(1.0, 0.0);
+                         glVertex2f(freight_offset+1.0, y_Fields-2-i);
+                         glTexCoord2f(1.0, 1.0);
+                         glVertex2f(freight_offset+1.0, y_Fields-1-i);
+                         glTexCoord2f(0.0, 1.0);
+                         glVertex2f(freight_offset, y_Fields-1-i);
+                       glEnd;
+                       glDisable(GL_TEXTURE_2D);
+                       glDisable(GL_ALPHA_TEST);
+                       freight_offset:= freight_offset+1;
+                     end;//if
+                   end;//for j
+                   //draw units in ship
+                   for j:= 0 to u_arr[i].FreightCapacity-1 do
+                   begin
+                     if u_arr[i].GetPassengerBySlot(j)<>nil then
+                     begin
+                       glEnable(GL_ALPHA_TEST);
+                       glEnable(GL_TEXTURE_2D);
+                       DrawUnitIcon(u_arr[i].GetPassengerBySlot(j), freight_offset, y_Fields-2-i, True, True);
+                       glDisable(GL_TEXTURE_2D);
+                       glDisable(GL_ALPHA_TEST);
+                       freight_offset:= freight_offset+1;
+                     end;//if
+                   end;//for j
+                   
+                   //write location
+                   glColor3ubv(@cMenuTextColour[0]);
+                   case u_arr[i].GetLocation of
+                     ulEurope: WriteText(dat.GetLang.GetPortName(u_arr[i].GetNation), 11.125, y_Fields-2-i+3*PixelWidth);
+                     ulGoToEurope, ulGoToNewWorld: WriteText(dat.GetLang.GetOthers(osHighSea), 11.125, y_Fields-2-i+3*PixelWidth);
+                   else WriteText('('+IntToStr(u_arr[i].GetPosX)+','+IntToStr(u_arr[i].GetPosY)+')', 11.125, y_Fields-2-i+3*PixelWidth);
+                   end;//case location
+                   
+                   //write destination
+                   case u_arr[i].GetLocation of
+                     ulEurope: ; //write nothing
+                     ulGoToEurope: WriteText(dat.GetLang.GetPortName(u_arr[i].GetNation), 15.125, y_Fields-2-i+3*PixelWidth);
+                     ulGoToNewWorld: WriteText(dat.GetLang.GetOthers(osNewWorld)+' ('+IntToStr(u_arr[i].GetPosX)+','
+                                        +IntToStr(u_arr[i].GetPosY)+')', 15.125, y_Fields-2-i+3*PixelWidth);
+                     ulAmerica: if u_arr[i].GetTask<>nil then
+                                  if (u_arr[i].GetTask is TGoToTask) then
+                                    WriteText('('+IntToStr((u_arr[i].GetTask as TGoToTask).DestinationX)+','
+                                                +IntToStr((u_arr[i].GetTask as TGoToTask).DestinationY)+')',
+                                                11.125, y_Fields-2-i+3*PixelWidth);
+                   end;//case location for destination
+                   
+                 end;//for i
+               end;//if
+             end;//rtFleet
+  end;//case
 end;//proc
 
 procedure TGui.DrawMenu;
@@ -2803,6 +2914,7 @@ begin
     mcReports: begin
                  case selected of
                    1: report:= rtEconomy;
+                   3: report:= rtFleet;
                  end;//case
                end;//mcReports
   end;//case
