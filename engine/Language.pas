@@ -9,7 +9,7 @@ type
   TMenuCategory = (mcNone, mcGame, mcView, mcOrders, mcReports, mcTrade);
   TSaveLoadString = (slsLoadChoose, slsLoadError, slsLoadSuccess, slsSaveChoose, slsSaveError, slsSaveSuccess, slsNoGameLoaded);
   TTransferString = (tsBoycotted, tsOutOfGold, tsOutOfSpace);
-  TOtherString = (osLocation, osMoves, osEmpty, osNothing, osTax, osGold, osCost, osSaving);
+  TOtherString = (osLocation, osDestination, osFreight, osShip, osHighSea, osNewWorld, osMoves, osEmpty, osNothing, osTax, osGold, osCost, osSaving);
   TEuroPortString = (epsHeading, epsNotOnShip, epsGoOnShip, epsArm, epsDisarm, epsGiveHorses, epsNoHorses, epsGiveTools, epsNoTools, epsNoChanges);
   TReportType = (rtNone, rtEconomy, rtColony, rtFleet);
   TLanguage = class
@@ -22,6 +22,7 @@ type
                                              end;//rec
       GoodNames: array[TGoodType] of string;
       NationNames: array[cMin_Nations..cMaxIndian] of string;
+      PortNames: array[cMinEuropean..cMaxEuropean] of string;
       TerrainNames: array[TTerrainType] of string;
       UnitNames: array[TUnitType] of string;
       Seasons: array[0..1] of string;
@@ -50,6 +51,7 @@ type
       //general stuff
       function GetGoodName(const AGood: TGoodType): string;
       function GetNationName(const NationNum: Integer): string;
+      function GetPortName(const NationNum: Integer): string;
       function GetTerrainName(const ATerrain: TTerrainType): string;
       function GetUnitName(const AUnit: TUnitType): string;
       function GetSeason(const autumn: Boolean): string;
@@ -140,6 +142,11 @@ begin
   NationNames[cNationIroquois]:= 'Irokesen';
   NationNames[cNationSioux]:= 'Sioux';
   NationNames[cNationApache]:= 'Apache';
+  //ports in europe
+  PortNames[cNationEngland]:= 'London';
+  PortNames[cNationFrance]:= 'La Rochelle';
+  PortNames[cNationSpain]:= 'Sevilla';
+  PortNames[cNationHolland]:= 'Amsterdam';
   //units
   UnitNames[utCriminal]:= 'Kleinkriminelle';
   UnitNames[utServant]:= 'Verdingte Knechte';
@@ -212,6 +219,11 @@ begin
                            +'Ware noch laden zu können.';
   //others
   Others[osLocation]:= 'Ort';
+  Others[osDestination]:= 'Ziel';
+  Others[osFreight]:= 'Fracht';
+  Others[osShip]:= 'Schiff';
+  Others[osHighSea]:= 'Hohe See';
+  Others[osNewWorld]:= 'Neue Welt';
   Others[osMoves]:= 'Züge';
   Others[osEmpty]:= 'leer';
   Others[osNothing]:= 'nichts';
@@ -321,6 +333,12 @@ begin
   else Result:= NationNames[NationNum];
 end;//func
 
+function TLanguage.GetPortName(const NationNum: Integer): string;
+begin
+  if (NationNum<cMinEuropean) or (NationNum>cMaxEuropean) then Result:= '(no port name)'
+  else Result:= PortNames[NationNum];
+end;//func
+
 function TLanguage.GetTerrainName(const ATerrain: TTerrainType): string;
 begin
   Result:= TerrainNames[ATerrain];
@@ -389,6 +407,10 @@ begin
   for i:= cMin_Nations to cMaxIndian do
     WriteLn(dat, NationNames[i]);
   WriteLn(dat);
+  WriteLn(dat, '[Ports]');
+  for i:= cMinEuropean to cMaxEuropean do
+    WriteLn(dat, PortNames[i]);
+  WriteLn(dat);
   WriteLn(dat, '[Terrain]');
   for i:= Ord(Low(TTerrainType)) to Ord(High(TTerrainType)) do
     WriteLn(dat, TerrainNames[TTerrainType(i)]);
@@ -430,7 +452,7 @@ end;//func
 
 function TLanguage.LoadFromFile(const FileName: string): Boolean;
 var dat: TextFile;
-    str1: string;
+    str1: AnsiString;
     i: Integer;
 begin
   if not FileExists(FileName) then Result:= False
@@ -465,6 +487,17 @@ begin
           ReadLn(dat, str1);
           str1:= Trim(str1);
           if str1<>'' then NationNames[i]:= str1;
+          i:= i+1;
+        end;//while
+      end//if
+      else if str1='[Ports]' then
+      begin
+        i:= cMinEuropean;
+        while (i<=cMaxEuropean) and not Eof(dat) do
+        begin
+          ReadLn(dat, str1);
+          str1:= Trim(str1);
+          if str1<>'' then PortNames[i]:= str1;
           i:= i+1;
         end;//while
       end//if
