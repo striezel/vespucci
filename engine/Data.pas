@@ -71,6 +71,7 @@ type
               function NewUnit(const TypeOfUnit: TUnitType; const ANation: Integer; X: Integer=1; Y: Integer=1): TUnit;
               function GetFirstUnitInXY(const x, y: Integer; const OnlyAmerica: Boolean=True): TUnit;
               function GetFirstLazyUnit(const num_Nation: Integer): TUnit;
+              function GetAllShips(const numNation: LongInt): TUnitArr;
               function GetAllShipsInXY(const x,y: Integer; const OnlyAmerica: Boolean=True): TUnitArr;
               function GetAllShipsInEurope(const num_nation: Integer): TUnitArr;
               function GetAllNonShipsInEurope(const num_nation: Integer): TUnitArr;
@@ -288,6 +289,19 @@ begin
         break;
       end;//if
     end;//if
+end;//func
+
+function TData.GetAllShips(const numNation: LongInt): TUnitArr;
+var i: Integer;
+begin
+  SetLength(Result, 0);
+  for i:= 0 to Unit_max do
+    if m_Units[i]<>nil then
+      if (m_Units[i].GetNation=numNation) and (m_Units[i].IsShip) then
+      begin
+        SetLength(Result, length(Result)+1);
+        Result[High(Result)]:= m_Units[i];
+      end;//if
 end;//func
 
 function TData.GetAllShipsInXY(const x,y: Integer; const OnlyAmerica: Boolean=True): TUnitArr;
