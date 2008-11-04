@@ -229,6 +229,7 @@ end;//func
 function CBF_EuroPortBuy(const option: Integer; AData: TData; EuroNat: TEuropeanNation): Boolean;
 var buy_unit: TUnitType;
     new_unit: TUnit;
+    start_x, start_y: Byte;
 begin
   Result:= (option=0);
   if (EuroNat=nil) or (AData=nil) or (option=0) then Exit;
@@ -244,7 +245,17 @@ begin
   //buy it
   If EuroNat.GetGold>=cShipPrices[buy_unit] then
   begin
-    new_unit:= AData.NewUnit(buy_unit, EuroNat.GetCount, cMap_X-1, cMap_Y div 2);
+    if length(AData.GetAllShipsInEurope(EuroNat.GetCount))>0 then
+    begin
+      new_unit:= AData.GetAllShipsInEurope(EuroNat.GetCount)[0];
+      start_x:= new_unit.GetPosX;
+      start_y:= new_unit.GetPosY;
+    end//if
+    else begin
+      start_x:= cMap_X-1;
+      start_y:= cMap_Y div 2;
+    end;//else
+    new_unit:= AData.NewUnit(buy_unit, EuroNat.GetCount, start_x, start_y);
     new_unit.SetLocation(ulEurope);
     EuroNat.DecreaseGold(cShipPrices[buy_unit]);
     Result:= True;

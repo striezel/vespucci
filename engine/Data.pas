@@ -78,6 +78,8 @@ type
               function GetAllShipsGoingToEurope(const num_nation: Integer): TUnitArr;
               function GetAllShipsGoingToNewWorld(const num_nation: Integer): TUnitArr;
               procedure GetEuropeanQuartett(const num_nation: Integer; var Ships, People, ExpectedSoon, ToNewWorld: TUnitArr);
+              //units in colonies
+              function GetAllUnitsInColony(const ACol: TColony): TUnitArr;
               //colonies
               function NewColony(const x,y: Byte; const num_Nation: Integer; const AName: ShortString): TColony;
               function GetColonyInXY(const x,y: Byte): TColony;
@@ -418,6 +420,22 @@ begin
       end;//if
     end;//if
 end;//proc
+
+function TData.GetAllUnitsInColony(const ACol: TColony): TUnitArr;
+var i: Integer;
+begin
+  SetLength(Result, 0);
+  if ACol<>nil then
+  begin
+    for i:= 0 to Unit_max do
+      if m_Units[i]<>nil then
+        if ((m_Units[i].GetLocation=ulAmerica) and (m_Units[i].GetPosX=ACol.GetPosX) and (m_Units[i].GetPosY=ACol.GetPosY)) then
+        begin
+          SetLength(Result, Length(Result)+1);
+          Result[High(Result)]:= m_Units[i];
+        end;//if
+  end;//if
+end;//func
 
 function TData.NewColony(const x,y: Byte; const num_Nation: Integer; const AName: ShortString): TColony;
 var i: Integer;
