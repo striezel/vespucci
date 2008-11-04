@@ -9,7 +9,8 @@ type
   TMenuCategory = (mcNone, mcGame, mcView, mcOrders, mcReports, mcTrade);
   TSaveLoadString = (slsLoadChoose, slsLoadError, slsLoadSuccess, slsSaveChoose, slsSaveError, slsSaveSuccess, slsNoGameLoaded);
   TTransferString = (tsBoycotted, tsOutOfGold, tsOutOfSpace);
-  TOtherString = (osLocation, osDestination, osFreight, osShip, osHighSea, osNewWorld, osMoves, osEmpty, osNothing, osTax, osGold, osCost, osSaving);
+  TOtherString = (osLocation, osDestination, osFreight, osShip, osHighSea, 
+                  osNewWorld, osMoves, osEmpty, osNothing, osTax, osGold, osCost, osSaving, osEarnings);
   TEuroPortString = (epsHeading, epsNotOnShip, epsGoOnShip, epsArm, epsDisarm, epsGiveHorses, epsNoHorses, epsGiveTools, epsNoTools, epsNoChanges);
   TReportType = (rtNone, rtEconomy, rtColony, rtFleet);
   TLanguage = class
@@ -231,6 +232,7 @@ begin
   Others[osGold]:= 'Gold';
   Others[osCost]:= 'Kosten';
   Others[osSaving]:= 'Einsparung';
+  Others[osEarnings]:= 'Gewinn';
   //save/ load messages
   SaveLoad[slsLoadChoose]:= 'Wählen Sie den zu ladenden Spielstand.';
   SaveLoad[slsLoadError]:= 'Fehler beim Laden des Spielstandes! Das geladene Spiel kann '

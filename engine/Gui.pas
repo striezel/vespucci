@@ -23,7 +23,7 @@ const
 
   cShipsInExpectedSoon = 5;
   cShipsInToNewWorld = 5;
-  
+
   cFleetReportUnitsPerPage = y_Fields-2;
 
   BorderWidth: Single = 0.0625; // =1/16, i.e. 2px
@@ -272,6 +272,7 @@ type
       function  GetShipAtMouse(const m_x, m_y: LongInt): Integer;
       function  GetUnitAtMouse(const m_x, m_y: LongInt): Integer;
       function  GetButtonAtMouse(const m_x, m_y: LongInt): Integer;
+      function  GetColonyUnitAtMouse(const m_x, m_y: LongInt): Integer;
       procedure EnqueueNewMessage(const msg_txt: AnsiString; const opts: TShortStrArr; const inCaption, inText: ShortString; cbRec: TCallbackRec);
       procedure GetNextMessage;//de-facto dequeue
       procedure HandleMenuSelection(const categ: TMenuCategory; const selected: Integer);
@@ -919,7 +920,17 @@ begin
               ShowMessageSimple(dat.GetLang.GetTransfer(tsBoycotted))
             else begin
               //start the transfer, finally
+              tempGood:= tempUArr[0].GetCargoGoodBySlot(sx);
               tempAmount:= tempUArr[0].UnloadGood(tempUArr[0].GetCargoGoodBySlot(sx), tempUArr[0].GetCargoAmountBySlot(sx));
+              //print message about earnings
+              ShowMessageSimple(
+              StretchTo60(dat.GetLang.GetGoodName(tempGood)+': '+IntToStr(tempAmount)+'x'
+                 +IntToStr(europe.GetPrice(tempGood, True))+' '+dat.GetLang.GetOthers(osGold),
+                IntToStr(europe.GetPrice(tempGood, True)*tempAmount)+' '+dat.GetLang.GetOthers(osGold))
+              +StretchTo60('-'+IntToStr(europe.GetTaxRate)+'% '+dat.GetLang.GetOthers(osTax),
+                 IntToStr((europe.GetPrice(tempGood, True)*tempAmount*europe.GetTaxRate) div 100)+' '+dat.GetLang.GetOthers(osGold))
+              +StretchTo60(dat.GetLang.GetOthers(osEarnings)+':', IntToStr(europe.GetPrice(tempGood, True)*tempAmount-((europe.GetPrice(tempGood, True)*tempAmount*europe.GetTaxRate) div 100))+' '+dat.GetLang.GetOthers(osGold)));
+              //actually sell it
               europe.SellGood(tempUArr[0].GetCargoGoodBySlot(sx), tempAmount);
             end;//else
           end;//if
@@ -945,6 +956,10 @@ begin
             begin
               europe.BuyGood(tempGood, 100);
               //should show message about costs to player
+              ShowMessageSimple(
+              StretchTo60(dat.GetLang.GetGoodName(tempGood)+': 100x', IntToStr(europe.GetPrice(tempGood, false))+' '+dat.GetLang.GetOthers(osGold))
+              + StretchTo60(dat.GetLang.GetOthers(osCost)+':', IntToStr(europe.GetPrice(tempGood, false)*100)+' '+dat.GetLang.GetOthers(osGold))
+              );
             end
             else ShowMessageSimple(dat.GetLang.GetTransfer(tsOutOfSpace));
           end;//else
@@ -1468,6 +1483,7 @@ var i,j: ShortInt;
     local_Map: TMap;
     tempStr: string;
     str_width: Integer;
+    u_arr: TUnitArr;
 begin
   {$IFDEF DEBUG_CODE}
     WriteLn('Entered TGui.DrawColonyView');
@@ -1569,6 +1585,20 @@ begin
   DrawColonyTitleBar;
   DrawGoodsBar;
   DrawShipsInPort(nil);
+  
+  //draw units in colony
+  u_arr:= dat.GetAllUnitsInColony(cur_colony);
+  if length(u_arr)>0 then
+  begin
+    glEnable(GL_ALPHA_TEST);
+    glEnable(GL_TEXTURE_2D);
+    for i:= 0 to Min(23, High(u_arr)) do
+    begin
+      DrawUnitIcon(u_arr[i], 14.0 + (i mod 6),(cGoodBarHeight+1)*PixelWidth+(i div 6), True, True);
+    end;
+    glDisable(GL_TEXTURE_2D);
+    glDisable(GL_ALPHA_TEST);
+  end;//if u_arr länger als 0
 
   //check for movable unit in field and draw it
   if (mouse.down) then
@@ -2037,7 +2067,7 @@ begin
                end;//case rtEconomy
     rtFleet: begin
                u_arr:= dat.GetAllShips(dat.player_nation);
-               
+
                //headings
                glColor3ubv(@cMenuTextColour[0]);
                WriteText(dat.GetLang.GetOthers(osShip), 0.5, y_Fields-0.75);
@@ -2060,7 +2090,7 @@ begin
                  glVertex2f(15.0, y_Fields-1);
                  glVertex2f(15.0, 1);
                glEnd;
-               
+
                //display ships
                if length(u_arr)>0 then
                begin
@@ -2074,7 +2104,7 @@ begin
                    glDisable(GL_ALPHA_TEST);
                    glColor3ubv(@cMenuTextColour[0]);
                    WriteText(dat.GetLang.GetUnitName(u_arr[i].GetType), 1.125, y_Fields-2-i+3*PixelWidth);
-                   
+
                    freight_offset:= 5;
                    //draw goods in ship
                    for j:= 0 to u_arr[i].FreightCapacity-1 do
@@ -2115,7 +2145,7 @@ begin
                        freight_offset:= freight_offset+1;
                      end;//if
                    end;//for j
-                   
+
                    //write location
                    glColor3ubv(@cMenuTextColour[0]);
                    case u_arr[i].GetLocation of
@@ -2123,7 +2153,7 @@ begin
                      ulGoToEurope, ulGoToNewWorld: WriteText(dat.GetLang.GetOthers(osHighSea), 11.125, y_Fields-2-i+3*PixelWidth);
                    else WriteText('('+IntToStr(u_arr[i].GetPosX)+','+IntToStr(u_arr[i].GetPosY)+')', 11.125, y_Fields-2-i+3*PixelWidth);
                    end;//case location
-                   
+
                    //write destination
                    case u_arr[i].GetLocation of
                      ulEurope: ; //write nothing
@@ -2136,7 +2166,7 @@ begin
                                                 +IntToStr((u_arr[i].GetTask as TGoToTask).DestinationY)+')',
                                                 11.125, y_Fields-2-i+3*PixelWidth);
                    end;//case location for destination
-                   
+
                  end;//for i
                end;//if
              end;//rtFleet
@@ -3077,6 +3107,17 @@ begin
       else Result:= -1;
   end//if
   else Result:= -1;
+end;//func
+
+function TGui.GetColonyUnitAtMouse(const m_x, m_y: LongInt): Integer;
+begin
+  /// 14.0 + (i mod 6),(cGoodBarHeight+1)*PixelWidth+(i div 6)
+  if (m_x>=cWindowWidth) or (m_x<=14*FieldWidth) or (m_y>=cWindowHeight-(cGoodBarHeight+17)) then Result:= -1
+  else begin
+    Result:= (m_x-14*FieldWidth) div FieldWidth;//x-part
+    Result:= Result +6* (((cWindowHeight-(cGoodBarHeight+17))-m_y) div FieldWidth);
+    if Result>=24 then Result:= -1;
+  end;//else
 end;//func
 
 end.
