@@ -610,8 +610,8 @@ begin
     begin
       if cargo_load[slot].which=AGood then
       begin
-        if cargo_load[slot].amount<num then cap:= cargo_load[slot].amount
-        else cap:= num;
+        if cargo_load[slot].amount<num-Result then cap:= cargo_load[slot].amount
+        else cap:= num-Result;
         Result:= Result+cap;
         cargo_load[slot].amount:= cargo_load[slot].amount - cap;
       end;//if
