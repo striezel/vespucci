@@ -1585,7 +1585,7 @@ begin
   DrawColonyTitleBar;
   DrawGoodsBar;
   DrawShipsInPort(nil);
-  
+
   //draw units in colony
   u_arr:= dat.GetAllUnitsInColony(cur_colony);
   if length(u_arr)>0 then
@@ -1673,6 +1673,7 @@ begin
     begin
       glColor3f(1.0, 1.0, 1.0);
       glEnable(GL_TEXTURE_2D);
+      glEnable(GL_ALPHA_TEST);
       if m_GoodTexNames[tempGood]<>0 then glBindTexture(GL_TEXTURE_2D, m_GoodTexNames[tempGood])
       else glBindTexture(GL_TEXTURE_2D, m_ErrorTexName);
       glBegin(GL_QUADS);
@@ -1689,6 +1690,7 @@ begin
         glVertex2f((Ord(tempGood)*38+4+mouse.x-mouse.down_x)*PixelWidth,
                    -0.5+(17+mouse.down_y-mouse.y)*PixelWidth+1.0);
       glEnd;
+      glDisable(GL_ALPHA_TEST);
       glDisable(GL_TEXTURE_2D);
     end;//if
   end;//if

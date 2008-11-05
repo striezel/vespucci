@@ -313,7 +313,7 @@ begin
   for i:= 0 to Unit_max do
     if m_Units[i]<>nil then
     begin
-      if ((m_Units[i].GetPosX=x) and (m_Units[i].GetPosY=y) and (m_Units[i].IsShip)) then
+      if ((m_Units[i].GetPosX=x) and (m_Units[i].GetPosY=y) and (m_Units[i].FreightCapacity>0)) then
       begin
         if ((m_Units[i].GetLocation=ulAmerica) or not OnlyAmerica) then
         begin
@@ -398,7 +398,7 @@ begin
       begin
         case m_Units[i].GetLocation of
           ulEurope: begin
-                      if m_Units[i].IsShip then
+                      if m_Units[i].FreightCapacity>0 then
                       begin
                         SetLength(Ships, length(Ships)+1);
                         Ships[High(Ships)]:= m_Units[i];
@@ -429,7 +429,7 @@ begin
   begin
     for i:= 0 to Unit_max do
       if m_Units[i]<>nil then
-        if ((m_Units[i].GetLocation=ulAmerica) and (m_Units[i].GetPosX=ACol.GetPosX) and (m_Units[i].GetPosY=ACol.GetPosY)) then
+        if ((m_Units[i].GetLocation=ulAmerica) and (m_Units[i].GetPosX=ACol.GetPosX) and (m_Units[i].GetPosY=ACol.GetPosY) and (m_Units[i].FreightCapacity=0)) then
         begin
           SetLength(Result, Length(Result)+1);
           Result[High(Result)]:= m_Units[i];
