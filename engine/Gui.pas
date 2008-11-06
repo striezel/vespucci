@@ -828,6 +828,15 @@ begin
     end//if
     else if ((button=GLUT_LEFT) and (state=GLUT_UP)) then
     begin
+      //check for colony bar click (i.e. renaming colony)
+      if ((mouse.y<=16) and (mouse.down_y<=16)) then
+      begin
+        temp_cbr._type:= CBT_RENAME_COLONY;
+        temp_cbr.RenameColony.AColony:= cur_colony;
+        ShowMessageInput(dat.GetLang.GetRenameColony(0), dat.GetLang.GetRenameColony(1), cur_colony.GetName, temp_cbr);
+        Exit;
+      end;//if
+    
       GetColonyFieldAtMouse(sx, sy);
       GetColonyFieldAtMouse(sx_d, sy_d, mouse.down_x, mouse.down_y);
       //moving unit in field
@@ -884,6 +893,20 @@ begin
           else ShowMessageSimple(dat.GetLang.GetTransfer(tsOutOfSpace));
         end;//if
       end;//if
+      
+      //check for moving unit from "outside" to fields
+      GetColonyFieldAtMouse(sx, sy, mouse.x, mouse.y);
+      pos_x:= GetColonyUnitAtMouse(mouse.down_x, mouse.down_y);
+      if ((pos_x<>-1) and (sx<>-2) and ((sx<>0) or (sy<>0))) then
+      begin
+        tempUArr:= dat.GetAllUnitsInColony(cur_colony);
+        if High(tempUArr)>=pos_x then
+        begin
+          cur_colony.SetUnitInField(sx, sy, tempUArr[pos_x]);
+          Exit;
+        end;//if
+      end;//if
+
     end;//else if button=LEFT and state=UP
     {$IFDEF DEBUG_CODE}
     WriteLn('Exiting TGui.MouseFunc');
@@ -1627,7 +1650,24 @@ begin
       glDisable(GL_ALPHA_TEST);
       glDisable(GL_TEXTURE_2D);
     end//if (i<>-2) and ...
-    else DrawGoodDraggedFromBar;
+    else begin
+      //check for unit moved from "outside" of colony
+      str_width:= GetColonyUnitAtMouse(mouse.down_x, mouse.down_y);
+      if str_width<>-1 then
+      begin
+        u_arr:= dat.GetAllUnitsInColony(cur_colony);
+        if High(u_arr)>=str_width then
+        begin
+          glEnable(GL_TEXTURE_2D);
+          glEnable(GL_ALPHA_TEST);
+          DrawUnitIcon(u_arr[str_width], 14.0+ (str_width mod 6)+(mouse.x-mouse.down_x)*PixelWidth,
+                          (cGoodBarHeight+1+mouse.down_y-mouse.y)*PixelWidth+(str_width div 6), True, False);
+          glDisable(GL_ALPHA_TEST);
+          glDisable(GL_TEXTURE_2D);
+        end;//if
+      end//if
+      else DrawGoodDraggedFromBar;
+    end;//else
   end;//if mouse.down
   {$IFDEF DEBUG_CODE}
     WriteLn('Leaving TGui.DrawColonyView');
