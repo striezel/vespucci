@@ -662,7 +662,9 @@ begin
                    temp_cb.BuildColony.founder:= focused;
                    temp_cb.BuildColony.AMap:= temp_Map;
                    temp_cb.BuildColony.AData:= dat;
-                   ShowMessageInput(dat.GetLang.GetBuildColony(0), dat.GetLang.GetBuildColony(1), 'Plymouth', temp_cb);
+                   ShowMessageInput(dat.GetLang.GetBuildColony(0), dat.GetLang.GetBuildColony(1),
+                       dat.GetLang.GetColonyNames(focused.GetNation,
+                       length(dat.GetColonyList(focused.GetNation))), temp_cb);
                    focused:= nil;
                  end
                  else
@@ -671,7 +673,12 @@ begin
              end;//if
            end;//if
            //end of 'B'
-      'F': ;//fortify
+      'F': //fortify
+           if focused<>nil then
+           begin
+             if focused.GetState=usFortified then focused.SetState(usNormal)
+             else focused.SetState(usFortified);
+           end;//if, fortify
       'S': ;//sentry
       'C': begin
              if focused<>nil then CenterOn(focused.GetPosX, focused.GetPosY)
@@ -833,10 +840,11 @@ begin
       begin
         temp_cbr._type:= CBT_RENAME_COLONY;
         temp_cbr.RenameColony.AColony:= cur_colony;
-        ShowMessageInput(dat.GetLang.GetRenameColony(0), dat.GetLang.GetRenameColony(1), cur_colony.GetName, temp_cbr);
+        with dat.GetLang do
+          ShowMessageInput(GetColonyString(csRenameQuestion), GetColonyString(csRenameLabel), cur_colony.GetName, temp_cbr);
         Exit;
       end;//if
-    
+
       GetColonyFieldAtMouse(sx, sy);
       GetColonyFieldAtMouse(sx_d, sy_d, mouse.down_x, mouse.down_y);
       //moving unit in field
@@ -893,7 +901,7 @@ begin
           else ShowMessageSimple(dat.GetLang.GetTransfer(tsOutOfSpace));
         end;//if
       end;//if
-      
+
       //check for moving unit from "outside" to fields
       GetColonyFieldAtMouse(sx, sy, mouse.x, mouse.y);
       pos_x:= GetColonyUnitAtMouse(mouse.down_x, mouse.down_y);
@@ -905,6 +913,25 @@ begin
           cur_colony.SetUnitInField(sx, sy, tempUArr[pos_x]);
           Exit;
         end;//if
+      end;//if
+      
+      //check for moving unit from fields to "outside"
+      GetColonyFieldAtMouse(sx, sy, mouse.down_x, mouse.down_y);
+      pos_x:= GetColonyUnitAtMouse(mouse.x, mouse.y);
+      if ((pos_x<>-1) and (sx<>-2) and ((sx<>0) or (sy<>0))) then
+      begin
+        if cur_colony.GetUnitInField(sx, sy)<>nil then
+        begin
+          if cur_colony.GetInhabitants>1 then cur_colony.SetUnitInField(sx, sy, nil)
+          else begin
+            //ask whether they want to abandon colony
+            temp_cbr._type:= CBT_ABANDON_COLONY;
+            temp_cbr.AbandonColony.AColony:= cur_colony;
+            temp_cbr.AbandonColony.AData:= dat;
+            with dat.GetLang do
+              ShowMessageOptions(GetColonyString(csAbandonQuestion), ToShortStrArr(GetColonyString(csAbandonNo), GetColonyString(csAbandonYes)), temp_cbr);
+          end;//else
+        end;//if unit<>nil
       end;//if
 
     end;//else if button=LEFT and state=UP
@@ -2886,6 +2913,7 @@ begin
                          if local_bool then ShowMessageSimple(dat.GetLang.GetSaveLoad(slsSaveSuccess))
                          else ShowMessageSimple(dat.GetLang.GetSaveLoad(slsSaveError));
                        end;// CBT_SAVE_GAME
+        CBT_ABANDON_COLONY: if local_bool then cur_colony:= nil;
       end;//case
     end;//else
   end;//if

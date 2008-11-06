@@ -17,6 +17,7 @@ const
   CBT_EURO_PORT_BUY = 8;
   CBT_EURO_PORT_TRAIN = 9;
   CBT_RENAME_COLONY = 10;
+  CBT_ABANDON_COLONY = 11;
 
 type
   TExitCallback = procedure (const option: Integer);
@@ -61,7 +62,11 @@ type
                    end;//rec
   TRenameColonyData = record
                         AColony: TColony;
-                      end;
+                      end;//rec
+  TAbandonColonyData = record
+                         AColony: TColony;
+                         AData: TData;
+                       end;//rec
 
   TCallbackRec = record
                    option: Integer;
@@ -79,6 +84,7 @@ type
                      8: (EuroBuy: TEuroBuyData);
                      9: (EuroTrain: TEuroTrainData);
                      10: (RenameColony: TRenameColonyData);
+                     11: (AbandonColony: TAbandonColonyData);
                  end;//rec
 
 const
@@ -315,6 +321,16 @@ begin
   Result:= True;
 end;//func
 
+function CBF_AbandonColony(const option: Integer; ACol: TColony; AData: TData): Boolean;
+begin
+  Result:= False;
+  if ((ACol=nil) or (AData=nil)) then Exit;
+  if option=1 then
+  begin
+    Result:= AData.DeleteColony(ACol.GetPosX, ACol.GetPosY);
+  end;//if
+end;//func
+
 function HandleCallback(const cbRec: TCallbackRec): Boolean;
 begin
   case cbRec._type of
@@ -337,6 +353,7 @@ begin
     CBT_EURO_PORT_BUY: Result:= CBF_EuroPortBuy(cbRec.option, cbRec.EuroBuy.AData, cbRec.EuroBuy.EuroNat);
     CBT_EURO_PORT_TRAIN: Result:= CBF_EuroPortTrain(cbRec.option, cbRec.EuroTrain.AData, cbRec.EuroTrain.EuroNat);
     CBT_RENAME_COLONY: Result:= CBF_RenameColony(cbRec.RenameColony.AColony, cbRec.inputText);
+    CBT_ABANDON_COLONY: Result:= CBF_AbandonColony(cbRec.option, cbRec.AbandonColony.AColony, cbRec.AbandonColony.AData);
   else
     Result:= False; //unknown callback type or type not supported/ implemented
   end;//case

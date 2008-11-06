@@ -13,6 +13,7 @@ type
                   osNewWorld, osMoves, osEmpty, osNothing, osTax, osGold, osCost, osSaving, osEarnings);
   TEuroPortString = (epsHeading, epsNotOnShip, epsGoOnShip, epsArm, epsDisarm, epsGiveHorses, epsNoHorses, epsGiveTools, epsNoTools, epsNoChanges);
   TReportType = (rtNone, rtEconomy, rtColony, rtFleet);
+  TColonyString = (csRenameQuestion, csRenameLabel, csAbandonYes, csAbandonNo, csAbandonQuestion);
   TLanguage = class
     private
       Menu: array[TMenuCategory] of string;
@@ -36,11 +37,14 @@ type
       Landfall: array[0..2] of string;
       //for building new colonies
       BuildColony: array[0..4] of string;
-      //Renaming colonies
-      RenameColony: array[0..1] of string;
+      //Renaming colonies & Abandon colony
+      ColonyStrings: array[TColonyString] of string;
+      //proposal for colony names
+      ColonyNames: array [cMinEuropean..cMaxEuropean] of array of ShortString;
       //for managing units in european port
       EuroPortManage: array[TEuroPortString] of string;
       procedure InitialValues;
+      procedure InitialColonyNames;
       procedure SetMenuHelpers;
       function privGetOptionCount(const categ: TMenuCategory): Integer;
     public
@@ -64,7 +68,8 @@ type
       function GetSaveLoad(const which: TSaveLoadString): string;
       function GetLandfall(const which: Byte): string;
       function GetBuildColony(const which: Byte): string;
-      function GetRenameColony(const which: Byte): string;      
+      function GetColonyString(const which: TColonyString): string;
+      function GetColonyNames(const num_nation: LongInt; col_count: Byte): string;
       function GetEuroPort(const which: TEuroPortString): string;
       function SaveToFile(const FileName: string): Boolean;
       function LoadFromFile(const FileName: string): Boolean;
@@ -264,9 +269,17 @@ begin
   BuildColony[3]:= 'Dieses Land liegt für eine neue Kolonie zu nah an einer     '
                   +'schon bestehenden Kolonie, Eure Exzellenz.';
   BuildColony[4]:= 'Kolonien können nicht in den Bergen gebaut werden, Eure Exzellenz.';
-  //renaming colonies
-  RenameColony[0]:= 'Wie soll diese Kolonie jetzt heißen?';
-  RenameColony[1]:= 'Neuer Name';
+  //renaming colonies & abandon colony
+  ColonyStrings[csRenameQuestion]:= 'Wie soll diese Kolonie jetzt heißen?';
+  ColonyStrings[csRenameLabel]:= 'Neuer Name';
+  ColonyStrings[csAbandonYes]:= 'Ja, es ist mein Wille.';
+  ColonyStrings[csAbandonNo]:= 'Nein, das wäre töricht!';
+  ColonyStrings[csAbandonQuestion]:= 'Sollen wir unsere Kolonie wirklich aufgeben, Eure Exzellenz, so dass all unsere harte Arbeit hier umsonst war?';
+  //colony names
+  for i:= cMinEuropean to cMaxEuropean do
+    SetLength(ColonyNames[i], 0);
+  InitialColonyNames;
+
   //for European ports
   EuroPortManage[epsHeading]:= 'Optionen für Siedler im europäischen Hafen:';
   EuroPortManage[epsNotOnShip]:= 'Nicht aufs nächste Schiff gehen';
@@ -280,6 +293,81 @@ begin
   EuroPortManage[epsNoChanges]:= 'Keine Veränderungen';
 
   SetMenuHelpers;
+end;//proc
+
+procedure TLanguage.InitialColonyNames;
+begin
+  SetLength(ColonyNames[cNationEngland], 16);
+  ColonyNames[cNationEngland, 0]:= 'Jamestown';
+  ColonyNames[cNationEngland, 1]:= 'Plymouth';
+  ColonyNames[cNationEngland, 2]:= 'Roanoke';
+  ColonyNames[cNationEngland, 3]:= 'Barbados';
+  ColonyNames[cNationEngland, 4]:= 'Penobscot';
+  ColonyNames[cNationEngland, 5]:= 'Boston';
+  ColonyNames[cNationEngland, 6]:= 'Baltimore';
+  ColonyNames[cNationEngland, 7]:= 'Providence';
+  ColonyNames[cNationEngland, 8]:= 'Hartford';
+  ColonyNames[cNationEngland, 9]:= 'New Haven';
+  ColonyNames[cNationEngland, 10]:= 'New York';
+  ColonyNames[cNationEngland, 11]:= 'Albany';
+  ColonyNames[cNationEngland, 12]:= 'New Jersey';
+  ColonyNames[cNationEngland, 13]:= 'Charleston';
+  ColonyNames[cNationEngland, 14]:= 'Philadelphia';
+  ColonyNames[cNationEngland, 15]:= 'Newport';
+  
+  SetLength(ColonyNames[cNationFrance], 16);
+  ColonyNames[cNationFrance, 0]:= 'Quebec';
+  ColonyNames[cNationFrance, 1]:= 'Montreal';
+  ColonyNames[cNationFrance, 2]:= 'Guadelupe';
+  ColonyNames[cNationFrance, 3]:= 'Cayenne';
+  ColonyNames[cNationFrance, 4]:= 'St. Louis';
+  ColonyNames[cNationFrance, 5]:= 'Martinique';
+  ColonyNames[cNationFrance, 6]:= 'Port Royal';
+  ColonyNames[cNationFrance, 7]:= 'Port au Prince';
+  ColonyNames[cNationFrance, 8]:= 'Trois Rivieres';
+  ColonyNames[cNationFrance, 9]:= 'New Orleans';
+  ColonyNames[cNationFrance, 10]:= 'Fort Caroline';
+  ColonyNames[cNationFrance, 11]:= 'Fort Detroit';
+  ColonyNames[cNationFrance, 12]:= 'Fort Frontenac';
+  ColonyNames[cNationFrance, 13]:= 'Fort Pontchartain';
+  ColonyNames[cNationFrance, 14]:= 'Fort Tadoussac';
+  ColonyNames[cNationFrance, 15]:= 'Fort Canada';
+  
+  SetLength(ColonyNames[cNationSpain], 16);
+  ColonyNames[cNationSpain, 0]:= 'Isabella';
+  ColonyNames[cNationSpain, 1]:= 'Santo Domingo';
+  ColonyNames[cNationSpain, 2]:= 'San Salvador';
+  ColonyNames[cNationSpain, 3]:= 'Veracruz';
+  ColonyNames[cNationSpain, 4]:= 'Habana';
+  ColonyNames[cNationSpain, 5]:= 'Trinidad';
+  ColonyNames[cNationSpain, 6]:= 'San Juan';
+  ColonyNames[cNationSpain, 7]:= 'Panama';
+  ColonyNames[cNationSpain, 8]:= 'Cartagena';
+  ColonyNames[cNationSpain, 9]:= 'St. Augustine';
+  ColonyNames[cNationSpain, 10]:= 'Lima';
+  ColonyNames[cNationSpain, 11]:= 'Buenos Aires';
+  ColonyNames[cNationSpain, 12]:= 'Guatemala';
+  ColonyNames[cNationSpain, 13]:= 'Honduras';
+  ColonyNames[cNationSpain, 14]:= 'Santiago';
+  ColonyNames[cNationSpain, 15]:= 'Asuncion';
+
+  SetLength(ColonyNames[cNationHolland], 16);
+  ColonyNames[cNationHolland, 0]:= 'New Amsterdam';
+  ColonyNames[cNationHolland, 1]:= 'Fort Orange';
+  ColonyNames[cNationHolland, 2]:= 'Fort Nassau';
+  ColonyNames[cNationHolland, 3]:= 'Neuholland';
+  ColonyNames[cNationHolland, 4]:= 'Vlissingen';
+  ColonyNames[cNationHolland, 5]:= 'Curaco';
+  ColonyNames[cNationHolland, 6]:= 'Recife';
+  ColonyNames[cNationHolland, 7]:= 'Bahia';
+  ColonyNames[cNationHolland, 8]:= 'Paramaribo';
+  ColonyNames[cNationHolland, 9]:= 'Pernambuco';
+  ColonyNames[cNationHolland, 10]:= 'St. Martin';
+  ColonyNames[cNationHolland, 11]:= 'Surinam';
+  ColonyNames[cNationHolland, 12]:= 'Willemstad';
+  ColonyNames[cNationHolland, 13]:= 'Aruba';
+  ColonyNames[cNationHolland, 14]:= 'Utrecht';
+  ColonyNames[cNationHolland, 15]:= 'Haarlem';
 end;//proc
 
 procedure TLanguage.SetMenuHelpers;
@@ -390,10 +478,19 @@ begin
   else Result:= BuildColony[which];
 end;//func
 
-function TLanguage.GetRenameColony(const which: Byte): string;      
+function TLanguage.GetColonyString(const which: TColonyString): string;
 begin
-  if which>1 then Result:= ''
-  else Result:= RenameColony[which];
+  Result:= ColonyStrings[which];
+end;//func
+
+function TLanguage.GetColonyNames(const num_nation: LongInt; col_count: Byte): string;
+begin
+  if (num_nation in [cMinEuropean..cMaxEuropean]) then
+  begin
+    if col_count<=High(ColonyNames[num_nation]) then Result:= ColonyNames[num_nation, col_count]
+    else Result:= GetNationName(num_nation)+' #'+IntToStr(col_count);
+  end
+  else Result:= '(colony name)';
 end;//func
 
 function TLanguage.GetEuroPort(const which: TEuroPortString): string;
@@ -457,9 +554,9 @@ begin
   for i:=0 to 4 do
     WriteLn(dat, BuildColony[i]);
   WriteLn(dat);
-  WriteLn(dat, '[RenameColony]');
-  for i:=0 to 1 do
-    WriteLn(dat, RenameColony[i]);
+  WriteLn(dat, '[ColonyStrings]');
+  for i:=Ord(Low(TColonyString)) to Ord(High(TColonyString)) do
+    WriteLn(dat, ColonyStrings[TColonyString(i)]);
   WriteLn(dat);
   WriteLn(dat, '[EuropeanPort]');
   for i:= Ord(Low(TEuroPortString)) to Ord(High(TEuroPortString)) do
@@ -607,14 +704,14 @@ begin
           i:= i+1;
         end;//while
       end//if
-      else if str1='[RenameColony]' then
+      else if str1='[ColonyStrings]' then
       begin
-        i:= 0;
-        while (i<=1) and not Eof(dat) do
+        i:= Ord(Low(TColonyString));
+        while (i<=Ord(High(TColonyString))) and not Eof(dat) do
         begin
           ReadLn(dat, str1);
           str1:= Trim(str1);
-          if str1<>'' then RenameColony[i]:= str1;
+          if str1<>'' then ColonyStrings[TColonyString(i)]:= str1;
           i:= i+1;
         end;//while
       end//if

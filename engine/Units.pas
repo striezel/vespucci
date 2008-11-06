@@ -464,6 +464,7 @@ begin
     utBraveOnHorse: Result:= 2;
   else Result:= 1;
   end;//case
+  if m_State=usFortified then Result:= (Result*3) div 2;
 end;//func
 
 function TUnit.GetTask: TTask;
@@ -632,6 +633,7 @@ begin
       slot:= slot+1;
     passengers[slot]:= AUnit;
     AUnit.SetLocation(ulEmbarked);
+    AUnit.SetState(usWaitingForShip);
     Result:= True;
   end;//else
 end;//func
@@ -653,6 +655,7 @@ begin
         if passengers[i].WarpToXY(x,y,AMap) then
         begin
           passengers[i].SetLocation(self.GetLocation);
+          passengers[i].SetState(usNormal);
           passengers[i]:= nil;
           Result:= True;
           break;
@@ -905,8 +908,11 @@ begin
   m_Y:= ToY;
   m_Map:= AMap;
   SetLength(m_Path, 0);
-  if not FindPath(target_unit.GetPosX, target_unit.GetPosY, ToX, ToY, AMap, m_Path) then
-    SetLength(m_Path, 0);
+  if FindPath(target_unit.GetPosX, target_unit.GetPosY, ToX, ToY, AMap, m_Path) then
+  begin
+    target_unit.SetState(usGoTo);
+  end
+  else SetLength(m_Path, 0);
 end;//construc
 
 function TGoToTask.Done: Boolean;
@@ -959,6 +965,7 @@ end;//func
 destructor TGoToTask.Destroy;
 begin
   SetLength(m_Path, 0);
+  target.SetState(usNormal);
   inherited Destroy;
 end;//destruc
 
