@@ -10,10 +10,11 @@ type
   TSaveLoadString = (slsLoadChoose, slsLoadError, slsLoadSuccess, slsSaveChoose, slsSaveError, slsSaveSuccess, slsNoGameLoaded);
   TTransferString = (tsBoycotted, tsOutOfGold, tsOutOfSpace);
   TOtherString = (osLocation, osDestination, osFreight, osShip, osHighSea,
-                  osNewWorld, osMoves, osEmpty, osNothing, osTax, osGold, osCost, osSaving, osEarnings);
-  TEuroPortString = (epsHeading, epsNotOnShip, epsGoOnShip, epsArm, epsDisarm, epsGiveHorses, epsNoHorses, epsGiveTools, epsNoTools, epsNoChanges);
+                  osNewWorld, osMoves, osEmpty, osNothing, osNoChanges, osTax, osGold, osCost, osSaving, osEarnings);
+  TEuroPortString = (epsHeading, epsNotOnShip, epsGoOnShip, epsArm, epsDisarm, epsGiveHorses, epsNoHorses, epsGiveTools, epsNoTools);
   TReportType = (rtNone, rtEconomy, rtColony, rtFleet);
   TColonyString = (csRenameQuestion, csRenameLabel, csAbandonYes, csAbandonNo, csAbandonQuestion);
+  TColonyUnitString = (cusOptions, cusCancelOrders, cusOnBoard, cusFortify);
   TLanguage = class
     private
       Menu: array[TMenuCategory] of string;
@@ -41,6 +42,8 @@ type
       ColonyStrings: array[TColonyString] of string;
       //proposal for colony names
       ColonyNames: array [cMinEuropean..cMaxEuropean] of array of ShortString;
+      //managing units outside of colonies (but within colony square)
+      ColonyUnit: array[TColonyUnitString] of string;
       //for managing units in european port
       EuroPortManage: array[TEuroPortString] of string;
       procedure InitialValues;
@@ -70,6 +73,7 @@ type
       function GetBuildColony(const which: Byte): string;
       function GetColonyString(const which: TColonyString): string;
       function GetColonyNames(const num_nation: LongInt; col_count: Byte): string;
+      function GetColonyUnit(const which: TColonyUnitString): string;
       function GetEuroPort(const which: TEuroPortString): string;
       function SaveToFile(const FileName: string): Boolean;
       function LoadFromFile(const FileName: string): Boolean;
@@ -236,6 +240,7 @@ begin
   Others[osMoves]:= 'Züge';
   Others[osEmpty]:= 'leer';
   Others[osNothing]:= 'nichts';
+  Others[osNoChanges]:= 'Keine Veränderungen';
   Others[osTax]:= 'Steuer';
   Others[osGold]:= 'Gold';
   Others[osCost]:= 'Kosten';
@@ -275,6 +280,11 @@ begin
   ColonyStrings[csAbandonYes]:= 'Ja, es ist mein Wille.';
   ColonyStrings[csAbandonNo]:= 'Nein, das wäre töricht!';
   ColonyStrings[csAbandonQuestion]:= 'Sollen wir unsere Kolonie wirklich aufgeben, Eure Exzellenz, so dass all unsere harte Arbeit hier umsonst war?';
+  //units outside of colony but still in colony square
+  ColonyUnit[cusOptions]:= 'Optionen für';
+  ColonyUnit[cusCancelOrders]:= 'Befehle aufheben';
+  ColonyUnit[cusOnBoard]:= 'Wache/ An Bord gehen';
+  ColonyUnit[cusFortify]:= 'Befestigen';
   //colony names
   for i:= cMinEuropean to cMaxEuropean do
     SetLength(ColonyNames[i], 0);
@@ -290,7 +300,6 @@ begin
   EuroPortManage[epsNoHorses]:= 'Pferde verkaufen';
   EuroPortManage[epsGiveTools]:= 'Mit Werkzeugen ausrüsten';
   EuroPortManage[epsNoTools]:= 'Werkzeuge verkaufen';
-  EuroPortManage[epsNoChanges]:= 'Keine Veränderungen';
 
   SetMenuHelpers;
 end;//proc
@@ -314,7 +323,7 @@ begin
   ColonyNames[cNationEngland, 13]:= 'Charleston';
   ColonyNames[cNationEngland, 14]:= 'Philadelphia';
   ColonyNames[cNationEngland, 15]:= 'Newport';
-  
+
   SetLength(ColonyNames[cNationFrance], 16);
   ColonyNames[cNationFrance, 0]:= 'Quebec';
   ColonyNames[cNationFrance, 1]:= 'Montreal';
@@ -332,7 +341,7 @@ begin
   ColonyNames[cNationFrance, 13]:= 'Fort Pontchartain';
   ColonyNames[cNationFrance, 14]:= 'Fort Tadoussac';
   ColonyNames[cNationFrance, 15]:= 'Fort Canada';
-  
+
   SetLength(ColonyNames[cNationSpain], 16);
   ColonyNames[cNationSpain, 0]:= 'Isabella';
   ColonyNames[cNationSpain, 1]:= 'Santo Domingo';
@@ -493,6 +502,11 @@ begin
   else Result:= '(colony name)';
 end;//func
 
+function TLanguage.GetColonyUnit(const which: TColonyUnitString): string;
+begin
+  Result:= ColonyUnit[which];
+end;//func
+
 function TLanguage.GetEuroPort(const which: TEuroPortString): string;
 begin
   Result:= EuroPortManage[which];
@@ -557,6 +571,10 @@ begin
   WriteLn(dat, '[ColonyStrings]');
   for i:=Ord(Low(TColonyString)) to Ord(High(TColonyString)) do
     WriteLn(dat, ColonyStrings[TColonyString(i)]);
+  WriteLn(dat);
+  WriteLn(dat, '[ColonyUnit]');
+  for i:=Ord(Low(TColonyUnitString)) to Ord(High(TColonyUnitString)) do
+    WriteLn(dat, ColonyUnit[TColonyUnitString(i)]);
   WriteLn(dat);
   WriteLn(dat, '[EuropeanPort]');
   for i:= Ord(Low(TEuroPortString)) to Ord(High(TEuroPortString)) do
@@ -712,6 +730,17 @@ begin
           ReadLn(dat, str1);
           str1:= Trim(str1);
           if str1<>'' then ColonyStrings[TColonyString(i)]:= str1;
+          i:= i+1;
+        end;//while
+      end//if
+      else if str1='[ColonyUnit]' then
+      begin
+        i:= Ord(Low(TColonyUnitString));
+        while (i<=Ord(High(TColonyUnitString))) and not Eof(dat) do
+        begin
+          ReadLn(dat, str1);
+          str1:= Trim(str1);
+          if str1<>'' then ColonyUnit[TColonyUnitString(i)]:= str1;
           i:= i+1;
         end;//while
       end//if

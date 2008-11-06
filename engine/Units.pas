@@ -702,8 +702,15 @@ end;//func
 
 procedure TUnit.GiveHorses(const has: Boolean = True);
 begin
-  if has then items:= (items or UNIT_HORSE_BIT)
-  else items:= (items and (not UNIT_HORSE_BIT));
+  if has then
+  begin
+    items:= (items or UNIT_HORSE_BIT);
+    if UnitType=utRegular then UnitType:= utDragoon;
+  end//if
+  else begin
+    items:= (items and (not UNIT_HORSE_BIT));
+    if UnitType=utDragoon then UnitType:= utRegular;
+  end;//else
 end;//proc
 
 function Tunit.HasMuskets: Boolean;

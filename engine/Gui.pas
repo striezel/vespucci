@@ -914,7 +914,7 @@ begin
           Exit;
         end;//if
       end;//if
-      
+
       //check for moving unit from fields to "outside"
       GetColonyFieldAtMouse(sx, sy, mouse.down_x, mouse.down_y);
       pos_x:= GetColonyUnitAtMouse(mouse.x, mouse.y);
@@ -932,6 +932,29 @@ begin
               ShowMessageOptions(GetColonyString(csAbandonQuestion), ToShortStrArr(GetColonyString(csAbandonNo), GetColonyString(csAbandonYes)), temp_cbr);
           end;//else
         end;//if unit<>nil
+      end;//if
+      
+      //check for unit management "outside" of colony
+      pos_x:= GetColonyUnitAtMouse(mouse.x, mouse.y);
+      pos_y:= GetColonyUnitAtMouse(mouse.down_x, mouse.down_y);
+      if ((pos_x<>-1) and (pos_x=pos_y)) then
+      begin
+        tempUArr:= dat.GetAllUnitsInColony(cur_colony);
+        if High(tempUArr)>=pos_x then
+        begin
+          temp_cbr._type:= CBT_COLONY_UNIT;
+          temp_cbr.ColonyUnit.AUnit:= tempUArr[pos_x];
+          SetLength(str_arr, 3);
+          if (tempUArr[pos_x].GetState in [usFortified, usWaitingforShip]) then
+            str_arr[0]:= dat.GetLang.GetColonyUnit(cusCancelOrders)
+          else str_arr[0]:= dat.GetLang.GetColonyUnit(cusOnBoard);
+          if (tempUArr[pos_x].GetState=usFortified) then
+            str_arr[1]:= dat.GetLang.GetColonyUnit(cusOnBoard)
+          else str_arr[1]:= dat.GetLang.GetColonyUnit(cusFortify);
+          str_arr[2]:= dat.GetLang.GetOthers(osNoChanges);
+          ShowMessageOptions(dat.GetLang.GetColonyUnit(cusOptions)+' '+dat.GetLang.GetUnitName(tempUArr[pos_x].GetType)+':',
+                             str_arr, temp_cbr);
+        end;//if
       end;//if
 
     end;//else if button=LEFT and state=UP
@@ -1084,7 +1107,7 @@ begin
                  +' ('+GetOthers(osSaving)+' '+IntToStr(europe.GetPrice(gtTool, True)*tempUArr[pos_x].GetToolAmount)+' '+GetOthers(osGold)+')'
             else str_arr[3]:= GetEuroPort(epsGiveTools)+' ('+GetOthers(osCost)
                    +' '+IntToStr(europe.GetPrice(gtTool, False)*(100-tempUArr[pos_x].GetToolAmount))+' '+GetOthers(osGold)+')';
-            str_arr[4]:= GetEuroPort(epsNoChanges);
+            str_arr[4]:= GetOthers(osNoChanges);
           end;//with
           temp_cbr.option:=0;
           temp_cbr._type:= CBT_EURO_PORT_UNIT;
@@ -2239,6 +2262,63 @@ begin
                  end;//for i
                end;//if
              end;//rtFleet
+    rtColony: begin
+                glColor3ubv(@CMenuTextColour[0]);
+                WriteText(dat.GetLang.GetMenuOption(mcReports, 2), 3.0, y_Fields-0.25);
+                WriteText('Name', 0.5, y_Fields-0.75);
+                WriteText('Einheiten', 6.5, y_Fields-0.75);
+                col_arr:= dat.GetColonyList(dat.player_nation);
+                if length(col_arr)>0 then
+                begin
+                  for i:= 0 to Min(High(col_arr), y_Fields) do
+                  begin
+                    if (m_ColonyTexNames[0]<>0) then
+                    begin
+                      glEnable(GL_TEXTURE_2D);
+                      glEnable(GL_ALPHA_TEST);
+                      glBindTexture(GL_TEXTURE_2D, m_ColonyTexNames[0]);
+                      glBegin(GL_QUADS);
+                        glColor3f(1.0, 1.0, 1.0);
+                        glTexCoord2f(0.0, 0.0);
+                        glVertex2f(0.0, y_Fields-2-i);
+                        glTexCoord2f(1.0, 0.0);
+                        glVertex2f(1.0, y_Fields-2-i);
+                        glTexCoord2f(1.0, 1.0);
+                        glVertex2f(1.0, y_Fields-1-i);
+                        glTexCoord2f(0.0, 1.0);
+                        glVertex2f(0.0, y_Fields-1-i);
+                      glEnd;
+                      glDisable(GL_ALPHA_TEST);
+                      glDisable(GL_TEXTURE_2D);
+                    end;//if ColonyTex present
+                    glColor3ubv(@CMenuTextColour[0]);
+                    WriteText(IntToStr(col_arr[i].GetInhabitants), 1.25, y_Fields-1.75-i);
+                    WriteText(col_arr[i].GetName, 2.25, y_Fields-1.75-i);
+                    u_arr:= dat.GetAllUnitsInColony(col_arr[i]);
+                    glEnable(GL_TEXTURE_2D);
+                    glEnable(GL_ALPHA_TEST);
+                    for j:= 0 to min(20, High(u_arr)) do
+                    begin
+                      DrawUnitIcon(u_arr[j], 7.0+j, y_Fields-2-i, True, True);
+                    end;//for
+                    glDisable(GL_ALPHA_TEST);
+                    glDisable(GL_TEXTURE_2D);
+                  end;//for
+                end//if
+                else begin
+                  glColor3f(0.0, 0.0, 0.0);
+                  i:= TextWidthTimesRoman24('You have no colonies yet.');
+                  j:= (cWindowWidth-i) div 2;
+                  glBegin(GL_QUADS);
+                    glVertex2f(j*PixelWidth-1.0, y_Fields-4.75);
+                    glVertex2f((i+j)*PixelWidth+1.0, y_Fields-4.75);
+                    glVertex2f((i+j)*PixelWidth+1.0, y_Fields-3.75);
+                    glVertex2f(j*PixelWidth-1.0, y_Fields-3.75);
+                  glEnd;
+                  glColor3ub(255, 0, 0);
+                  WriteTimesRoman24('You have no colonies yet.', j*PixelWidth, y_Fields-4.5);
+                end;//else
+              end;//rtColony
   end;//case
 end;//proc
 
@@ -3014,6 +3094,7 @@ begin
     mcReports: begin
                  case selected of
                    1: report:= rtEconomy;
+                   2: report:= rtColony;
                    3: report:= rtFleet;
                  end;//case
                end;//mcReports
