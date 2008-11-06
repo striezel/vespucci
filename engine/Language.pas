@@ -9,7 +9,7 @@ type
   TMenuCategory = (mcNone, mcGame, mcView, mcOrders, mcReports, mcTrade);
   TSaveLoadString = (slsLoadChoose, slsLoadError, slsLoadSuccess, slsSaveChoose, slsSaveError, slsSaveSuccess, slsNoGameLoaded);
   TTransferString = (tsBoycotted, tsOutOfGold, tsOutOfSpace);
-  TOtherString = (osLocation, osDestination, osFreight, osShip, osHighSea, 
+  TOtherString = (osLocation, osDestination, osFreight, osShip, osHighSea,
                   osNewWorld, osMoves, osEmpty, osNothing, osTax, osGold, osCost, osSaving, osEarnings);
   TEuroPortString = (epsHeading, epsNotOnShip, epsGoOnShip, epsArm, epsDisarm, epsGiveHorses, epsNoHorses, epsGiveTools, epsNoTools, epsNoChanges);
   TReportType = (rtNone, rtEconomy, rtColony, rtFleet);
@@ -36,6 +36,8 @@ type
       Landfall: array[0..2] of string;
       //for building new colonies
       BuildColony: array[0..4] of string;
+      //Renaming colonies
+      RenameColony: array[0..1] of string;
       //for managing units in european port
       EuroPortManage: array[TEuroPortString] of string;
       procedure InitialValues;
@@ -62,6 +64,7 @@ type
       function GetSaveLoad(const which: TSaveLoadString): string;
       function GetLandfall(const which: Byte): string;
       function GetBuildColony(const which: Byte): string;
+      function GetRenameColony(const which: Byte): string;      
       function GetEuroPort(const which: TEuroPortString): string;
       function SaveToFile(const FileName: string): Boolean;
       function LoadFromFile(const FileName: string): Boolean;
@@ -261,6 +264,9 @@ begin
   BuildColony[3]:= 'Dieses Land liegt für eine neue Kolonie zu nah an einer     '
                   +'schon bestehenden Kolonie, Eure Exzellenz.';
   BuildColony[4]:= 'Kolonien können nicht in den Bergen gebaut werden, Eure Exzellenz.';
+  //renaming colonies
+  RenameColony[0]:= 'Wie soll diese Kolonie jetzt heißen?';
+  RenameColony[1]:= 'Neuer Name';
   //for European ports
   EuroPortManage[epsHeading]:= 'Optionen für Siedler im europäischen Hafen:';
   EuroPortManage[epsNotOnShip]:= 'Nicht aufs nächste Schiff gehen';
@@ -384,6 +390,12 @@ begin
   else Result:= BuildColony[which];
 end;//func
 
+function TLanguage.GetRenameColony(const which: Byte): string;      
+begin
+  if which>1 then Result:= ''
+  else Result:= RenameColony[which];
+end;//func
+
 function TLanguage.GetEuroPort(const which: TEuroPortString): string;
 begin
   Result:= EuroPortManage[which];
@@ -444,6 +456,10 @@ begin
   WriteLn(dat, '[BuildColony]');
   for i:=0 to 4 do
     WriteLn(dat, BuildColony[i]);
+  WriteLn(dat);
+  WriteLn(dat, '[RenameColony]');
+  for i:=0 to 1 do
+    WriteLn(dat, RenameColony[i]);
   WriteLn(dat);
   WriteLn(dat, '[EuropeanPort]');
   for i:= Ord(Low(TEuroPortString)) to Ord(High(TEuroPortString)) do
@@ -588,6 +604,17 @@ begin
           ReadLn(dat, str1);
           str1:= Trim(str1);
           if str1<>'' then BuildColony[i]:= str1;
+          i:= i+1;
+        end;//while
+      end//if
+      else if str1='[RenameColony]' then
+      begin
+        i:= 0;
+        while (i<=1) and not Eof(dat) do
+        begin
+          ReadLn(dat, str1);
+          str1:= Trim(str1);
+          if str1<>'' then RenameColony[i]:= str1;
           i:= i+1;
         end;//while
       end//if

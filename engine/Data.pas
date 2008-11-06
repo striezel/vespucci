@@ -84,6 +84,7 @@ type
               function NewColony(const x,y: Byte; const num_Nation: Integer; const AName: ShortString): TColony;
               function GetColonyInXY(const x,y: Byte): TColony;
               function GetColonyList(const num_nation: Integer): TColonyArr;
+              function DeleteColony(const x,y: Byte): Boolean;
               //tribes
               function NewTribe(const x,y: Byte; const num_Nation: Integer; const Teaches: TUnitType): TTribe;
               function GetTribeInXY(const x,y: Byte): TTribe;
@@ -478,6 +479,24 @@ begin
           Result[High(Result)]:= m_Colonies[i];
       end;//if
     end;//if <>nil
+end;//func
+
+function TData.DeleteColony(const x,y: Byte): Boolean;
+var i: Integer;
+begin
+  Result:= False;
+  for i:= 0 to Colony_max do
+    if m_Colonies[i]<>nil then
+      if ((m_Colonies[i].GetPosX=x) and (m_Colonies[i].GetPosY=y)) then
+      begin
+        m_Colonies[i].Destroy;
+        m_Colonies[i]:= nil;
+        m_Colonies[i]:= m_Colonies[Colony_max];
+        m_Colonies[Colony_max]:= nil;
+        Colony_max:= Colony_max-1;
+        Result:= True;
+        break;
+      end;//if
 end;//func
 
 function TData.NewTribe(const x,y: Byte; const num_Nation: Integer; const Teaches: TUnitType): TTribe;
