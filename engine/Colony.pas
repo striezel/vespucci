@@ -358,11 +358,16 @@ begin
     begin
       UnitsInFields[x_shift, y_shift].u.WarpToXY(GetPosX, GetPosY, nil);
       UnitsInFields[x_shift, y_shift].u.SetLocation(ulAmerica);
+      UnitsInFields[x_shift, y_shift].u.SetState(usNormal);
     end;//if
     //place new unit
     UnitsInFields[x_shift, y_shift].u:= AUnit;
     UnitsInFields[x_shift, y_shift].GoesFor:= AGood;
-    if AUnit<>nil then UnitsInFields[x_shift, y_shift].u.SetLocation(ulInColony);
+    if AUnit<>nil then 
+    begin
+      UnitsInFields[x_shift, y_shift].u.SetLocation(ulInColony);
+      UnitsInFields[x_shift, y_shift].u.SetState(usNormal);
+    end;//if
   end;//else
 end;//proc
 
@@ -381,10 +386,15 @@ begin
     begin
       UnitsInBuilding[bt, place].WarpToXY(GetPosX, GetPosY, nil);
       UnitsInBuilding[bt, place].SetLocation(ulAmerica);
+      UnitsInBuilding[bt, place].SetState(usNormal);
     end;//if
     //place new unit
     UnitsInBuilding[bt, place]:= AUnit;
-    if AUnit<>nil then UnitsInBuilding[bt, place].SetLocation(ulInColony);
+    if AUnit<>nil then
+    begin
+      UnitsInBuilding[bt, place].SetLocation(ulInColony);
+      UnitsInBuilding[bt, place].SetState(usNormal);
+    end;//if
   end;//else
 end;//proc
 

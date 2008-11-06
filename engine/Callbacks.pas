@@ -18,6 +18,7 @@ const
   CBT_EURO_PORT_TRAIN = 9;
   CBT_RENAME_COLONY = 10;
   CBT_ABANDON_COLONY = 11;
+  CBT_COLONY_UNIT = 12;
 
 type
   TExitCallback = procedure (const option: Integer);
@@ -67,6 +68,9 @@ type
                          AColony: TColony;
                          AData: TData;
                        end;//rec
+  TColonyUnitData = record
+                      AUnit: TUnit;
+                    end;//rec
 
   TCallbackRec = record
                    option: Integer;
@@ -85,6 +89,7 @@ type
                      9: (EuroTrain: TEuroTrainData);
                      10: (RenameColony: TRenameColonyData);
                      11: (AbandonColony: TAbandonColonyData);
+                     12: (ColonyUnit: TColonyUnitData);
                  end;//rec
 
 const
@@ -331,6 +336,28 @@ begin
   end;//if
 end;//func
 
+function CBF_ColonyUnit(const option: Integer; AUnit: TUnit): Boolean;
+begin
+  if AUnit=nil then
+  begin
+    Result:= False;
+    Exit;
+  end;//if
+  Result:= True;
+  case option of
+    0: case AUnit.GetState of
+         usFortified, usWaitingForShip: AUnit.SetState(usNormal);
+       else AUnit.SetState(usWaitingForShip);
+       end;//case
+    1: case AUnit.GetState of
+         usFortified: AUnit.SetState(usWaitingForShip);
+         usWaitingForShip, usNormal: AUnit.SetState(usFortified);
+       end;//case
+  //2: keine Veränderung/ no changes
+  else Result:= False;
+  end;//case
+end;//func
+
 function HandleCallback(const cbRec: TCallbackRec): Boolean;
 begin
   case cbRec._type of
@@ -354,6 +381,7 @@ begin
     CBT_EURO_PORT_TRAIN: Result:= CBF_EuroPortTrain(cbRec.option, cbRec.EuroTrain.AData, cbRec.EuroTrain.EuroNat);
     CBT_RENAME_COLONY: Result:= CBF_RenameColony(cbRec.RenameColony.AColony, cbRec.inputText);
     CBT_ABANDON_COLONY: Result:= CBF_AbandonColony(cbRec.option, cbRec.AbandonColony.AColony, cbRec.AbandonColony.AData);
+    CBT_COLONY_UNIT: Result:= CBF_ColonyUnit(cbRec.option, cbRec.ColonyUnit.AUnit);
   else
     Result:= False; //unknown callback type or type not supported/ implemented
   end;//case
