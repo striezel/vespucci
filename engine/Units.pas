@@ -915,7 +915,7 @@ begin
   m_Y:= ToY;
   m_Map:= AMap;
   SetLength(m_Path, 0);
-  if FindPath(target_unit.GetPosX, target_unit.GetPosY, ToX, ToY, AMap, m_Path) then
+  if FindPath(target_unit.GetPosX, target_unit.GetPosY, ToX, ToY, target_unit.IsShip, AMap, m_Path) then
   begin
     target_unit.SetState(usGoTo);
   end

@@ -46,6 +46,7 @@ type
       function GetUnitInBuilding(const bt: TBuildingType; const place: Byte): TUnit;
       procedure SetUnitInBuilding(const bt: TBuildingType; const place: Byte; const AUnit: TUnit);
       function GetInhabitants: Word;
+      function AdjacentWater(const AMap: TMap): Boolean;
       function SaveToStream(var fs: TFileStream): Boolean;
     private
       m_Name: string;
@@ -363,7 +364,7 @@ begin
     //place new unit
     UnitsInFields[x_shift, y_shift].u:= AUnit;
     UnitsInFields[x_shift, y_shift].GoesFor:= AGood;
-    if AUnit<>nil then 
+    if AUnit<>nil then
     begin
       UnitsInFields[x_shift, y_shift].u.SetLocation(ulInColony);
       UnitsInFields[x_shift, y_shift].u.SetState(usNormal);
@@ -408,6 +409,21 @@ begin
   for i:= Ord(btArmory) to Ord(btBlacksmith) do
     for j:= 0 to 2 do
       if UnitsInBuilding[TBuildingType(i),j]<>nil then Result:= Result+1;
+end;//func
+
+function TColony.AdjacentWater(const AMap: TMap): Boolean;
+var i, j: Integer;
+begin
+  Result:= False;
+  if AMap=nil then Exit;
+  for i:= PosX-1 to PosX+1 do
+    for j:= PosY-1 to PosY+1 do
+      if (i in [0..cMap_X-1]) and (j in [0..cMap_Y-1]) then
+        if AMap.tiles[i,j].IsWater then
+        begin
+          Result:= True;
+          Exit;
+        end;//if
 end;//func
 
 function TColony.SaveToStream(var fs: TFileStream): Boolean;
