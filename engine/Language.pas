@@ -109,8 +109,9 @@ begin
   MenuOptions[mcView, 2]:= 'Ansicht zentrieren';
   // -- Befehle
   MenuOptions[mcOrders, 1]:= 'Befestigen';
-  MenuOptions[mcOrders, 2]:= 'Keine Befehle';
-  MenuOptions[mcOrders, 3]:= 'Einheit auflösen';
+  MenuOptions[mcOrders, 2]:= 'Gehe zu';
+  MenuOptions[mcOrders, 3]:= 'Keine Befehle';
+  MenuOptions[mcOrders, 4]:= 'Einheit auflösen';
   // -- Berichte
   MenuOptions[mcReports, 1]:= 'Wirtschaftsbericht';
   MenuOptions[mcReports, 2]:= 'Koloniebericht';

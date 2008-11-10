@@ -933,7 +933,7 @@ begin
           end;//else
         end;//if unit<>nil
       end;//if
-      
+
       //check for unit management "outside" of colony
       pos_x:= GetColonyUnitAtMouse(mouse.x, mouse.y);
       pos_y:= GetColonyUnitAtMouse(mouse.down_x, mouse.down_y);
@@ -3033,6 +3033,8 @@ procedure TGui.HandleMenuSelection(const categ: TMenuCategory; const selected: I
 var temp_cb: TCallbackRec;
     tempUnit: TUnit;
     str_arr: TShortStrArr;
+    col_arr: TColonyArr;
+    i: Integer;
 begin
   case categ of
     mcGame: begin
@@ -3072,7 +3074,24 @@ begin
                      if focused<>nil then
                        if focused.GetState=usFortified then focused.SetState(usNormal)
                        else focused.SetState(usFortified);
-                  2: //no orders
+                  2: //goto
+                     if focused<>nil then
+                     begin
+                       if focused.IsShip then
+                       begin
+                         col_arr:= dat.GetColonyList(focused.GetNation);
+                         SetLength(str_arr, 1);
+                         str_arr[0]:= dat.GetLang.GetOthers(osNoChanges);
+                         for i:= 0 to High(col_arr) do
+                           if col_arr[i].AdjacentWater(dat.GetMap) then
+                           begin
+                             SetLength(str_arr, length(str_arr)+1);
+                             str_arr[High(str_arr)]:= col_arr[i].GetName;
+                           end;//if
+                         ShowMessageOptions('Choose a target location:', str_arr, cEmptyCallback);
+                       end;//if
+                     end;//if; mcOrders,2, goto
+                  3: //no orders
                      if focused<>nil then
                      begin
                        focused.MovesLeft:= 0;

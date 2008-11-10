@@ -50,7 +50,8 @@ type
 
   function Heuristic(const from_x, from_y, to_x, to_y: Byte): Integer;
 
-  function FindPath(const from_x, from_y, target_x, target_y: Byte; AMap: TMap; var path: TCoordArr): Boolean;
+  function FindPath(const from_x, from_y, target_x, target_y: Byte; const WaterWay: Boolean; AMap: TMap; var path: TCoordArr;
+                    const SpecialNodeX: Byte=250; const SpecialNodeY: Byte=250): Boolean;
 
 implementation
 
@@ -218,15 +219,20 @@ end;//func
 
 //the function
 
-function FindPath(const from_x, from_y, target_x, target_y: Byte; AMap: TMap; var path: TCoordArr): Boolean;
+function FindPath(const from_x, from_y, target_x, target_y: Byte; const WaterWay: Boolean; AMap: TMap; var path: TCoordArr;
+                  const SpecialNodeX: Byte=250; const SpecialNodeY: Byte=250): Boolean;
 var open, closed: THeap;
     node, temp: TSearchNode;
     i,j: Integer;
 begin
   WriteLn('Entered FindPath.');
   SetLength(path, 0);
+  //check for range
+  if ((from_x>=cMap_X) or (target_x>=cMap_X) or (from_y>=cMap_Y) or (target_y>=cMap_Y)) then Exit;
+  
   //check for land/ sea transition and exit, if positive
-  if (AMap.tiles[from_x, from_y].IsWater xor AMap.tiles[target_x, target_y].IsWater) then Exit;
+  {if (AMap.tiles[from_x, from_y].IsWater xor AMap.tiles[target_x, target_y].IsWater) then Exit;}
+  if (AMap.tiles[target_x, target_y].IsWater<>WaterWay) and not ((target_x=SpecialNodeX) and(target_x=SpecialNodeY)) then Exit;
 
 
   open:= THeap.Create;
@@ -272,7 +278,8 @@ begin
           temp.y:= node.y+j;
           if not closed.IsNodePresent(temp.x, temp.y) then
           begin
-            if AMap.tiles[node.x,node.y].IsWater=AMap.tiles[temp.x,temp.y].IsWater then
+            //if AMap.tiles[node.x,node.y].IsWater=AMap.tiles[temp.x,temp.y].IsWater then
+            if (AMap.tiles[temp.x,temp.y].IsWater=WaterWay) or((temp.x=SpecialNodeX) and (temp.y=SpecialNodeY)) then
             begin
               temp.Parent.x:= node.x;
               temp.Parent.y:= node.y;
