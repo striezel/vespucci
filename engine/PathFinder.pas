@@ -227,12 +227,31 @@ var open, closed: THeap;
 begin
   WriteLn('Entered FindPath.');
   SetLength(path, 0);
+  Result:= False;
   //check for range
-  if ((from_x>=cMap_X) or (target_x>=cMap_X) or (from_y>=cMap_Y) or (target_y>=cMap_Y)) then Exit;
+  if ((from_x>=cMap_X) or (target_x>=cMap_X) or (from_y>=cMap_Y) or (target_y>=cMap_Y)) then
+  begin
+    WriteLn('--Coordinates out of range!');
+    Exit;
+  end;//if
   
+  //check for map
+  if AMap=nil then
+  begin
+    WriteLn('--No valid map specified.');
+    Exit;
+  end;//if
+
   //check for land/ sea transition and exit, if positive
   {if (AMap.tiles[from_x, from_y].IsWater xor AMap.tiles[target_x, target_y].IsWater) then Exit;}
-  if (AMap.tiles[target_x, target_y].IsWater<>WaterWay) and not ((target_x=SpecialNodeX) and(target_x=SpecialNodeY)) then Exit;
+  if (AMap.tiles[target_x, target_y].IsWater<>WaterWay) and not ((target_x=SpecialNodeX) and(target_y=SpecialNodeY)) then
+  begin
+    WriteLn('--Target failed "water check".');
+    if WaterWay then WriteLn('----WaterWay: True') else WriteLn('----WaterWay: False');
+    WriteLn('----target:  ', target_x, ',', target_y);
+    WriteLn('----special: ', SpecialNodeX, ',', SpecialNodeY);
+    Exit;
+  end;//if
 
 
   open:= THeap.Create;

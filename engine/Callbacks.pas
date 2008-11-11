@@ -19,6 +19,7 @@ const
   CBT_RENAME_COLONY = 10;
   CBT_ABANDON_COLONY = 11;
   CBT_COLONY_UNIT = 12;
+  CBT_GOTO_SHIP = 13;
 
 type
   TExitCallback = procedure (const option: Integer);
@@ -36,7 +37,6 @@ type
                         //ColName: ShortString; //delivered through input text
                         num_nation: Byte;
                         founder: TUnit;
-                        AMap: TMap;
                         AData: TData;
                       end;//rec
   TSaveGameData = record
@@ -71,6 +71,10 @@ type
   TColonyUnitData = record
                       AUnit: TUnit;
                     end;//rec
+  TGotoShipData = record
+                    Ship: TUnit;
+                    AData: TData;
+                  end;//rec
 
   TCallbackRec = record
                    option: Integer;
@@ -90,6 +94,7 @@ type
                      10: (RenameColony: TRenameColonyData);
                      11: (AbandonColony: TAbandonColonyData);
                      12: (ColonyUnit: TColonyUnitData);
+                     13: (GotoShip: TGotoShipData);
                  end;//rec
 
 const
@@ -113,16 +118,16 @@ begin
   else Result:= False;
 end;//func
 
-function CBF_BuildColony(const x,y: Byte; const num_nation: Byte; ColName: ShortString; founder: TUnit; AMap: TMap; AData: TData): Boolean;
+function CBF_BuildColony(const x,y: Byte; const num_nation: Byte; ColName: ShortString; founder: TUnit; AData: TData): Boolean;
 begin
   Result:= False;
-  if ((ColName='') or (founder=nil) or (AMap=nil) or (AData=nil) or (x>=cMap_X-1)
+  if ((ColName='') or (founder=nil) or (AData=nil) or (x>=cMap_X-1)
       or (y>=cMap_Y-1) or (x=0) or (y=0)) then Exit;
-  if founder.WarpToXY(x,y, AMap) then
+  if founder.WarpToXY(x,y, AData.GetMap) then
   begin
     (AData.NewColony(x,y, num_nation, ColName)).SetUnitInField(-1, -1, founder);
     //founder.SetLocation(ulInColony);
-    AMap.tiles[x,y].CreateRoad;
+    AData.GetMap.tiles[x,y].CreateRoad;
     Result:= True;
   end;//if
 end;//func
@@ -358,6 +363,23 @@ begin
   end;//case
 end;//func
 
+function CBF_GotoShip(const option: Integer; Ship: TUnit; dat: TData): Boolean;
+var col_arr: TColonyArr;
+    goTask: TGoToTask;
+begin
+  Result:= False;
+  if ((Ship=nil) or (dat=nil) or (option<0)) then Exit;
+  if option=0 then Result:= True
+  else begin
+    col_arr:= dat.GetColonyList(Ship.GetNation);
+    if length(col_arr)<option then Exit;
+    goTask:= TGoToTask.Create(Ship, col_arr[option-1].GetPosX, col_arr[option-1].GetPosY, dat.GetMap,
+               col_arr[option-1].GetPosX, col_arr[option-1].GetPosY);//path with destination as special node
+    Ship.SetTask(goTask, True);
+    Result:= True;
+  end;//else
+end;//func
+
 function HandleCallback(const cbRec: TCallbackRec): Boolean;
 begin
   case cbRec._type of
@@ -371,8 +393,7 @@ begin
                     cbRec.Landfall.AMap);
     CBT_BUILD_COLONY: Result:= CBF_BuildColony(cbRec.BuildColony.x, cbRec.BuildColony.y,
                         cbRec.BuildColony.num_nation, cbRec.inputText,
-                        cbRec.BuildColony.founder, cbRec.BuildColony.AMap,
-                        cbRec.BuildColony.AData);
+                        cbRec.BuildColony.founder, cbRec.BuildColony.AData);
     CBT_SAVE_GAME: Result:= CBF_SaveGame(cbRec.option, cbRec.SaveGame.AData);
     CBT_LOAD_GAME: Result:= CBF_LoadGame(cbRec.option, cbRec.LoadGame.AData);
     CBT_JOB_CHANGE: Result:= CBF_JobChange(cbRec.option, cbRec);
@@ -382,6 +403,7 @@ begin
     CBT_RENAME_COLONY: Result:= CBF_RenameColony(cbRec.RenameColony.AColony, cbRec.inputText);
     CBT_ABANDON_COLONY: Result:= CBF_AbandonColony(cbRec.option, cbRec.AbandonColony.AColony, cbRec.AbandonColony.AData);
     CBT_COLONY_UNIT: Result:= CBF_ColonyUnit(cbRec.option, cbRec.ColonyUnit.AUnit);
+    CBT_GOTO_SHIP: Result:= CBF_GoToShip(cbRec.option, cbRec.GotoShip.Ship, cbRec.GotoShip.AData);
   else
     Result:= False; //unknown callback type or type not supported/ implemented
   end;//case

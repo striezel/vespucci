@@ -88,7 +88,7 @@ type
       function MovesPerRound: Integer;
       function AttackStrength: Integer;
       function GetTask: TTask;
-      procedure SetTask(const new_task: TTask);
+      procedure SetTask(const new_task: TTask; const ImmediateExecute: Boolean=True);
       //go across the big pond
       function SendToEurope: Boolean;
       function SendToNewWorld: Boolean;
@@ -186,11 +186,12 @@ type
 
   TGoToTask = class(TTask)
     protected
-      m_X, m_Y: Byte;
+      m_X, m_Y: Byte;//destination location
+      spec_X, spec_Y: Byte; //location of special field
       m_Map: TMap;
       m_Path: TCoordArr;
     public
-      constructor Create(const target_unit: TUnit; ToX, ToY: Byte; const AMap: TMap);
+      constructor Create(const target_unit: TUnit; ToX, ToY: Byte; const AMap: TMap; const SpecialX: Byte=250; const SpecialY: Byte=250);
       destructor Destroy; override;
       function Done: Boolean; override;
       function Execute: Boolean; override;
@@ -298,7 +299,7 @@ begin
   //check for task and execute, if present
   if AI_Task<>nil then
   begin
-    WriteLn('Exec calling');
+    WriteLn('New Round: Exec calling');
     AI_Task.Execute;
 
     if AI_Task.Done then
@@ -472,10 +473,11 @@ begin
   Result:= AI_Task;
 end;//func
 
-procedure TUnit.SetTask(const new_task: TTask);
+procedure TUnit.SetTask(const new_task: TTask; const ImmediateExecute: Boolean=True);
 begin
   if AI_Task<>nil then AI_Task.Destroy;
   AI_Task:= new_task;
+  if (AI_Task<>nil) and ImmediateExecute then AI_Task.Execute;
 end;//proc
 
 function TUnit.SendToEurope: Boolean;
@@ -908,14 +910,16 @@ begin
 end;//func
 
 // go to task (pathfinding)
-constructor TGoToTask.Create(const target_unit: TUnit; ToX, ToY: Byte; const AMap: TMap);
+constructor TGoToTask.Create(const target_unit: TUnit; ToX, ToY: Byte; const AMap: TMap; const SpecialX: Byte=250; const SpecialY: Byte=250);
 begin
   inherited Create(target_unit);
   m_X:= ToX;
   m_Y:= ToY;
+  spec_X:= SpecialX;
+  spec_Y:= SpecialY;
   m_Map:= AMap;
   SetLength(m_Path, 0);
-  if FindPath(target_unit.GetPosX, target_unit.GetPosY, ToX, ToY, target_unit.IsShip, AMap, m_Path) then
+  if FindPath(target_unit.GetPosX, target_unit.GetPosY, ToX, ToY, target_unit.IsShip, AMap, m_Path, SpecialX, SpecialY) then
   begin
     target_unit.SetState(usGoTo);
   end
@@ -931,6 +935,7 @@ function TGoToTask.Execute: Boolean;
 var direc: TDirection;
     x,y: Byte;
 begin
+  WriteLn('GoTo.Execute called. Path len: ', length(m_Path));
   Result:= True;
   while (target.MovesLeft>0) and (length(m_Path)>0) do
   begin
@@ -947,13 +952,22 @@ begin
     target.Move(direc, m_Map);
     if (target.GetPosX<>x) or (target.GetPosY<>y) then
     begin
-      //something went wrong here, abort the whole task
-      SetLength(m_Path, 0);
-      Result:= False;
-      //debug only
-      WriteLn('-- direction application failed!');
-      //end debug
-      Exit;
+      //check for special location
+      if ((x=spec_X) and (y=spec_Y)) then
+      begin
+        target.WarpToXY(spec_X, spec_Y, m_Map);
+        target.MovesLeft:= target.MovesLeft-1;
+        if target.MovesLeft<0 then target.MovesLeft:=0;
+      end
+      else begin
+        //something went wrong here, abort the whole task
+        SetLength(m_Path, 0);
+        Result:= False;
+        //debug only
+        WriteLn('-- direction application failed!');
+        //end debug
+        Exit;
+      end;//else
     end//if
     else SetLength(m_Path, length(m_Path)-1); //remove last waypoint
   end;//while
