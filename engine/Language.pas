@@ -15,6 +15,7 @@ type
   TReportType = (rtNone, rtEconomy, rtColony, rtFleet);
   TColonyString = (csRenameQuestion, csRenameLabel, csAbandonYes, csAbandonNo, csAbandonQuestion);
   TColonyUnitString = (cusOptions, cusCancelOrders, cusOnBoard, cusFortify);
+  TPioneerString = (psNoTools, psHasRoad, psIsPloughed, psIsCleared, psNeedsClearing, psWrongUnit);
   TLanguage = class
     private
       Menu: array[TMenuCategory] of string;
@@ -46,6 +47,8 @@ type
       ColonyUnit: array[TColonyUnitString] of string;
       //for managing units in european port
       EuroPortManage: array[TEuroPortString] of string;
+      //for pioneer actions
+      Pioneers: array[TPioneerString] of string;
       procedure InitialValues;
       procedure InitialColonyNames;
       procedure SetMenuHelpers;
@@ -75,6 +78,7 @@ type
       function GetColonyNames(const num_nation: LongInt; col_count: Byte): string;
       function GetColonyUnit(const which: TColonyUnitString): string;
       function GetEuroPort(const which: TEuroPortString): string;
+      function GetPioneer(const which: TPioneerString): string;
       function SaveToFile(const FileName: string): Boolean;
       function LoadFromFile(const FileName: string): Boolean;
   end;//class
@@ -110,8 +114,11 @@ begin
   // -- Befehle
   MenuOptions[mcOrders, 1]:= 'Befestigen';
   MenuOptions[mcOrders, 2]:= 'Gehe zu';
-  MenuOptions[mcOrders, 3]:= 'Keine Befehle';
-  MenuOptions[mcOrders, 4]:= 'Einheit auflösen';
+  MenuOptions[mcOrders, 3]:= 'Wald roden';
+  MenuOptions[mcOrders, 4]:= 'Felder pflügen';
+  MenuOptions[mcOrders, 5]:= 'Straße bauen';
+  MenuOptions[mcOrders, 6]:= 'Keine Befehle';
+  MenuOptions[mcOrders, 7]:= 'Einheit auflösen';
   // -- Berichte
   MenuOptions[mcReports, 1]:= 'Wirtschaftsbericht';
   MenuOptions[mcReports, 2]:= 'Koloniebericht';
@@ -301,6 +308,17 @@ begin
   EuroPortManage[epsNoHorses]:= 'Pferde verkaufen';
   EuroPortManage[epsGiveTools]:= 'Mit Werkzeugen ausrüsten';
   EuroPortManage[epsNoTools]:= 'Werkzeuge verkaufen';
+
+  //for pionieers
+  Pioneers[psNoTools]:= 'Die Einheit hat nicht genug Werkzeuge, um diese Aktion aus- '
+                       +'zuführen. Es sind mindestens 20 Werkzeuge nötig.';
+  Pioneers[psHasRoad]:= 'Hier gibt es schon eine Straße, Eure Exzellenz.';
+  Pioneers[psIsPloughed]:= 'Dieses Gebiet ist schon gepflügt, Eure Exzellenz.';
+  Pioneers[psIsCleared]:= 'Dieses Gelände ist schon gerodet, Eure Exzellenz.';
+  Pioneers[psNeedsClearing]:= 'Das Gebiet muss erst gerodet werden, bevor wir es pflügen   '
+                             +'können, Eure Exzellenz.';
+  Pioneers[psWrongUnit]:= 'Nur Siedler oder Pioniere, welche mit Werkzeugen ausgerüstet'
+                         +' sind, können diese Aktion durchführen, Eure Exzellenz.';
 
   SetMenuHelpers;
 end;//proc
@@ -513,6 +531,11 @@ begin
   Result:= EuroPortManage[which];
 end;//func
 
+function TLanguage.GetPioneer(const which: TPioneerString): string;
+begin
+  Result:= Pioneers[which];
+end;//func
+
 function TLanguage.SaveToFile(const FileName: string): Boolean;
 var dat: TextFile;
     i: Integer;
@@ -580,6 +603,10 @@ begin
   WriteLn(dat, '[EuropeanPort]');
   for i:= Ord(Low(TEuroPortString)) to Ord(High(TEuroPortString)) do
     WriteLn(dat, EuroPortManage[TEuroPortString(i)]);
+  WriteLn(dat);
+  WriteLn(dat, '[Pioneers]');
+  for i:= Ord(Low(TPioneerString)) to Ord(High(TPioneerString)) do
+    WriteLn(dat, Pioneers[TPioneerString(i)]);
   CloseFile(dat);
   Result:= True;
 end;//func
@@ -753,6 +780,17 @@ begin
           ReadLn(dat, str1);
           str1:= Trim(str1);
           if str1<>'' then EuroPortManage[TEuroPortString(i)]:= str1;
+          i:= i+1;
+        end;//while
+      end//if
+      else if str1='[Pioneers]' then
+      begin
+        i:= Ord(Low(TPioneerString));
+        while (i<=Ord(High(TPioneerString))) and not Eof(dat) do
+        begin
+          ReadLn(dat, str1);
+          str1:= Trim(str1);
+          if str1<>'' then Pioneers[TPioneerString(i)]:= str1;
           i:= i+1;
         end;//while
       end;//if
