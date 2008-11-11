@@ -660,7 +660,6 @@ begin
                    temp_cb.BuildColony.y:= focused.GetPosY;
                    temp_cb.BuildColony.num_nation:= dat.player_nation;
                    temp_cb.BuildColony.founder:= focused;
-                   temp_cb.BuildColony.AMap:= temp_Map;
                    temp_cb.BuildColony.AData:= dat;
                    ShowMessageInput(dat.GetLang.GetBuildColony(0), dat.GetLang.GetBuildColony(1),
                        dat.GetLang.GetColonyNames(focused.GetNation,
@@ -684,6 +683,11 @@ begin
              if focused<>nil then CenterOn(focused.GetPosX, focused.GetPosY)
              else CenterOn(25, 35);//just for testing, yet
            end;
+      'T': if focused<>nil then //only a test
+           begin
+             tempTask:= TGoToTask.Create(focused, 3, 18, dat.GetMap);
+             focused.SetTask(tempTask);
+           end;//if
     end;//case
   end;//if not Special
 
@@ -757,7 +761,7 @@ begin
           temp_col:= dat.GetColonyInXY(temp_x, temp_y);
           if (temp_col<>nil) then
           begin
-            if (temp_col.GetNation=focused.GetNation) then
+            if (temp_col.GetNation=focused.GetNation) and (focused.MovesLeft>0) then
             begin
               //ship enters colony
               focused.WarpToXY(temp_x, temp_y, temp_Map);
@@ -3088,7 +3092,11 @@ begin
                              SetLength(str_arr, length(str_arr)+1);
                              str_arr[High(str_arr)]:= col_arr[i].GetName;
                            end;//if
-                         ShowMessageOptions('Choose a target location:', str_arr, cEmptyCallback);
+                         temp_cb._type:= CBT_GOTO_SHIP;
+                         temp_cb.option:= 0;
+                         temp_cb.GotoShip.Ship:= focused;
+                         temp_cb.GotoShip.AData:= dat;
+                         ShowMessageOptions('Choose a destination location:', str_arr, temp_cb);
                        end;//if
                      end;//if; mcOrders,2, goto
                   3: //no orders
