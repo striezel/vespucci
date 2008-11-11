@@ -32,6 +32,7 @@ type
             private
               Year: LongInt;
               Autumn: Boolean;
+              player_nation: LongInt;
               Nations: array [cMin_Nations..cMaxIndian] of TNation;
               //the units
               m_Units: array of TUnit;
@@ -59,13 +60,12 @@ type
               procedure DeInitTribes;
               procedure DeInitUnits;
             public
-              player_nation: LongInt;
-              constructor Create;
+              constructor Create(const NumNation_Player: LongInt=cNationEngland);
               destructor Destroy;
               function GetYear: LongInt;
               function IsAutumn: Boolean;
+              function PlayerNation: LongInt;
               function GetNation(const count: Integer): TNation;
-              function GetNationPointer(const count: Integer): PNation;
               procedure AdvanceYear;
               //units
               function NewUnit(const TypeOfUnit: TUnitType; const ANation: Integer; X: Integer=1; Y: Integer=1): TUnit;
@@ -104,11 +104,13 @@ type
 
 implementation
 
-constructor TData.Create;
+constructor TData.Create(const NumNation_Player: LongInt=cNationEngland);
 var i: Integer;
 begin
   base_dir:= '';
-  player_nation:= cNationEngland;
+  if NumNation_Player in [cMinEuropean..cMaxEuropean] then
+    player_nation:= NumNation_Player
+  else player_nation:= cNationEngland;
   Year:= 1492;
   Autumn:= False;
   lang:= TLanguage.Create;
@@ -233,20 +235,17 @@ begin
   end;//else
 end;//proc
 
+function TData.PlayerNation: LongInt;
+begin
+  Result:= player_nation;
+end;//func
+
 function TData.GetNation(const count: Integer): TNation;
 begin
   if ((count>cMaxIndian) or (count<cMin_Nations)) then
     Result:= nil
   else
     Result:= Nations[count];
-end;//func
-
-function TData.GetNationPointer(const count: Integer): PNation;
-begin
-  if ((count>cMaxIndian) or (count<cMin_Nations)) then
-    Result:= nil
-  else
-    Result:= @Nations[count];
 end;//func
 
 function TData.NewUnit(const TypeOfUnit: TUnitType; const ANation: Integer; X: Integer=1; Y: Integer=1): TUnit;

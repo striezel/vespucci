@@ -30,7 +30,7 @@ type
 
                utBrave, utBraveOnHorse);
   TUnitLocation = (ulAmerica, ulInColony, ulGoToEurope, ulGoToNewWorld, ulEurope, ulEmbarked);
-  TUnitState = (usNormal,{-} usFortified,{F} usWaitingForShip{S}, usGoTo{G});
+  TUnitState = (usNormal,{-} usFortified,{F} usWaitingForShip{S}, usGoTo{G}, usPloughing{P}, usCreateRoad{R});
   TDirection = (dirSW, dirS, dirSE, dirE, dirNE, dirN, dirNW, dirW, dirNone);
 
 const
@@ -797,6 +797,7 @@ end;//construc
 
 destructor TTask.Destroy;
 begin
+  if target<>nil then target.SetState(usNormal);
   inherited Destroy;
 end;//destruc
 
@@ -811,6 +812,7 @@ begin
   RoundsLeft:= 4;
   if target<>nil then
   begin
+    target_unit.SetState(usPloughing);
     if target.GetType = utPioneer then RoundsLeft:= 2;
   end;
   if AMap.tiles[m_X, m_Y].IsPloughed then RoundsLeft:= 0;
@@ -818,7 +820,7 @@ end;//func
 
 function TPloughTask.Done: Boolean;
 begin
-  Result:= (RoundsLeft=0);
+  Result:= (RoundsLeft<=0);
 end;//func
 
 function TPloughTask.Execute: Boolean;
@@ -847,6 +849,7 @@ begin
   RoundsLeft:= 2;
   if target<>nil then
   begin
+    target.SetState(usCreateRoad);
     if target.GetType = utPioneer then RoundsLeft:= 1;
   end;
   if AMap.tiles[m_X, m_Y].HasRoad then RoundsLeft:= 0;
@@ -854,7 +857,7 @@ end;//func
 
 function TRoadTask.Done: Boolean;
 begin
-  Result:= (RoundsLeft=0);
+  Result:= (RoundsLeft<=0);
 end;//func
 
 function TRoadTask.Execute: Boolean;
@@ -883,6 +886,7 @@ begin
   RoundsLeft:= 6;
   if target<>nil then
   begin
+    target.SetState(usPloughing);
     if target.GetType = utPioneer then RoundsLeft:= 3;
   end;
   if not (AMap.tiles[m_X, m_Y].HasForest) then RoundsLeft:= 0;
@@ -890,7 +894,7 @@ end;//func
 
 function TClearTask.Done: Boolean;
 begin
-  Result:= (RoundsLeft=0);
+  Result:= (RoundsLeft<=0);
 end;//func
 
 function TClearTask.Execute: Boolean;
