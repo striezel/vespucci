@@ -162,7 +162,7 @@ const
        'tents.bmp' //cNationApache
     );
 
-  cWindowCaption = 'Vespucci v0.01.r091';
+  cWindowCaption = 'Vespucci v0.01.r092';
 
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
   cMenuHighColour : array [0..2] of Byte = (255, 20, 20);
@@ -1120,12 +1120,12 @@ begin
           temp_cbr.inputText:= '';
           temp_cbr.EuroPort.AUnit:= tempUArr[pos_x];
           temp_cbr.EuroPort.EuroNat:= europe;
-          ShowMessageOptions(dat.GetLang.GetEuroPort(epsHeading), str_arr, temp_cbr);
+          ShowMessageOptions(dat.GetLang.GetEuroPort(epsManageHeading), str_arr, temp_cbr);
           Exit;
         end;//if pos_x<>High(array)
       end;//if pos_x<>-1
 
-      //check for button "Buy"
+      //check for button "Buy Ship"
       case GetButtonAtMouse(mouse.x, mouse.y) of
         1: begin
              SetLength(str_arr, Ord(utFrigate)-Ord(utCaravel)+2);
@@ -1139,8 +1139,8 @@ begin
              temp_cbr.inputText:= '';
              temp_cbr.EuroBuy.EuroNat:= europe;
              temp_cbr.EuroBuy.AData:= dat;
-             ShowMessageOptions('Which of the following ships do you want to buy?', str_arr, temp_cbr);
-           end;//case ButtonAtMouse=1 ("Buy Ships")
+             ShowMessageOptions(dat.GetLang.GetEuroPort(epsBuyHeading), str_arr, temp_cbr);
+           end;//case ButtonAtMouse=1 ("Buy Ship")
         2: begin
              SetLength(str_arr, 1);
              str_arr[0]:= dat.GetLang.GetOthers(osNothing);
@@ -1157,8 +1157,7 @@ begin
              temp_cbr.inputText:= '';
              temp_cbr.EuroTrain.EuroNat:= europe;
              temp_cbr.EuroTrain.AData:= dat;
-             ShowMessageOptions('Die königliche Universität kann uns Spezialisten liefern, wenn wir die'
-                               +'richtigen Leute bestechen. Welche Fertigkeit sollen wir anfordern?',
+             ShowMessageOptions(dat.GetLang.GetEuroPort(epsTrainHeading),
                                str_arr, temp_cbr);
            end;//case ButtonAtMouse=2 ("Train units")
       end;//case
