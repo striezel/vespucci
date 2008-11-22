@@ -11,7 +11,7 @@ type
   TTransferString = (tsBoycotted, tsOutOfGold, tsOutOfSpace);
   TOtherString = (osLocation, osDestination, osFreight, osShip, osHighSea,
                   osNewWorld, osMoves, osEmpty, osNothing, osNoChanges, osTax, osGold, osCost, osSaving, osEarnings);
-  TEuroPortString = (epsHeading, epsNotOnShip, epsGoOnShip, epsArm, epsDisarm, epsGiveHorses, epsNoHorses, epsGiveTools, epsNoTools);
+  TEuroPortString = (epsManageHeading, epsNotOnShip, epsGoOnShip, epsArm, epsDisarm, epsGiveHorses, epsNoHorses, epsGiveTools, epsNoTools, epsTrainHeading, epsBuyHeading);
   TReportType = (rtNone, rtEconomy, rtColony, rtFleet);
   TColonyString = (csRenameQuestion, csRenameLabel, csAbandonYes, csAbandonNo, csAbandonQuestion);
   TColonyUnitString = (cusOptions, cusCancelOrders, cusOnBoard, cusFortify);
@@ -299,7 +299,7 @@ begin
   InitialColonyNames;
 
   //for European ports
-  EuroPortManage[epsHeading]:= 'Optionen für Siedler im europäischen Hafen:';
+  EuroPortManage[epsManageHeading]:= 'Optionen für Siedler im europäischen Hafen:';
   EuroPortManage[epsNotOnShip]:= 'Nicht aufs nächste Schiff gehen';
   EuroPortManage[epsGoOnShip]:= 'An Bord des nächsten Schiffes gehen';
   EuroPortManage[epsArm]:= 'Mit Musketen bewaffnen';
@@ -308,6 +308,10 @@ begin
   EuroPortManage[epsNoHorses]:= 'Pferde verkaufen';
   EuroPortManage[epsGiveTools]:= 'Mit Werkzeugen ausrüsten';
   EuroPortManage[epsNoTools]:= 'Werkzeuge verkaufen';
+  EuroPortManage[epsTrainHeading]:= 'Die königliche Universität kann uns Spezialisten liefern,   '
+                                   +'wenn wir die richtigen Leute bestechen. Welche Fertigkeit   '
+                                   +'sollen wir anfordern?';
+  EuroPortManage[epsBuyHeading]:= 'Welches Schiff sollen wir kaufen?';
 
   //for pionieers
   Pioneers[psNoTools]:= 'Die Einheit hat nicht genug Werkzeuge, um diese Aktion aus- '
