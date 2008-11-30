@@ -310,7 +310,7 @@ begin
   else train_unit:= utCriminal;//should not happen here
   end;//case
   if train_unit=utCriminal then Exit;
-  if EuroNat.GetGold>cUnitPrices[train_unit] then
+  if EuroNat.GetGold>=cUnitPrices[train_unit] then
   begin
     new_unit:= AData.NewUnit(train_unit, EuroNat.GetCount, cMap_X-1, cMap_Y div 2);
     new_unit.SetLocation(ulEurope);
