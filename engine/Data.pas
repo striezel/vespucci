@@ -19,6 +19,7 @@ const
   unit_img_path = img_path+'units'+path_delimiter;
   state_img_path = unit_img_path+'state'+path_delimiter;
   colony_img_path = img_path+'colony'+path_delimiter;
+  building_img_path = colony_img_path+'building'+path_delimiter;
   tribe_img_path = img_path+'tribe'+path_delimiter;
   save_path = data_path+'saves'+path_delimiter;
 
