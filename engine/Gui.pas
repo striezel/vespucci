@@ -151,6 +151,25 @@ const
        'colony.bmp' //normal colony
     );
 
+  cBuildingTexNames: array [TBuildingType] of array [1..3] of string =(
+      ('stockade.bmp', 'fort.bmp', 'fortress.bmp'), //btFort, 3
+      ('docks.bmp', 'trydock.bmp', 'shipyard.bmp'), //btDock, 3
+      ('storage.bmp', 'storage2.bmp', ''), //btWareHouse, 2
+      ('stable.bmp', '', ''), //btStable, 1
+      ('customhouse.bmp', '', ''), //btCustomHouse, 1
+      ('', '', ''), //btPress
+      ('school.bmp', 'college.bmp', 'university.bmp'), //btSchool, 3
+      ('', '', ''), //btArmory
+      ('townhall.bmp', '', ''), //btTownhall, 1
+      ('', '', ''), //btWeaver
+      ('', '', ''), //btTobacconist
+      ('', '', ''), //btDistiller
+      ('', '', ''), //btFurTrader
+      ('', '', ''), //btCarpenter
+      ('church.bmp', 'cathedral.bmp', ''), //btChurch, 2
+      ('', '', '')  //btBlackSmith
+    );
+
   cTribeTexNames: array [cMinIndian..cMaxIndian] of string =(
        'tents.bmp', //cNationArawak
        'aztec.bmp', //cNationAztec
@@ -162,7 +181,7 @@ const
        'tents.bmp' //cNationApache
     );
 
-  cWindowCaption = 'Vespucci v0.01.r092';
+  cWindowCaption = 'Vespucci v0.01.r094';
 
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
   cMenuHighColour : array [0..2] of Byte = (255, 20, 20);
@@ -237,6 +256,8 @@ type
       m_StateTexNames: array[TUnitState] of GLuint;
       //colony texture "names" ( " " " " )
       m_ColonyTexNames: array [0..0] of GLuint;
+      //colony building texture "names" ( " " " " )
+      m_BuildingTexNames: array [TBuildingType] of array [1..3] of GLuint;
       //Tribe texture "names" ( " " " " )
       m_TribeTexNames: array [cMinIndian..cMaxIndian] of GLuint;
       //Error Texture (yellow sign with black "!" on it)
@@ -316,9 +337,13 @@ implementation
 // **** TGui functions ****
 
 constructor TGui.Create;
-var i: Integer;
+var i, j: Integer;
+    //general texture format
     tempTex: TArraySq32RGB;
     AlphaTex: TArraySq32RGBA;
+    //building texture format
+    BuildTex: TArray128x64RGB;
+    AlphaBuildTex: TArray128x64RGBA;
     err_str: string;
     Ship, passenger: TUnit;
 begin
@@ -429,6 +454,7 @@ begin
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     end;//if
   end;//for
+  
   //colony textures
   m_ColonyTexNames[0]:= 0;
   if ReadBitmapToArr32RGB(dat.GetPathBase+colony_img_path+cColonyTexNames[0], tempTex, err_str) then
@@ -443,6 +469,34 @@ begin
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   end;//if
+  
+  //building textures
+  for i:= Ord(Low(TBuildingType)) to Ord(High(TBuildingType)) do
+  begin
+    for j:= 1 to 3 do
+    begin
+      m_BuildingTexNames[TBuildingType(i), j]:= 0;
+      if (cBuildingTexNames[TBuildingType(i), j]<>'') then
+      begin
+        if ReadBitmapToArr128x64RGB(dat.GetPathBase+building_img_path+cBuildingTexNames[TBuildingType(i), j], BuildTex, err_str) then
+        begin
+          //change order of color components from blue, green, red (as in file) to
+          //  red, green, blue (as needed for GL)
+          SwapRGB_To_BGR(BuildTex);
+          GetAlphaByColor(BuildTex, AlphaBuildTex);
+          glGenTextures(1, @m_BuildingTexNames[TBuildingType(i), j]);
+          glBindTexture(GL_TEXTURE_2D, m_BuildingTexNames[TBuildingType(i), j]);
+          glTexImage2D(GL_TEXTURE_2D, 0, 4, 128, 64, 0, GL_RGBA, GL_UNSIGNED_BYTE, @AlphaBuildTex[0].r);
+          glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+          glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        end//if
+        else WriteLn('Error while reading bitmap "',dat.GetPathBase+building_img_path+cBuildingTexNames[TBuildingType(i), j],
+                     '": ', err_str);
+      end;//if
+    end;//for
+  end;//for
+    
+  
   //tribe textures
   for i:= cMinIndian to cMaxIndian do
     m_TribeTexNames[i]:= 0;
