@@ -62,10 +62,7 @@ const
                );
 
 type
-
   TTask = class;
-
-  PUnit = ^TUnit;
   TUnit = class
     public
       MovesLeft: Integer;
@@ -74,16 +71,18 @@ type
       procedure NewRound;
       function Move(const direction: TDirection; const AMap: TMap): Boolean;
       function WarpToXY(const x, y: Byte; AMap: TMap): Boolean;
-      function GetPosX: Integer;
-      function GetPosY: Integer;
-      function GetNation: Integer;
-      procedure ChangeNation(const new_nation: Integer);
+      function GetPosX: LongInt;
+      function GetPosY: LongInt;
+      function GetNation: LongInt;
+      procedure ChangeNation(const new_nation: LongInt);
       function GetType: TUnitType;
       procedure ChangeType(const newType: TUnitType);
       function GetLocation: TUnitLocation;
       procedure SetLocation(const loc: TUnitLocation);
       function GetState: TUnitState;
       procedure SetState(const state: TUnitState);
+      function GetRoundsInOpenSea: Byte;
+      procedure SetRoundsInOpenSea(const rounds_left: Byte);
       function IsShip: Boolean;
       function MovesPerRound: Integer;
       function AttackStrength: Integer;
@@ -118,12 +117,12 @@ type
       function GetCargoAmountBySlot(const slot: Byte): Byte;
       function GetCargoGoodBySlot(const slot: Byte): TGoodType;
     private
-      PosX, PosY: Integer;
+      PosX, PosY: LongInt;
       UnitType: TUnitType;
       m_location: TUnitLocation;
       m_State: TUnitState;
       m_RoundsInOpenSea: Byte;
-      m_Nation: Integer;
+      m_Nation: LongInt;
       //stores items like horses, muskets, tools
       items: Byte;
       //stores passengers (on ships)
@@ -138,13 +137,17 @@ type
 
   TUnitArr = array of TUnit;
 
+
   //the AI stuff
+
+  TTaskType = (ttGeneric, ttPlough, ttRoad, ttClear, ttGoTo);
   TTask = class
     protected
       target: TUnit;
     public
       function Done: Boolean; virtual; abstract;
       function Execute: Boolean; virtual; abstract;
+      function GetType: TTaskType; virtual;
       constructor Create(const target_unit: TUnit);
       destructor Destroy; virtual;
   end;//class
@@ -160,6 +163,7 @@ type
       constructor Create(const target_unit: TUnit; X, Y: Byte; const AMap: TMap);
       function Done: Boolean; override;
       function Execute: Boolean; override;
+      function GetType: TTaskType; override;
   end;//class
 
   TRoadTask = class(TTask)
@@ -171,6 +175,7 @@ type
       constructor Create(const target_unit: TUnit; X, Y: Byte; const AMap: TMap);
       function Done: Boolean; override;
       function Execute: Boolean; override;
+      function GetType: TTaskType; override;
   end;//class
 
   TClearTask = class(TTask)
@@ -182,6 +187,7 @@ type
       constructor Create(const target_unit: TUnit; X, Y: Byte; const AMap: TMap);
       function Done: Boolean; override;
       function Execute: Boolean; override;
+      function GetType: TTaskType; override;
   end;//class
 
   TGoToTask = class(TTask)
@@ -376,22 +382,22 @@ begin
   end;
 end;//func
 
-function TUnit.GetPosX: Integer;
+function TUnit.GetPosX: LongInt;
 begin
   Result:= PosX;
 end;
 
-function TUnit.GetPosY: Integer;
+function TUnit.GetPosY: LongInt;
 begin
   Result:= PosY;
 end;
 
-function TUnit.GetNation: Integer;
+function TUnit.GetNation: LongInt;
 begin
   Result:= m_Nation;
 end;//func
 
-procedure TUnit.ChangeNation(const new_nation: Integer);
+procedure TUnit.ChangeNation(const new_nation: LongInt);
 begin
   m_Nation:= new_nation;
 end;//proc
@@ -426,6 +432,16 @@ end;//func
 procedure TUnit.SetState(const state: TUnitState);
 begin
   m_State:= state;
+end;//proc
+
+function TUnit.GetRoundsInOpenSea: Byte;
+begin
+  Result:= m_RoundsInOpenSea;
+end;//func
+
+procedure TUnit.SetRoundsInOpenSea(const rounds_left: Byte);
+begin
+  m_RoundsInOpenSea:= rounds_left;
 end;//proc
 
 function TUnit.IsShip: Boolean;
@@ -747,7 +763,9 @@ begin
   Result:= Result and (fs.Write(PosY, sizeof(PosY))=sizeof(PosY));
   Result:= Result and (fs.Write(UnitType, sizeof(TUnitType))=sizeof(TUnitType));
   Result:= Result and (fs.Write(m_location, sizeof(TUnitLocation))=sizeof(TUnitLocation));
-  Result:= Result and (fs.Write(m_Nation, sizeof(Integer))=sizeof(Integer));
+  Result:= Result and (fs.Write(m_State, sizeof(TUnitState))=sizeof(TUnitState));
+  Result:= Result and (fs.Write(m_RoundsInOpenSea, sizeof(Byte))=sizeof(Byte));
+  Result:= Result and (fs.Write(m_Nation, sizeof(LongInt))=sizeof(LongInt));
   Result:= Result and (fs.Write(items, sizeof(items))=sizeof(items));
   //save cargo
   for i:= 0 to 5 do
@@ -801,6 +819,11 @@ begin
   inherited Destroy;
 end;//destruc
 
+function TTask.GetType: TTaskType;
+begin
+  Result:= ttGeneric;
+end;//func
+
 //**** TPloughTask methods ****
 
 constructor TPloughTask.Create(const target_unit: TUnit; X, Y: Byte; const AMap: TMap);
@@ -837,6 +860,11 @@ begin
     Result:= True;
   end//if
   else Result:= False;
+end;//func
+
+function TPloughTask.GetType: TTaskType;
+begin
+  Result:= ttPlough;
 end;//func
 
 // **** TRoadTask methods ****
@@ -876,6 +904,11 @@ begin
   else Result:= False;
 end;//func
 
+function TRoadTask.GetType: TTaskType;
+begin
+  Result:= ttRoad;
+end;//func
+
 // **** TClearTask methods ****
 constructor TClearTask.Create(const target_unit: TUnit; X, Y: Byte; const AMap: TMap);
 begin
@@ -911,6 +944,11 @@ begin
     Result:= True;
   end//if
   else Result:= False;
+end;//func
+
+function TClearTask.GetType: TTaskType;
+begin
+  Result:= ttClear;
 end;//func
 
 // go to task (pathfinding)
