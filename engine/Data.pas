@@ -933,10 +933,11 @@ begin
 end;//func LoadData
 
 function TData.LoadUnitFromStream(var AUnit: TUnit; var fs: TFileStream): Boolean;
-var i, px, py: Integer;
+var i, px, py: LongInt;
     count: Byte;
     temp_unit: TUnit;
     ut: TUnitType;
+    us: TUnitState;
     ul: TUnitLocation;
     gt: TGoodType;
 begin
@@ -946,14 +947,18 @@ begin
     Exit;
   end;
   Result:= (fs.Read(AUnit.MovesLeft, sizeof(AUnit.MovesLeft))=sizeof(AUnit.MovesLeft));
-  Result:= Result and (fs.Read(px, sizeof(Integer))=sizeof(Integer));
-  Result:= Result and (fs.Read(py, sizeof(Integer))=sizeof(Integer));
+  Result:= Result and (fs.Read(px, sizeof(LongInt))=sizeof(LongInt));
+  Result:= Result and (fs.Read(py, sizeof(LongInt))=sizeof(LongInt));
   Result:= Result and AUnit.WarpToXY(px, py, nil);
   Result:= Result and (fs.Read(ut, sizeof(TUnitType))=sizeof(TUnitType));
   AUnit.ChangeType(ut);
   Result:= Result and (fs.Read(ul, sizeof(TUnitLocation))=sizeof(TUnitLocation));
   AUnit.SetLocation(ul);
-  Result:= Result and (fs.Read(i, sizeof(Integer))=sizeof(Integer));
+  Result:= Result and (fs.Read(us, sizeof(TUnitState))=sizeof(TUnitState));
+  AUnit.SetState(us);
+  Result:= Result and (fs.Read(count, sizeof(Byte))=sizeof(Byte));
+  AUnit.SetRoundsInOpenSea(count);
+  Result:= Result and (fs.Read(i, sizeof(LongInt))=sizeof(LongInt));
   AUnit.ChangeNation(i);
   Result:= Result and (fs.Read(count, sizeof(Byte))=sizeof(Byte));
   AUnit.ChangeAllItems(count);
@@ -984,7 +989,7 @@ begin
 end;//func
 
 function TData.LoadColonyFromStream(var AColony: TColony; var fs: TFileStream): Boolean;
-var i, j, f_x, f_y: Integer;
+var i, j, f_x, f_y: LongInt;
     bt: TBuildingType;
     gt: TGoodType;
     count, temp_b: Byte;
@@ -1024,7 +1029,11 @@ begin
     Result:= Result and (fs.Read(temp_b, sizeof(Byte))=sizeof(Byte));
     AColony.SetBuildingLevel(TBuildingType(i), temp_b);
   end;//for
-  //*** units in buildings and units in fields are not saved yet, thus not loaded ***
+  //current building under construction
+  Result:= Result and (fs.Read(bt, sizeof(TBuildingType))=sizeof(TBuildingType));
+  AColony.SetCurrentConstruction(bt);
+
+  //*** units in buildings and units in fields ***
   //fields
   for i:= -1 to 1 do
     for j:= -1 to 1 do
@@ -1039,8 +1048,8 @@ begin
   end;//if
   for i:= 1 to count do
   begin
-    Result:= Result and (fs.Read(f_x, sizeof(Integer))=sizeof(Integer));
-    Result:= Result and (fs.Read(f_y, sizeof(Integer))=sizeof(Integer));
+    Result:= Result and (fs.Read(f_x, sizeof(LongInt))=sizeof(LongInt));
+    Result:= Result and (fs.Read(f_y, sizeof(LongInt))=sizeof(LongInt));
     if ((abs(f_x)>1) or (abs(f_y)>1) or (AColony.GetUnitInField(f_x,f_y)<>nil)) then
     begin
       //invalid x/y-values or unit in field is already present

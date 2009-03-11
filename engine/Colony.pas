@@ -35,9 +35,13 @@ type
       procedure AddToStore(const AGood: TGoodType; const amount: Byte);
       //try to avoid SetStore, use RemoveFromStore or AddToStore instead
       procedure SetStore(const AGood: TGoodType; const new_amount: Word);
+      //for buildings
+      function GetBuildingLevel(const bt: TBuildingType): Byte;
       function GetMaxLevel(const bt: TBuildingType): Byte;
       procedure SetBuildingLevel(const bt: TBuildingType; const new_level: Byte);
-      procedure ConstructNextLevel(const bt: TBuildingType);
+      function GetCurrentConstruction: TBuildingType;
+      procedure SetCurrentConstruction(const bt: TBuildingType);
+      procedure ConstructNextLevel;
       function GetProduction(const bt: TBuildingType; const ut: TUnitType): Integer;
       procedure NewRound(const AMap: TMap);
       function GetUnitInField(const x_shift, y_shift: Integer): TUnit;
@@ -51,7 +55,12 @@ type
     private
       m_Name: string;
       Store: array[TGoodType] of Word; //max. is 300, a word should do it;
+      //current level of buildings
       Buildings: array[TBuildingType] of Byte;
+      //indicates, which building is going to be constructed next
+      // hint: value "btTownHall" indicates no construction in progress, since
+      //max. town hall level is 1 and this level is set at colony creation
+      CurrentConstruction: TBuildingType;
       UnitsInBuilding: array [btArmory..btBlacksmith] of array [0..2] of TUnit;
       UnitsInFields: array[-1..1] of array [-1..1] of record
                                                         u: TUnit;
@@ -61,6 +70,9 @@ type
   PColony = ^TColony;
 
   TColonyArr = array of TColony;
+
+const
+  btNone = btTownHall;
 
 implementation
 
@@ -106,6 +118,10 @@ begin
   Buildings[btWeaver]:= 1;
   Buildings[btDistiller]:= 1;
   Buildings[btFurTrader]:= 1;
+
+  //value "btTownHall" indicates no construction in progress, since
+  //max. town hall level is 1 and this level is set at colony creation
+  CurrentConstruction:= btTownHall;
   //units in fields
   for i:= -1 to 1 do
     for j:= -1 to 1 do
@@ -180,6 +196,11 @@ begin
   Store[AGood]:= new_amount;
 end;//proc
 
+function TColony.GetBuildingLevel(const bt: TBuildingType): Byte;
+begin
+  Result:= Buildings[bt];
+end;//func
+
 function TColony.GetMaxLevel(const bt: TBuildingType): Byte;
 begin
   case bt of
@@ -193,12 +214,22 @@ procedure TColony.SetBuildingLevel(const bt: TBuildingType; const new_level: Byt
 begin
   if new_level>GetMaxLevel(bt) then Buildings[bt]:= GetMaxLevel(bt)
   else Buildings[bt]:= new_level;
+end;//proc
+
+function TColony.GetCurrentConstruction: TBuildingType;
+begin
+  Result:= CurrentConstruction;
 end;//func
 
-procedure TColony.ConstructNextLevel(const bt: TBuildingType);
+procedure TColony.SetCurrentConstruction(const bt: TBuildingType);
 begin
-  if (Buildings[bt]<GetMaxLevel(bt)) then
-    Buildings[bt]:= Buildings[bt]+1;
+  CurrentConstruction:= bt;
+end;//proc
+
+procedure TColony.ConstructNextLevel;
+begin
+  if (Buildings[CurrentConstruction]<GetMaxLevel(CurrentConstruction)) then
+    Buildings[CurrentConstruction]:= Buildings[CurrentConstruction]+1;
 end;//proc
 
 function TColony.GetProduction(const bt: TBuildingType; const ut: TUnitType): Integer;
@@ -427,7 +458,7 @@ begin
 end;//func
 
 function TColony.SaveToStream(var fs: TFileStream): Boolean;
-var i,j: Integer;
+var i,j: LongInt;
     field_count, temp_b: Byte;
     bt: TBuildingType;
 begin
@@ -436,12 +467,12 @@ begin
     Result:= False;
     Exit;
   end;//if
-  Result:= (fs.Write(m_Nation, sizeof(Integer))=sizeof(Integer));
-  Result:= Result and (fs.Write(PosX, sizeof(Integer))=sizeof(Integer));
-  Result:= Result and (fs.Write(PosY, sizeof(Integer))=sizeof(Integer));
+  Result:= (fs.Write(m_Nation, sizeof(LongInt))=sizeof(LongInt));
+  Result:= Result and (fs.Write(PosX, sizeof(LongInt))=sizeof(LongInt));
+  Result:= Result and (fs.Write(PosY, sizeof(LongInt))=sizeof(LongInt));
   //name
   i:= length(m_Name);
-  Result:= Result and (fs.Write(i, sizeof(Integer))=sizeof(Integer));
+  Result:= Result and (fs.Write(i, sizeof(LongInt))=sizeof(LongInt));
   Result:= Result and (fs.Write(m_Name[1], length(m_Name))=length(m_Name));
   //store
   for i:= Ord(Low(TGoodType)) to Ord(High(TGoodType)) do
@@ -449,6 +480,8 @@ begin
   //buildings
   for i:= Ord(Low(TBuildingType)) to Ord(High(TBuildingType)) do
     Result:= Result and (fs.Write(Buildings[TBuildingType(i)], sizeof(Byte))=sizeof(Byte));
+  //current building under construction
+  Result:= Result and (fs.Write(CurrentConstruction, sizeof(TBuildingType))=sizeof(TBuildingType));
   //save units in fields
   //-- count them
   field_count:= 0;
@@ -461,8 +494,8 @@ begin
     for j:= -1 to 1 do
       if UnitsInFields[i,j].u<>nil then
       begin
-        Result:= Result and (fs.Write(i, sizeof(Integer))=sizeof(Integer));
-        Result:= Result and (fs.Write(j, sizeof(Integer))=sizeof(Integer));
+        Result:= Result and (fs.Write(i, sizeof(LongInt))=sizeof(LongInt));
+        Result:= Result and (fs.Write(j, sizeof(LongInt))=sizeof(LongInt));
         Result:= Result and UnitsInFields[i,j].u.SaveToStream(fs);
         Result:= Result and (fs.Write(UnitsInFields[i,j].GoesFor, sizeof(TGoodType))=sizeof(TGoodType));
       end;//for

@@ -165,7 +165,7 @@ const
       ('', '', ''), //btTobacconist
       ('', '', ''), //btDistiller
       ('', '', ''), //btFurTrader
-      ('', '', ''), //btCarpenter
+      ('carpenter.bmp', 'sawmill.bmp', ''), //btCarpenter
       ('church.bmp', 'cathedral.bmp', ''), //btChurch, 2
       ('', '', '')  //btBlackSmith
     );
@@ -181,7 +181,7 @@ const
        'tents.bmp' //cNationApache
     );
 
-  cWindowCaption = 'Vespucci v0.01.r094';
+  cWindowCaption = 'Vespucci v0.01.r095';
 
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
   cMenuHighColour : array [0..2] of Byte = (255, 20, 20);
@@ -230,6 +230,7 @@ type
       MiniMapOffset_Y: Integer;
       Wooden_Mode: Boolean;
       cur_colony: TColony;
+      ColonyBuildingPage: Boolean;
       europe: TEuropeanNation;
       focused: TUnit;
       dat: TData;
@@ -270,6 +271,8 @@ type
       procedure DrawEuropeTitleBar;
       procedure DrawMessage;
       procedure DrawColonyView;
+      procedure GetBuildingPosition(const bt: TBuildingType; var x,y: Single);
+      procedure DrawColonyBuildings;
       procedure DrawEuropeanView;
       procedure DrawGoodDraggedFromBar;
       procedure DrawEuropeButtons;
@@ -296,6 +299,7 @@ type
       function  GetUnitAtMouse(const m_x, m_y: LongInt): Integer;
       function  GetButtonAtMouse(const m_x, m_y: LongInt): Integer;
       function  GetColonyUnitAtMouse(const m_x, m_y: LongInt): Integer;
+      function  GetSwitcherButtonAtMouse(const m_x, m_y: LongInt): LongInt;
       procedure EnqueueNewMessage(const msg_txt: AnsiString; const opts: TShortStrArr; const inCaption, inText: ShortString; cbRec: TCallbackRec);
       procedure GetNextMessage;//de-facto dequeue
       procedure HandleMenuSelection(const categ: TMenuCategory; const selected: Integer);
@@ -327,10 +331,6 @@ type
       function InWoodenMode: Boolean;
       function GetFocusedUnit: TUnit;
   end;//class TGui
-  PGui = ^TGui;
-
-var
-  ptrGUI: PGui;
 
 implementation
 
@@ -372,6 +372,7 @@ begin
   selected_menu_option:= 1;
   report:= rtNone;
   cur_colony:= nil;
+  ColonyBuildingPage:= False;
   europe:= nil;
   focused:= nil;
   //message
@@ -382,8 +383,6 @@ begin
   msg.inputText:= '';
   msg_queue.first:= nil;
   msg_queue.last:= nil;
-
-  ptrGui:= @self;
 
   //set texture names to "empty" and then load them
   glEnable(GL_TEXTURE_2D);
@@ -454,7 +453,7 @@ begin
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     end;//if
   end;//for
-  
+
   //colony textures
   m_ColonyTexNames[0]:= 0;
   if ReadBitmapToArr32RGB(dat.GetPathBase+colony_img_path+cColonyTexNames[0], tempTex, err_str) then
@@ -469,7 +468,7 @@ begin
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   end;//if
-  
+
   //building textures
   for i:= Ord(Low(TBuildingType)) to Ord(High(TBuildingType)) do
   begin
@@ -495,8 +494,8 @@ begin
       end;//if
     end;//for
   end;//for
-    
-  
+
+
   //tribe textures
   for i:= cMinIndian to cMaxIndian do
     m_TribeTexNames[i]:= 0;
@@ -692,6 +691,12 @@ begin
     end;//case
     Exit;
   end;//if InReport
+  
+  if InColony then
+  begin
+    if not Special and (UpCase(char(Key))='T') then ColonyBuildingPage:= not ColonyBuildingPage;
+  end;//if InColony
+  
 
   if Wooden_Mode or InEurope or InColony or InReport then Exit; //rest is only for america view
 
@@ -739,11 +744,6 @@ begin
              if focused<>nil then CenterOn(focused.GetPosX, focused.GetPosY)
              else CenterOn(25, 35);//just for testing, yet
            end;
-      'T': if focused<>nil then //only a test
-           begin
-             tempTask:= TGoToTask.Create(focused, 3, 18, dat.GetMap);
-             focused.SetTask(tempTask);
-           end;//if
     end;//case
   end;//if not Special
 
@@ -1015,6 +1015,14 @@ begin
           ShowMessageOptions(dat.GetLang.GetColonyUnit(cusOptions)+' '+dat.GetLang.GetUnitName(tempUArr[pos_x].GetType)+':',
                              str_arr, temp_cbr);
         end;//if
+      end;//if
+
+      //check for switcher button (unit view/ building view)
+      if ((GetSwitcherButtonAtMouse(mouse.x, mouse.y)<>-1) and
+         (GetSwitcherButtonAtMouse(mouse.x, mouse.y)=GetSwitcherButtonAtMouse(mouse.down_x, mouse.down_y))) then
+      begin
+        //button was pressed
+        ColonyBuildingPage:= GetSwitcherButtonAtMouse(mouse.x, mouse.y)=1;        
       end;//if
 
     end;//else if button=LEFT and state=UP
@@ -1716,72 +1724,222 @@ begin
 
   DrawColonyTitleBar;
   DrawGoodsBar;
-  DrawShipsInPort(nil);
-
-  //draw units in colony
-  u_arr:= dat.GetAllUnitsInColony(cur_colony);
-  if length(u_arr)>0 then
+  
+  //draw page switchers
+  // -- highlighted section
+  glColor3f(0.83*0.8, 0.66*0.8, 0.39*0.8);
+  if ColonyBuildingPage then
   begin
-    glEnable(GL_ALPHA_TEST);
-    glEnable(GL_TEXTURE_2D);
-    for i:= 0 to Min(23, High(u_arr)) do
-    begin
-      DrawUnitIcon(u_arr[i], 14.0 + (i mod 6),(cGoodBarHeight+1)*PixelWidth+(i div 6), True, True);
-    end;
-    glDisable(GL_TEXTURE_2D);
-    glDisable(GL_ALPHA_TEST);
-  end;//if u_arr länger als 0
+    glBegin(GL_QUADS);
+      glVertex2f(cWindowWidth*PixelWidth-5.0, y_Fields-6.0);
+      glVertex2f(cWindowWidth*PixelWidth-2.0, y_Fields-6.0);
+      glVertex2f(cWindowWidth*PixelWidth-2.0, y_Fields-5.5);
+      glVertex2f(cWindowWidth*PixelWidth-5.0, y_Fields-5.5);
+    glEnd;
+  end
+  else begin
+    glBegin(GL_QUADS);
+      glVertex2f(cWindowWidth*PixelWidth-5.0, y_Fields-5.5);
+      glVertex2f(cWindowWidth*PixelWidth-2.0, y_Fields-5.5);
+      glVertex2f(cWindowWidth*PixelWidth-2.0, y_Fields-5.0);
+      glVertex2f(cWindowWidth*PixelWidth-5.0, y_Fields-5.0);
+    glEnd;
+  end;//else
 
-  //check for movable unit in field and draw it
-  if (mouse.down) then
+  // -- borders
+  glLineWidth(2.0);
+  glBegin(GL_LINE_STRIP);
+    glColor3f(0.0, 0.0, 0.0);
+    glVertex2f(cWindowWidth*PixelWidth-5.0, y_Fields-5.0);
+    glVertex2f(cWindowWidth*PixelWidth-5.0, y_Fields-6.0);
+    glVertex2f(cWindowWidth*PixelWidth-2.0, y_Fields-6.0);
+    glVertex2f(cWindowWidth*PixelWidth-2.0, y_Fields-5.0);
+    glVertex2f(cWindowWidth*PixelWidth-5.0, y_Fields-5.0);
+    //separating line
+    glVertex2f(cWindowWidth*PixelWidth-5.0, y_Fields-5.5);
+    glVertex2f(cWindowWidth*PixelWidth-2.0, y_Fields-5.5);
+  glEnd;
+
+  // -- captions
+  glColor3ubv(@cMenuTextColour[0]);
+  WriteText('Buildings', cWindowWidth*PixelWidth-5.0+4*PixelWidth, y_Fields-6.0+4*PixelWidth);
+  WriteText('Units', cWindowWidth*PixelWidth-5.0+4*PixelWidth, y_Fields-5.5+4*PixelWidth);
+  
+  if ColonyBuildingPage then
   begin
-    GetColonyFieldAtMouse(i,j, mouse.down_x, mouse.down_y);
-    if ((i<>-2) and (cur_colony.GetUnitInField(i,j)<>nil)) then
+    DrawColonyBuildings;
+  end
+  else begin
+  
+    DrawShipsInPort(nil);
+
+    //draw units in colony
+    u_arr:= dat.GetAllUnitsInColony(cur_colony);
+    if length(u_arr)>0 then
     begin
-      glEnable(GL_TEXTURE_2D);
       glEnable(GL_ALPHA_TEST);
-      if m_UnitTexNames[cur_colony.GetUnitInField(i,j).GetType]<>0 then
-        glBindTexture(GL_TEXTURE_2D, m_UnitTexNames[cur_colony.GetUnitInField(i,j).GetType])
-      else glBindTexture(GL_TEXTURE_2D, m_ErrorTexName);
-      i:= mouse.x mod FieldWidth;
-      j:= ((mouse.y-16) mod FieldWidth)-FieldWidth;
-      glBegin(GL_QUADS);
-        glColor3f(1.0, 1.0, 1.0);
-        glTexCoord2f(0.0, 0.0);
-        glVertex2f((mouse.x-i)*PixelWidth, (cWindowHeight-mouse.y+j)*PixelWidth-0.5);//lower left corner
-        glTexCoord2f(1.0, 0.0);
-        glVertex2f((mouse.x-i)*PixelWidth+1.0, (cWindowHeight-mouse.y+j)*PixelWidth-0.5);
-        glTexCoord2f(1.0, 1.0);
-        glVertex2f((mouse.x-i)*PixelWidth+1.0, (cWindowHeight-mouse.y+j)*PixelWidth+0.5);
-        glTexCoord2f(0.0, 1.0);
-        glVertex2f((mouse.x-i)*PixelWidth, (cWindowHeight-mouse.y+j)*PixelWidth+0.5);
-      glEnd;
-      glDisable(GL_ALPHA_TEST);
-      glDisable(GL_TEXTURE_2D);
-    end//if (i<>-2) and ...
-    else begin
-      //check for unit moved from "outside" of colony
-      str_width:= GetColonyUnitAtMouse(mouse.down_x, mouse.down_y);
-      if str_width<>-1 then
+      glEnable(GL_TEXTURE_2D);
+      for i:= 0 to Min(23, High(u_arr)) do
       begin
-        u_arr:= dat.GetAllUnitsInColony(cur_colony);
-        if High(u_arr)>=str_width then
+        DrawUnitIcon(u_arr[i], 14.0 + (i mod 6),(cGoodBarHeight+1)*PixelWidth+(i div 6), True, True);
+      end;
+      glDisable(GL_TEXTURE_2D);
+      glDisable(GL_ALPHA_TEST);
+    end;//if u_arr länger als 0
+
+    //check for movable unit in field and draw it
+    if (mouse.down) then
+    begin
+      GetColonyFieldAtMouse(i,j, mouse.down_x, mouse.down_y);
+      if ((i<>-2) and (cur_colony.GetUnitInField(i,j)<>nil)) then
+      begin
+        glEnable(GL_TEXTURE_2D);
+        glEnable(GL_ALPHA_TEST);
+        if m_UnitTexNames[cur_colony.GetUnitInField(i,j).GetType]<>0 then
+          glBindTexture(GL_TEXTURE_2D, m_UnitTexNames[cur_colony.GetUnitInField(i,j).GetType])
+        else glBindTexture(GL_TEXTURE_2D, m_ErrorTexName);
+        i:= mouse.x mod FieldWidth;
+        j:= ((mouse.y-16) mod FieldWidth)-FieldWidth;
+        glBegin(GL_QUADS);
+          glColor3f(1.0, 1.0, 1.0);
+          glTexCoord2f(0.0, 0.0);
+          glVertex2f((mouse.x-i)*PixelWidth, (cWindowHeight-mouse.y+j)*PixelWidth-0.5);//lower left corner
+          glTexCoord2f(1.0, 0.0);
+          glVertex2f((mouse.x-i)*PixelWidth+1.0, (cWindowHeight-mouse.y+j)*PixelWidth-0.5);
+          glTexCoord2f(1.0, 1.0);
+          glVertex2f((mouse.x-i)*PixelWidth+1.0, (cWindowHeight-mouse.y+j)*PixelWidth+0.5);
+          glTexCoord2f(0.0, 1.0);
+          glVertex2f((mouse.x-i)*PixelWidth, (cWindowHeight-mouse.y+j)*PixelWidth+0.5);
+        glEnd;
+        glDisable(GL_ALPHA_TEST);
+        glDisable(GL_TEXTURE_2D);
+      end//if (i<>-2) and ...
+      else begin
+        //check for unit moved from "outside" of colony
+        str_width:= GetColonyUnitAtMouse(mouse.down_x, mouse.down_y);
+        if str_width<>-1 then
         begin
-          glEnable(GL_TEXTURE_2D);
-          glEnable(GL_ALPHA_TEST);
-          DrawUnitIcon(u_arr[str_width], 14.0+ (str_width mod 6)+(mouse.x-mouse.down_x)*PixelWidth,
-                          (cGoodBarHeight+1+mouse.down_y-mouse.y)*PixelWidth+(str_width div 6), True, False);
-          glDisable(GL_ALPHA_TEST);
-          glDisable(GL_TEXTURE_2D);
-        end;//if
-      end//if
-      else DrawGoodDraggedFromBar;
-    end;//else
-  end;//if mouse.down
+          u_arr:= dat.GetAllUnitsInColony(cur_colony);
+          if High(u_arr)>=str_width then
+          begin
+            glEnable(GL_TEXTURE_2D);
+            glEnable(GL_ALPHA_TEST);
+            DrawUnitIcon(u_arr[str_width], 14.0+ (str_width mod 6)+(mouse.x-mouse.down_x)*PixelWidth,
+                            (cGoodBarHeight+1+mouse.down_y-mouse.y)*PixelWidth+(str_width div 6), True, False);
+            glDisable(GL_ALPHA_TEST);
+            glDisable(GL_TEXTURE_2D);
+          end;//if
+        end//if
+        else DrawGoodDraggedFromBar;
+      end;//else
+    end;//if mouse.down
+  
+  end;//else, i.e. not ColonyBuildingPage
+
   {$IFDEF DEBUG_CODE}
     WriteLn('Leaving TGui.DrawColonyView');
   {$ENDIF}
 end;//proc DrawColonyView
+
+procedure TGui.GetBuildingPosition(const bt: TBuildingType; var x,y: Single);
+begin
+{Colony layout:
+ (length in Field units (=currently 32px on screen)
+
+  /--0.5--+----3.0------+--0.5--+----3.0-------+--0.5--+-------3.0-----+--0.5--+----3.0---+--0.5--\
+  |       |             |       |              |       |               |       |          |       |
+ 0.5 free | free        | free  |  free        | free  |      free     | free  |  free    | free  |
+  |       |             |       |              |       |               |       |          |       |
+  +-------+-------------+-------+--------------+-------+---------------+-------+----------+-------+
+  |       |   image     |       |   image      |       |   image       |       |   image  |       |
+ 2.0 free |    of       | free  |    of        | free  |    of         | free  |    of    | free  |
+  |       | btCarpenter |       | btBlackSmith |       | btChurch      |       | btPress  |       |
+  +-------+-------------+-------+--------------+-------+---------------+-------+----------+-------+
+  |       |             |       |              |       |               |       |          |       |
+ 0.5 free | free        | free  |  free        | free  |     free      | free  |  free    | free  |
+  |       |             |       |              |       |               |       |          |       |
+  +-------+-------------+-------+--------------+-------+---------------+-------+----------+-------+
+  |       |   image     |       |   image      |       |   image       |       |   image  |       |
+ 2.0 free |    of       | free  |    of        | free  |    of         | free  |    of    | free  |
+  |       | btFurTrader |       | btDistiller  |       | btWeaver      |       | btArmory |       |
+  +-------+-------------+-------+--------------+-------+---------------+-------+----------+-------+
+  |       |             |       |              |       |               |       |          |       |
+ 0.5 free | free        | free  |  free        | free  |     free      | free  |  free    | free  |
+  |       |             |       |              |       |               |       |          |       |
+  +-------+-------------+-------+--------------+-------+---------------+-------+----------+-------+
+  |       |   image     |       |   image      |       |   image       |       |   image  |       |
+ 2.0 free |    of       | free  |    of        | free  |    of         | free  |    of    | free  |
+  |       | btSchool    |       | btStable     |       | btTobacconist |       |  btDock  |       |
+  +-------+-------------+-------+--------------+-------+---------------+-------+----------+-------+
+  |       |             |       |              |       |               |       |          |       |
+ 0.5 free | free        | free  |  free        | free  |     free      | free  |  free    | free  |
+  |       |             |       |              |       |               |       |          |       |
+  +-------+-------------+-------+--------------+-------+---------------+-------+----------+-------+
+  |       |   image     |       |   image      |       |   image       |       |   image  |       |
+ 2.0 free |    of       | free  |    of        | free  |    of         | free  |    of    | free  |
+  |       | btWarehouse |       |  btTownHall  |       | nothing(free) |       |  btFort  |       |
+  +-------+-------------+-------+--------------+-------+---------------+-------+----------+-------+
+  |       |             |       |              |       |               |       |          |       |
+ 0.5 free | free        | free  |  free        | free  |     free      | free  |  free    | free  |
+  |       |             |       |              |       |               |       |          |       |
+  \-------+-------------+-------+--------------+-------+---------------+-------+----------+-------/
+}
+  //assign x
+  case bt of
+    btCarpenter, btFurTrader, btSchool, btWarehouse: x:= 0.5;
+    btBlackSmith, btDistiller, btStable, btTownHall: x:= 4.0;
+    btChurch, btWeaver, btTobacconist: x:= 7.5;
+    btPress, btArmory, btDock, btFort: x:= 11.0;
+  else
+    x:= 0.0;
+  end;//case
+
+  //assign y
+  case bt of
+    btCarpenter, btBlackSmith, btChurch, btPress: y:= y_Fields -2.5;
+    btFurTrader, btDistiller, btWeaver, btArmory: y:= y_Fields -5.0;
+    btSchool, btStable, btTobacconist, btDock: y:= y_Fields -7.5;
+    btWarehouse, btTownHall, btFort: y:= y_Fields - 10.0;
+  else
+    y:= 0.0;
+  end;
+end;//procedure GetBuildingPosition
+
+procedure TGui.DrawColonyBuildings;
+var x, y: Single;
+    i: Integer;
+    level: Byte;
+begin
+  for i:=Ord(Low(TBuildingType)) to Ord(High(TBuildingType)) do
+  begin
+    level:= cur_colony.GetBuildingLevel(TBuildingType(i));
+    //check for valid level
+    if (level in [1..3]) then
+    begin
+      //check, whether texture is loaded
+      if m_BuildingTexNames[TBuildingType(i), level]<>0 then
+      begin
+        GetBuildingPosition(TBuildingType(i), x,y);
+        glEnable(GL_TEXTURE_2D);
+        glEnable(GL_ALPHA_TEST);
+        glBindTexture(GL_TEXTURE_2D, m_BuildingTexNames[TBuildingType(i), level]);
+        glBegin(GL_QUADS);
+          glColor3f(1.0, 1.0, 1.0);
+          glTexCoord2f(0.0, 0.0);
+          glVertex2f(x, y);
+          glTexCoord2f(0.75, 0.0);
+          glVertex2f(x+3.0, y);
+          glTexCoord2f(0.75, 1.0);
+          glVertex2f(x+3.0, y+2.0);
+          glTexCoord2f(0.0, 1.0);
+          glVertex2f(x, y+2.0);
+        glEnd;
+        glDisable(GL_ALPHA_TEST);
+        glDisable(GL_TEXTURE_2D);
+      end;//texture present
+    end;//if 1<=Level<=3
+  end;//for
+end;//proc DrawColonyBuildings
 
 procedure TGui.DrawEuropeanView;
 var Ship, Colonists, Expected, NewWorld: TUnitArr;
@@ -3396,6 +3554,14 @@ begin
     Result:= Result +6* (((cWindowHeight-(cGoodBarHeight+17))-m_y) div FieldWidth);
     if Result>=24 then Result:= -1;
   end;//else
+end;//func
+
+//returns: -1 of none, 0 if upper, 1 if lower
+function TGui.GetSwitcherButtonAtMouse(const m_x, m_y: LongInt): LongInt;
+begin
+  if (m_x>=cWindowWidth-2*FieldWidth) or (m_x<=cWindowWidth-5*FieldWidth)
+     or (m_y<=16+5*FieldWidth) or (m_y>=16+6*FieldWidth) then Result:= -1
+  else Result:= (m_y-16-5*FieldWidth) div 16;
 end;//func
 
 end.

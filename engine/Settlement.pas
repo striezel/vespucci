@@ -11,10 +11,10 @@ type
       procedure ChangeNation(const new_nation: LongInt);
       function GetPosX: Integer;
       function GetPosY: Integer;
-      procedure SetPosition(const x,y: Integer);
+      procedure SetPosition(const x,y: LongInt);
     protected
       m_Nation: LongInt;
-      PosX, PosY: Integer;
+      PosX, PosY: LongInt;
   end;//class
   PSettlement = ^TSettlement;
 
@@ -45,17 +45,17 @@ begin
   if new_nation>=0 then m_Nation:= new_nation;
 end;//proc
 
-function TSettlement.GetPosX: Integer;
+function TSettlement.GetPosX: LongInt;
 begin
   Result:= PosX;
 end;//func
 
-function TSettlement.GetPosY: Integer;
+function TSettlement.GetPosY: LongInt;
 begin
   Result:= PosY;
 end;//func
 
-procedure TSettlement.SetPosition(const x,y: Integer);
+procedure TSettlement.SetPosition(const x,y: LongInt);
 begin
   if x>0 then PosX:= x else PosX:= 1;
   if y>0 then PosY:= y else PosY:= 1;
