@@ -162,12 +162,12 @@ const
       ('', '', ''), //btArmory
       ('townhall.bmp', '', ''), //btTownhall, 1
       ('', '', ''), //btWeaver
-      ('', '', ''), //btTobacconist
+      ('tobacconist.bmp', '', ''), //btTobacconist
       ('', '', ''), //btDistiller
       ('', '', ''), //btFurTrader
-      ('carpenter.bmp', 'sawmill.bmp', ''), //btCarpenter
+      ('carpenter.bmp', 'sawmill.bmp', ''), //btCarpenter, 2
       ('church.bmp', 'cathedral.bmp', ''), //btChurch, 2
-      ('', '', '')  //btBlackSmith
+      ('blacksmith.bmp', '', '')  //btBlackSmith, 3
     );
 
   cTribeTexNames: array [cMinIndian..cMaxIndian] of string =(
@@ -691,12 +691,12 @@ begin
     end;//case
     Exit;
   end;//if InReport
-  
+
   if InColony then
   begin
     if not Special and (UpCase(char(Key))='T') then ColonyBuildingPage:= not ColonyBuildingPage;
   end;//if InColony
-  
+
 
   if Wooden_Mode or InEurope or InColony or InReport then Exit; //rest is only for america view
 
@@ -1022,7 +1022,7 @@ begin
          (GetSwitcherButtonAtMouse(mouse.x, mouse.y)=GetSwitcherButtonAtMouse(mouse.down_x, mouse.down_y))) then
       begin
         //button was pressed
-        ColonyBuildingPage:= GetSwitcherButtonAtMouse(mouse.x, mouse.y)=1;        
+        ColonyBuildingPage:= GetSwitcherButtonAtMouse(mouse.x, mouse.y)=1;
       end;//if
 
     end;//else if button=LEFT and state=UP
@@ -1724,7 +1724,7 @@ begin
 
   DrawColonyTitleBar;
   DrawGoodsBar;
-  
+
   //draw page switchers
   // -- highlighted section
   glColor3f(0.83*0.8, 0.66*0.8, 0.39*0.8);
@@ -1764,13 +1764,13 @@ begin
   glColor3ubv(@cMenuTextColour[0]);
   WriteText('Buildings', cWindowWidth*PixelWidth-5.0+4*PixelWidth, y_Fields-6.0+4*PixelWidth);
   WriteText('Units', cWindowWidth*PixelWidth-5.0+4*PixelWidth, y_Fields-5.5+4*PixelWidth);
-  
+
   if ColonyBuildingPage then
   begin
     DrawColonyBuildings;
   end
   else begin
-  
+
     DrawShipsInPort(nil);
 
     //draw units in colony
@@ -1833,7 +1833,7 @@ begin
         else DrawGoodDraggedFromBar;
       end;//else
     end;//if mouse.down
-  
+
   end;//else, i.e. not ColonyBuildingPage
 
   {$IFDEF DEBUG_CODE}
