@@ -181,7 +181,7 @@ const
        'tents.bmp' //cNationApache
     );
 
-  cWindowCaption = 'Vespucci v0.01.r095';
+  cWindowCaption = 'Vespucci v0.01.r097';
 
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
   cMenuHighColour : array [0..2] of Byte = (255, 20, 20);
@@ -264,7 +264,6 @@ type
       //Error Texture (yellow sign with black "!" on it)
       m_ErrorTexName: GLuint;
 
-      procedure InitGLUT;
       procedure DrawMenuBar;
       procedure DrawGoodsBar;
       procedure DrawColonyTitleBar;
@@ -885,26 +884,40 @@ begin
   end;//if down
 
   //handling colony view's mouse events
-  if (cur_colony<>nil) then
+  // ---- general ones, i.e. the ones that work on both pages
+  if (InColony) then
   begin
     //check for pressing the red "E" in colony view
-    if ((button=GLUT_LEFT) and (state=GLUT_UP) and (x>608) and (y>cWindowHeight-50)) then
+    if ((button=GLUT_LEFT) and (state=GLUT_UP)) then
     begin
-      cur_colony:= nil;
-      glutPostRedisplay;
-    end//if
-    else if ((button=GLUT_LEFT) and (state=GLUT_UP)) then
-    begin
+      //check for pressing the red "E" in colony view
+      if ((x>608) and (y>cWindowHeight-50)) then
+      begin
+        WriteLn('x: ',x, '; y: ', y, #13#10, 'out of colony now');
+        cur_colony:= nil;
+        glutPostRedisplay;
+        Exit;
+      end//if
       //check for colony bar click (i.e. renaming colony)
-      if ((mouse.y<=16) and (mouse.down_y<=16)) then
+      else if ((mouse.y<=16) and (mouse.down_y<=16)) then
       begin
         temp_cbr._type:= CBT_RENAME_COLONY;
         temp_cbr.RenameColony.AColony:= cur_colony;
         with dat.GetLang do
           ShowMessageInput(GetColonyString(csRenameQuestion), GetColonyString(csRenameLabel), cur_colony.GetName, temp_cbr);
         Exit;
+      end//if title bar clicked
+
+      //check for switcher button (unit view/ building view)
+      else if ((GetSwitcherButtonAtMouse(mouse.x, mouse.y)<>-1) and
+         (GetSwitcherButtonAtMouse(mouse.x, mouse.y)=GetSwitcherButtonAtMouse(mouse.down_x, mouse.down_y))) then
+      begin
+        //button was pressed
+        ColonyBuildingPage:= GetSwitcherButtonAtMouse(mouse.x, mouse.y)=1;
+        Exit;
       end;//if
 
+      // -- units in fields
       GetColonyFieldAtMouse(sx, sy);
       GetColonyFieldAtMouse(sx_d, sy_d, mouse.down_x, mouse.down_y);
       //moving unit in field
@@ -919,6 +932,7 @@ begin
           cur_colony.SetUnitInField(sx, sy, tempUnit, tempGood);
         end;//if
       end//if
+      //change job of unit
       else if ((sx<>-2) and (cur_colony.GetUnitInField(sx, sy)<>nil)) then
       begin
         temp_cbr._type:= CBT_JOB_CHANGE;
@@ -928,6 +942,17 @@ begin
         ShowMessageOptions('Choose profession for unit '+dat.GetLang.GetUnitName(cur_colony.GetUnitInField(sx, sy).GetType)+':',
                            dat.GetJobList(sx, sy, cur_colony.GetUnitInField(sx, sy).GetType, cur_colony), temp_cbr);
       end;//else if
+
+    end;//if Left Mouse Button up
+  end;//if InColony (general)
+  
+  // ---- events on unit page, e.g. dragging goods/ units
+  if (InColony and not ColonyBuildingPage) then
+  begin
+    if ((button=GLUT_LEFT) and (state=GLUT_UP)) then
+    begin
+      GetColonyFieldAtMouse(sx, sy);
+      GetColonyFieldAtMouse(sx_d, sy_d, mouse.down_x, mouse.down_y);
 
       //*** check for good transfer ***
       //from ship to port of colony
@@ -1017,20 +1042,14 @@ begin
         end;//if
       end;//if
 
-      //check for switcher button (unit view/ building view)
-      if ((GetSwitcherButtonAtMouse(mouse.x, mouse.y)<>-1) and
-         (GetSwitcherButtonAtMouse(mouse.x, mouse.y)=GetSwitcherButtonAtMouse(mouse.down_x, mouse.down_y))) then
-      begin
-        //button was pressed
-        ColonyBuildingPage:= GetSwitcherButtonAtMouse(mouse.x, mouse.y)=1;
-      end;//if
-
     end;//else if button=LEFT and state=UP
     {$IFDEF DEBUG_CODE}
     WriteLn('Exiting TGui.MouseFunc');
     {$ENDIF}
     Exit;
-  end;//if colony
+  end;//if colony (units' page)
+  
+  If InColony then Exit;
 
   //handle European view's mouse events
   if (europe<>nil) then
@@ -1281,7 +1300,7 @@ begin
       //if not player's colony, set back to nil
       if cur_colony<>nil then
       begin
-        if cur_colony.GetNation<>dat.PlayerNation then cur_colony:= nil;
+        if cur_colony.GetNation<>dat.PlayerNation then begin cur_colony:= nil; WriteLn('Debug: x: ',x, '; y: ', y, #13#10, 'out of colony now'); end;
       end//if colony<>nil
       else begin
         {If we don't have a colony there, there might be a unit?}
@@ -1320,10 +1339,10 @@ begin
   {$ENDIF}
 end;//proc
 
-procedure TGui.InitGLUT;
+procedure TGui.Start;
 begin
   {$IFDEF DEBUG_CODE}
-    WriteLn('Entered TGui.InitGLUT');
+    WriteLn('Entered TGui.Start');
   {$ENDIF}
   WriteLn('glEnable-like stuff');
    // Enable backface culling
@@ -1335,11 +1354,6 @@ begin
   //Starting
   WriteLn('glutMainLoop');
   glutMainLoop;
-end;//proc
-
-procedure TGui.Start;
-begin
-  InitGLUT;
 end;//proc Start
 
 procedure TGui.Draw;
