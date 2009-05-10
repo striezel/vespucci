@@ -3,14 +3,15 @@ unit Language;
 interface
 
 uses
-  Goods, Units, Terrain, Nation, SysUtils;
+  Goods, Units, Terrain, Nation, Colony {building type}, SysUtils;
 
 type
   TMenuCategory = (mcNone, mcGame, mcView, mcOrders, mcReports, mcTrade);
   TSaveLoadString = (slsLoadChoose, slsLoadError, slsLoadSuccess, slsSaveChoose, slsSaveError, slsSaveSuccess, slsNoGameLoaded);
   TTransferString = (tsBoycotted, tsOutOfGold, tsOutOfSpace);
   TOtherString = (osLocation, osDestination, osFreight, osShip, osHighSea,
-                  osNewWorld, osMoves, osEmpty, osNothing, osNoChanges, osTax, osGold, osCost, osSaving, osEarnings);
+                  osNewWorld, osMoves, osEmpty, osNothing, osNoChanges, osTax,
+                  osGold, osCost, osSaving, osEarnings, osUndefined);
   TEuroPortString = (epsManageHeading, epsNotOnShip, epsGoOnShip, epsArm, epsDisarm, epsGiveHorses, epsNoHorses, epsGiveTools, epsNoTools, epsTrainHeading, epsBuyHeading);
   TReportType = (rtNone, rtEconomy, rtColony, rtFleet);
   TColonyString = (csRenameQuestion, csRenameLabel, csAbandonYes, csAbandonNo, csAbandonQuestion);
@@ -45,12 +46,15 @@ type
       ColonyNames: array [cMinEuropean..cMaxEuropean] of array of ShortString;
       //managing units outside of colonies (but within colony square)
       ColonyUnit: array[TColonyUnitString] of string;
+      //for names of buildings on different levels
+      Buildings: array[TBuildingType] of array [1..3] of string;
       //for managing units in european port
       EuroPortManage: array[TEuroPortString] of string;
       //for pioneer actions
       Pioneers: array[TPioneerString] of string;
       procedure InitialValues;
       procedure InitialColonyNames;
+      procedure InitialBuildingNames;
       procedure SetMenuHelpers;
       function privGetOptionCount(const categ: TMenuCategory): Integer;
     public
@@ -77,6 +81,7 @@ type
       function GetColonyString(const which: TColonyString): string;
       function GetColonyNames(const num_nation: LongInt; col_count: Byte): string;
       function GetColonyUnit(const which: TColonyUnitString): string;
+      function GetBuildingName(const which: TBuildingType; const level: Byte): string;
       function GetEuroPort(const which: TEuroPortString): string;
       function GetPioneer(const which: TPioneerString): string;
       function SaveToFile(const FileName: string): Boolean;
@@ -254,6 +259,7 @@ begin
   Others[osCost]:= 'Kosten';
   Others[osSaving]:= 'Einsparung';
   Others[osEarnings]:= 'Gewinn';
+  Others[osUndefined]:= 'Nicht definiert';
   //save/ load messages
   SaveLoad[slsLoadChoose]:= 'Wählen Sie den zu ladenden Spielstand.';
   SaveLoad[slsLoadError]:= 'Fehler beim Laden des Spielstandes! Das geladene Spiel kann '
@@ -297,7 +303,7 @@ begin
   for i:= cMinEuropean to cMaxEuropean do
     SetLength(ColonyNames[i], 0);
   InitialColonyNames;
-
+  InitialBuildingNames;
   //for European ports
   EuroPortManage[epsManageHeading]:= 'Optionen für Siedler im europäischen Hafen:';
   EuroPortManage[epsNotOnShip]:= 'Nicht aufs nächste Schiff gehen';
@@ -400,6 +406,82 @@ begin
   ColonyNames[cNationHolland, 13]:= 'Aruba';
   ColonyNames[cNationHolland, 14]:= 'Utrecht';
   ColonyNames[cNationHolland, 15]:= 'Haarlem';
+end;//proc
+
+procedure TLanguage.InitialBuildingNames;
+var i,j: Integer;
+begin
+{TBuildingType = (btNone, //nichts, dummy
+                   btFort, //Einpfählung, Fort, Festung
+                   btDock, //Hafenanlagen, Trockendock, Werft
+                   btWarehouse, //Lagerhaus, Lagerhauserweiterung
+                   btStable, //Ställe
+                   btCustomHouse, //Zollhaus
+                   btPress, //Druckerei, Verlag
+                   btSchool, //Schule, College, Universität
+                   btArmory, //Waffenkammer, Waffendepot, Waffenarsenal
+                   btTownHall, //Rathaus
+                   btWeaver, //Haus d. Webers, Weberei, Textilwerk
+                   btTobacconist, //Haus d. Tabakhändlers, Tabakladen, Zigarrenfabrik
+                   btDistiller, //Haus d. Rumbrenners, Rumbrennerei, Rumfabrik
+                   btFurTrader, //Haus d. Gerbers, Gerberei, Pelzfabrik
+                   btCarpenter, //Zimmerei, Sägewerk
+                   btChurch, //Kirche, Kathedrale
+                   btBlacksmith //Haus d. Schmieds, Schmiede, Eisenhütte
+                  );}
+  //initialise all to empty strings (saves us from setting unused strings afterwards)
+  for i:= Ord(Low(TBuildingType)) to Ord(High(TBuildingType)) do
+    for j:= 1 to 3 do
+      Buildings[TBuildingType(i),j]:= '';
+
+  //"real" content
+  Buildings[btFort,1]:= 'Einpfählung';
+  Buildings[btFort,2]:= 'Fort';
+  Buildings[btFort,3]:= 'Festung';
+  Buildings[btDock,1]:= 'Hafenanlagen';
+  Buildings[btDock,2]:= 'Trockendock';
+  Buildings[btDock,3]:= 'Werft';
+
+  Buildings[btWarehouse,1]:= 'Lagerhaus';
+  Buildings[btWarehouse,2]:= 'Lagerhauserweiterung';
+  Buildings[btStable,1]:= 'Ställe';
+  Buildings[btCustomHouse,1]:= 'Zollhaus';
+  Buildings[btPress, 1]:= 'Druckerei';
+  Buildings[btPress, 2]:= 'Verlag';
+
+  Buildings[btSchool,1]:= 'Schule';
+  Buildings[btSchool,2]:= 'College';
+  Buildings[btSchool,3]:= 'Universität';
+  Buildings[btArmory,1]:= 'Waffenkammer';
+  Buildings[btArmory,2]:= 'Waffendepot';
+  Buildings[btArmory,3]:= 'Waffenarsenal';
+  Buildings[btTownhall,1]:= 'Rathaus';
+
+  Buildings[btWeaver,1]:= 'Haus des Webers';
+  Buildings[btWeaver,2]:= 'Weberei';
+  Buildings[btWeaver,3]:= 'Textilwerk';
+
+  Buildings[btTobacconist,1]:= 'Haus des Tabakhändlers';
+  Buildings[btTobacconist,2]:= 'Tabakladen';
+  Buildings[btTobacconist,3]:= 'Zigarrenfabrik';
+
+  Buildings[btDistiller,1]:= 'Haus des Rumbrenners';
+  Buildings[btDistiller,2]:= 'Rumbrennerei';
+  Buildings[btDistiller,3]:= 'Rumfabrik';
+
+  Buildings[btFurTrader,1]:= 'Haus des Gerbers';
+  Buildings[btFurTrader,2]:= 'Pelzhandelsposten';
+  Buildings[btFurTrader,3]:= 'Pelzfabrik';
+
+  Buildings[btCarpenter,1]:= 'Zimmerei';
+  Buildings[btCarpenter,2]:= 'Sägewerk';
+
+  Buildings[btChurch,1]:= 'Kirche';
+  Buildings[btChurch,2]:= 'Kathedrale';
+
+  Buildings[btBlacksmith,1]:= 'Haus des Schmieds';
+  Buildings[btBlacksmith,2]:= 'Schmiede';
+  Buildings[btBlacksmith,3]:= 'Eisenhütte';
 end;//proc
 
 procedure TLanguage.SetMenuHelpers;
@@ -530,6 +612,18 @@ begin
   Result:= ColonyUnit[which];
 end;//func
 
+function TLanguage.GetBuildingName(const which: TBuildingType; const level: Byte): string;
+begin
+  case level of
+    0: Result:= GetOthers(osNothing);
+    1..3: begin
+            Result:= Buildings[which, level];
+            if (Result='') then Result:= GetOthers(osUndefined);
+          end;//1..3
+  else Result:= GetOthers(osUndefined);
+  end;//case
+end;//func
+
 function TLanguage.GetEuroPort(const which: TEuroPortString): string;
 begin
   Result:= EuroPortManage[which];
@@ -542,7 +636,7 @@ end;//func
 
 function TLanguage.SaveToFile(const FileName: string): Boolean;
 var dat: TextFile;
-    i: Integer;
+    i, j: Integer;
 begin
   Result:= False;
   try
@@ -611,6 +705,14 @@ begin
   WriteLn(dat, '[Pioneers]');
   for i:= Ord(Low(TPioneerString)) to Ord(High(TPioneerString)) do
     WriteLn(dat, Pioneers[TPioneerString(i)]);
+  WriteLn(dat);
+  WriteLn(dat, '[Buildings]');
+  for i:= Ord(Succ(btNone)) to Ord(High(TBuildingType)) do
+  begin
+    for j:= 1 to 3 do
+      if (j<=GetMaxBuildingLevel(TBuildingType(i))) then
+        WriteLn(dat, Buildings[TBuildingType(i),j]);
+  end;//for
   CloseFile(dat);
   Result:= True;
 end;//func
@@ -618,7 +720,7 @@ end;//func
 function TLanguage.LoadFromFile(const FileName: string): Boolean;
 var dat: TextFile;
     str1: AnsiString;
-    i: Integer;
+    i, j: Integer;
 begin
   if not FileExists(FileName) then Result:= False
   else begin
@@ -795,6 +897,23 @@ begin
           ReadLn(dat, str1);
           str1:= Trim(str1);
           if str1<>'' then Pioneers[TPioneerString(i)]:= str1;
+          i:= i+1;
+        end;//while
+      end//if
+      else if str1='[Buildings]' then
+      begin
+        i:= Ord(Succ(btNone));
+        while (i<=Ord(High(TBuildingType))) and not Eof(dat) do
+        begin
+          for j:= 1 to 3 do
+          begin
+            if (j<=GetMaxBuildingLevel(TBuildingType(i))) then
+            begin
+              ReadLn(dat, str1);
+              str1:= Trim(str1);
+              if str1<>'' then Pioneers[TPioneerString(i)]:= str1;
+            end;//if
+          end;//for j
           i:= i+1;
         end;//while
       end;//if

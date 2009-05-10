@@ -152,6 +152,7 @@ const
     );
 
   cBuildingTexNames: array [TBuildingType] of array [1..3] of string =(
+      ('', '', ''), //btNone, 0
       ('stockade.bmp', 'fort.bmp', 'fortress.bmp'), //btFort, 3
       ('docks.bmp', 'trydock.bmp', 'shipyard.bmp'), //btDock, 3
       ('storage.bmp', 'storage2.bmp', ''), //btWareHouse, 2
@@ -181,7 +182,7 @@ const
        'tents.bmp' //cNationApache
     );
 
-  cWindowCaption = 'Vespucci v0.01.r097';
+  cWindowCaption = 'Vespucci v0.01.r098';
 
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
   cMenuHighColour : array [0..2] of Byte = (255, 20, 20);
@@ -299,6 +300,7 @@ type
       function  GetButtonAtMouse(const m_x, m_y: LongInt): Integer;
       function  GetColonyUnitAtMouse(const m_x, m_y: LongInt): Integer;
       function  GetSwitcherButtonAtMouse(const m_x, m_y: LongInt): LongInt;
+      function  GetBuildingAtMouse(const mx, my: LongInt): TBuildingType;
       procedure EnqueueNewMessage(const msg_txt: AnsiString; const opts: TShortStrArr; const inCaption, inText: ShortString; cbRec: TCallbackRec);
       procedure GetNextMessage;//de-facto dequeue
       procedure HandleMenuSelection(const categ: TMenuCategory; const selected: Integer);
@@ -945,7 +947,7 @@ begin
 
     end;//if Left Mouse Button up
   end;//if InColony (general)
-  
+
   // ---- events on unit page, e.g. dragging goods/ units
   if (InColony and not ColonyBuildingPage) then
   begin
@@ -1048,7 +1050,7 @@ begin
     {$ENDIF}
     Exit;
   end;//if colony (units' page)
-  
+
   If InColony then Exit;
 
   //handle European view's mouse events
@@ -1638,6 +1640,7 @@ var i,j: ShortInt;
     tempStr: string;
     str_width: Integer;
     u_arr: TUnitArr;
+    bt: TBuildingType;
 begin
   {$IFDEF DEBUG_CODE}
     WriteLn('Entered TGui.DrawColonyView');
@@ -1782,7 +1785,27 @@ begin
   if ColonyBuildingPage then
   begin
     DrawColonyBuildings;
-  end
+    //text, if mouse hovers over buildings
+    bt:= GetBuildingAtMouse(mouse.x, mouse.y);
+    if (bt<>btNone) then
+    begin
+      if (cur_colony.GetBuildingLevel(bt)>0) then begin
+        tempStr:= dat.GetLang.GetBuildingName(bt, cur_colony.GetBuildingLevel(bt));
+        str_width:= 8*length(tempStr);
+        //Umrandung zeichnen
+        glBegin(GL_QUADS);
+          glColor3f(0.0, 0.0, 0.0);
+          glVertex2f((mouse.x-2)*PixelWidth, (cWindowHeight-mouse.y)*PixelWidth-0.5);
+          glVertex2f((mouse.x+str_width+2)*PixelWidth, (cWindowHeight-mouse.y)*PixelWidth-0.5);
+          glVertex2f((mouse.x+str_width+2)*PixelWidth, (cWindowHeight-mouse.y)*PixelWidth);
+          glVertex2f((mouse.x-2)*PixelWidth, (cWindowHeight-mouse.y)*PixelWidth);
+        glEnd;
+        //Text ausgeben
+        glColor3f(1.0, 1.0, 1.0);
+        WriteText(tempStr, mouse.x*PixelWidth, (cWindowHeight+3-mouse.y)*PixelWidth-0.5);
+      end;//level>0
+    end;//if bt<>btNone
+  end//if ColonyBuildingPage
   else begin
 
     DrawShipsInPort(nil);
@@ -1924,6 +1947,7 @@ var x, y: Single;
     i: Integer;
     level: Byte;
 begin
+  //buildings
   for i:=Ord(Low(TBuildingType)) to Ord(High(TBuildingType)) do
   begin
     level:= cur_colony.GetBuildingLevel(TBuildingType(i));
@@ -3576,6 +3600,87 @@ begin
   if (m_x>=cWindowWidth-2*FieldWidth) or (m_x<=cWindowWidth-5*FieldWidth)
      or (m_y<=16+5*FieldWidth) or (m_y>=16+6*FieldWidth) then Result:= -1
   else Result:= (m_y-16-5*FieldWidth) div 16;
+end;//func
+
+function TGui.GetBuildingAtMouse(const mx, my: LongInt): TBuildingType;
+begin
+{Colony layout:
+ (length in Field units (=currently 32px on screen)
+
+  /--0.5--+----3.0------+--0.5--+----3.0-------+--0.5--+-------3.0-----+--0.5--+----3.0---+--0.5--\
+  |       |             |       |              |       |               |       |          |       |
+ 0.5 free | free        | free  |  free        | free  |      free     | free  |  free    | free  |
+  |       |             |       |              |       |               |       |          |       |
+  +-------+-------------+-------+--------------+-------+---------------+-------+----------+-------+
+  |       |   image     |       |   image      |       |   image       |       |   image  |       |
+ 2.0 free |    of       | free  |    of        | free  |    of         | free  |    of    | free  |
+  |       | btCarpenter |       | btBlackSmith |       | btChurch      |       | btPress  |       |
+  +-------+-------------+-------+--------------+-------+---------------+-------+----------+-------+
+  |       |             |       |              |       |               |       |          |       |
+ 0.5 free | free        | free  |  free        | free  |     free      | free  |  free    | free  |
+  |       |             |       |              |       |               |       |          |       |
+  +-------+-------------+-------+--------------+-------+---------------+-------+----------+-------+
+  |       |   image     |       |   image      |       |   image       |       |   image  |       |
+ 2.0 free |    of       | free  |    of        | free  |    of         | free  |    of    | free  |
+  |       | btFurTrader |       | btDistiller  |       | btWeaver      |       | btArmory |       |
+  +-------+-------------+-------+--------------+-------+---------------+-------+----------+-------+
+  |       |             |       |              |       |               |       |          |       |
+ 0.5 free | free        | free  |  free        | free  |     free      | free  |  free    | free  |
+  |       |             |       |              |       |               |       |          |       |
+  +-------+-------------+-------+--------------+-------+---------------+-------+----------+-------+
+  |       |   image     |       |   image      |       |   image       |       |   image  |       |
+ 2.0 free |    of       | free  |    of        | free  |    of         | free  |    of    | free  |
+  |       | btSchool    |       | btStable     |       | btTobacconist |       |  btDock  |       |
+  +-------+-------------+-------+--------------+-------+---------------+-------+----------+-------+
+  |       |             |       |              |       |               |       |          |       |
+ 0.5 free | free        | free  |  free        | free  |     free      | free  |  free    | free  |
+  |       |             |       |              |       |               |       |          |       |
+  +-------+-------------+-------+--------------+-------+---------------+-------+----------+-------+
+  |       |   image     |       |   image      |       |   image       |       |   image  |       |
+ 2.0 free |    of       | free  |    of        | free  |    of         | free  |    of    | free  |
+  |       | btWarehouse |       |  btTownHall  |       | nothing(free) |       |  btFort  |       |
+  +-------+-------------+-------+--------------+-------+---------------+-------+----------+-------+
+  |       |             |       |              |       |               |       |          |       |
+ 0.5 free | free        | free  |  free        | free  |     free      | free  |  free    | free  |
+  |       |             |       |              |       |               |       |          |       |
+  \-------+-------------+-------+--------------+-------+---------------+-------+----------+-------/
+}
+
+  case mx of
+    16..16+3*FieldWidth: {first column}
+                         case my of
+                           32..32+2*FieldWidth: Result:= btCarpenter{first row};
+                           3*FieldWidth+16..5*FieldWidth+16: Result:= btFurTrader{second row};
+                           6*FieldWidth..8*FieldWidth: Result:= btSchool{third row};
+                           8*FieldWidth+16..10*FieldWidth+16: Result:= btWarehouse{fourth row};
+                           else Result:= btNone;
+                         end;//case
+    4*FieldWidth..7*FieldWidth: {second column}
+                                case my of
+                                  32..32+2*FieldWidth: Result:= btBlacksmith{first row};
+                                  3*FieldWidth+16..5*FieldWidth+16: Result:= btDistiller{second row};
+                                  6*FieldWidth..8*FieldWidth: Result:= btStable{third row};
+                                  8*FieldWidth+16..10*FieldWidth+16: Result:= btTownhall{fourth row};
+                                  else Result:= btNone;
+                                end;//case
+    7*FieldWidth+16..10*FieldWidth+16: {third column}
+                                       case my of
+                                         32..32+2*FieldWidth: Result:= btChurch{first row};
+                                         3*FieldWidth+16..5*FieldWidth+16: Result:= btWeaver{second row};
+                                         6*FieldWidth..8*FieldWidth: Result:= btTobacconist{third row};
+                                         //free {fourth row}
+                                         else Result:= btNone;
+                                       end;//case
+    11*FieldWidth..14*FieldWidth: {fourth column}
+                                  case my of
+                                    32..32+2*FieldWidth: Result:= btPress{first row};
+                                    3*FieldWidth+16..5*FieldWidth+16: Result:= btArmory{second row};
+                                    6*FieldWidth..8*FieldWidth: Result:= btDock{third row};
+                                    8*FieldWidth+16..10*FieldWidth+16: Result:= btFort{fourth row};
+                                    else Result:= btNone;
+                                  end;//case
+  else Result:= btNone;
+  end;//case mx
 end;//func
 
 end.
