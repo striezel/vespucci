@@ -63,7 +63,19 @@ begin
   glutTimerFunc(1000, @TimerWrapper, 0);
   WriteLn('Frames: ', Frames);
   Frames:= 0;
-end;//func
+end;//proc
+
+procedure ShowHelp;
+begin
+  WriteLn('Vespucci: help on command line parameters');
+  WriteLn();
+  WriteLn('--frames: displays framerate (FPS) every second (disabled by default)');
+  WriteLn('--no-frames: explicitly tells vespucci NOT to display FPS');
+  WriteLn('--mouse: displays debug info on mouse movement and clicks (disabled by default)');
+  WriteLn('--keys: displays debug info on pressed keys (disabled by default)');
+  WriteLn('--no-keys: explicitly tells vespucci NOT to display key info');
+  WriteLn('--help : displays this help');
+end;//proc
 
 begin
   Frames:= 0;
@@ -72,6 +84,25 @@ begin
   ShowKey:= False;
   WriteLn(Gui.cWindowCaption);
   WriteLn;
+  //check for parameters
+  for Frames:= 1 to ParamCount do
+    if ParamStr(Frames)='--help' then
+    begin
+      ShowHelp;
+      Exit;
+    end
+    else if ParamStr(Frames)='--no-frames' then ShowFrames:= False
+    else if ParamStr(Frames)='--frames' then ShowFrames:= True
+    else if ParamStr(Frames)='--mouse' then ShowMouse:= True
+    else if ParamStr(Frames)='--no-keys' then ShowKey:= False
+    else if ParamStr(Frames)='--keys' then ShowKey:= True
+    else begin
+      WriteLn('Unrecognised parameter: "',ParamStr(Frames),'"');
+      WriteLn('Use "--help" to show possible command line parameters.');
+      Exit;
+    end;//else
+  Frames:= 0;
+  
   WriteLn('glutInit...');
   glutInit(@argc, argv);
   WriteLn('glutInitDisplayMode...');
@@ -100,14 +131,7 @@ begin
   glutMotionFunc(@MouseMoveWrapper);
   glutPassiveMotionFunc(@MouseMoveWrapper);
   glutIdleFunc(@IdleWrapper);
-  for Frames:= 1 to ParamCount do
-    if ParamStr(Frames)='--no-frames' then ShowFrames:= False
-    else if ParamStr(Frames)='--frames' then ShowFrames:= True
-    else if ParamStr(Frames)='--mouse' then ShowMouse:= True
-    else if ParamStr(Frames)='--no-keys' then ShowKey:= False
-    else if ParamStr(Frames)='--keys' then ShowKey:= True;
-  Frames:= 0;
-  
+
   if (ShowFrames) then glutTimerFunc(1000, @TimerWrapper, 0);
 
   WriteLn('Starting GUI...');

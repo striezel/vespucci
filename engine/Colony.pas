@@ -6,7 +6,8 @@ uses
   Settlement, Goods, Units, Map, Classes, Helper;
 
 type
-  TBuildingType = (btFort, //Einpfählung, Fort, Festung
+  TBuildingType = (btNone, //nichts, dummy
+                   btFort, //Einpfählung, Fort, Festung
                    btDock, //Hafenanlagen, Trockendock, Werft
                    btWarehouse, //Lagerhaus, Lagerhauserweiterung
                    btStable, //Ställe
@@ -37,7 +38,6 @@ type
       procedure SetStore(const AGood: TGoodType; const new_amount: Word);
       //for buildings
       function GetBuildingLevel(const bt: TBuildingType): Byte;
-      function GetMaxLevel(const bt: TBuildingType): Byte;
       procedure SetBuildingLevel(const bt: TBuildingType; const new_level: Byte);
       function GetCurrentConstruction: TBuildingType;
       procedure SetCurrentConstruction(const bt: TBuildingType);
@@ -67,14 +67,22 @@ type
                                                         GoesFor: TGoodType;
                                                       end;//rec
   end;//class
-  PColony = ^TColony;
 
   TColonyArr = array of TColony;
-
-const
-  btNone = btTownHall;
+  
+  function GetMaxBuildingLevel(const bt: TBuildingType): Byte;
 
 implementation
+
+function GetMaxBuildingLevel(const bt: TBuildingType): Byte;
+begin
+  case bt of
+    btNone: Result:= 0;
+    btTownHall, btStable, btCustomHouse: Result:= 1;
+    btWarehouse, btPress, btCarpenter, btChurch: Result:= 2;
+  else Result:= 3;
+  end;//case
+end;//func
 
 // **** TColony functions ****
 
@@ -96,7 +104,7 @@ begin
   end;//while
   Store[High(TGoodType)]:= 0;
   //clear all buildings
-  bt:= btFort;
+  bt:= Low(TBuildingType);
   while bt<High(TBuildingType) do
   begin
     Buildings[bt]:= 0;
@@ -119,9 +127,8 @@ begin
   Buildings[btDistiller]:= 1;
   Buildings[btFurTrader]:= 1;
 
-  //value "btTownHall" indicates no construction in progress, since
-  //max. town hall level is 1 and this level is set at colony creation
-  CurrentConstruction:= btTownHall;
+  //value "btNone" indicates no construction in progress
+  CurrentConstruction:= btNone;
   //units in fields
   for i:= -1 to 1 do
     for j:= -1 to 1 do
@@ -201,18 +208,9 @@ begin
   Result:= Buildings[bt];
 end;//func
 
-function TColony.GetMaxLevel(const bt: TBuildingType): Byte;
-begin
-  case bt of
-    btTownHall, btStable, btCustomHouse: Result:= 1;
-    btWarehouse, btPress, btCarpenter, btChurch: Result:= 2;
-  else Result:= 3;
-  end;//case
-end;//func
-
 procedure TColony.SetBuildingLevel(const bt: TBuildingType; const new_level: Byte);
 begin
-  if new_level>GetMaxLevel(bt) then Buildings[bt]:= GetMaxLevel(bt)
+  if new_level>GetMaxBuildingLevel(bt) then Buildings[bt]:= GetMaxBuildingLevel(bt)
   else Buildings[bt]:= new_level;
 end;//proc
 
@@ -228,7 +226,7 @@ end;//proc
 
 procedure TColony.ConstructNextLevel;
 begin
-  if (Buildings[CurrentConstruction]<GetMaxLevel(CurrentConstruction)) then
+  if (Buildings[CurrentConstruction]<GetMaxBuildingLevel(CurrentConstruction)) then
     Buildings[CurrentConstruction]:= Buildings[CurrentConstruction]+1;
 end;//proc
 
