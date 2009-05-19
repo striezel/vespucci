@@ -62,7 +62,7 @@ type
               procedure DeInitUnits;
             public
               constructor Create(const NumNation_Player: LongInt=cNationEngland);
-              destructor Destroy;
+              destructor Destroy; override;
               function GetYear: LongInt;
               function IsAutumn: Boolean;
               function PlayerNation: LongInt;

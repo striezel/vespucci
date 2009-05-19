@@ -56,7 +56,7 @@ type
       constructor Create(const ATerrain: TTerrainType; const River: Boolean=False;
                          const Road: Boolean=False; const Special: Boolean=False;
                          const Ploughed: Boolean=False);
-      destructor Destroy;
+      destructor Destroy; override;
 
       function GetType: TTerrainType;
       function ClearedBecomes: TTerrainType;

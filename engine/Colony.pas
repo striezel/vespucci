@@ -28,7 +28,7 @@ type
   TColony = class(TSettlement)
     public
       constructor Create(const X, Y: Integer; const ANation: LongInt; const AName: string);
-      destructor Destroy;
+      destructor Destroy; override;
       function GetName: string;
       procedure SetName(const new_name: string);
       function GetStore(const AGood: TGoodType): Word;

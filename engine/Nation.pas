@@ -54,16 +54,15 @@ type
       m_NameStr: string;
     public
       constructor Create(const num: LongInt; const NameStr: string);
-      destructor Destroy;
+      destructor Destroy; override;
       function IsIndian: Boolean; virtual; abstract;
       function IsEuropean: Boolean; virtual; abstract;
       function GetCount: LongInt;
       procedure ChangeCount(const new_num: LongInt);
       function GetName: string;
-      procedure ChangeName(var new_name: string);
+      procedure ChangeName(const new_name: string);
       function SaveToStream(var fs: TFileStream): Boolean; virtual;
   end;//class
-  PNation = ^TNation;
 
   TIndianNation = class(TNation)
     public
@@ -71,7 +70,6 @@ type
       function IsIndian: Boolean; override;
       function IsEuropean: Boolean; override;
   end;//class
-  PIndianNation = ^TIndianNation;
 
   TEuropeanNation = class(TNation)
     private
@@ -86,7 +84,7 @@ type
     public
       constructor Create(const num: LongInt; const NameStr: string;
                          const NameOfLeader: string);
-      destructor Destroy;
+      destructor Destroy; override;
 
       function IsIndian: Boolean; override;
       function IsEuropean: Boolean; override;
@@ -119,7 +117,6 @@ type
 
       function SaveToStream(var fs: TFileStream): Boolean; override;
   end;//class
-  PEuropeanNation = ^TEuropeanNation;
 
 implementation
 
@@ -141,7 +138,7 @@ begin
   Result:= m_NameStr;
 end;//func
 
-procedure TNation.ChangeName(var new_name: string);
+procedure TNation.ChangeName(const new_name: string);
 begin
   if new_name<>'' then m_NameStr:= new_name;
 end;//proc

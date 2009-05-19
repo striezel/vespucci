@@ -38,7 +38,6 @@ type
       m_KnownFor: TUnitType;
       m_HasTought: array[cMin_Nations..cMaxEuropean] of Boolean;
   end;//class
-  PTribe = ^TTribe;
 
 implementation
 
