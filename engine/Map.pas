@@ -261,9 +261,9 @@ begin
     end;//for
 
   fs.Free;
+  filled:= True;
   GenerateRiverCache;
   Result:= True;
-  filled:= True;
 end;//func
 
 //used later, for GUI
