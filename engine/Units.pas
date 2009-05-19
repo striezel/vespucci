@@ -67,7 +67,7 @@ type
     public
       MovesLeft: Integer;
       constructor Create(const TypeOfUnit: TUnitType; const ANation: Integer; X: Integer=1; Y: Integer=1);
-      destructor Destroy;
+      destructor Destroy; override;
       procedure NewRound;
       function Move(const direction: TDirection; const AMap: TMap): Boolean;
       function WarpToXY(const x, y: Byte; AMap: TMap): Boolean;
@@ -149,9 +149,8 @@ type
       function Execute: Boolean; virtual; abstract;
       function GetType: TTaskType; virtual;
       constructor Create(const target_unit: TUnit);
-      destructor Destroy; virtual;
+      destructor Destroy; override;
   end;//class
-  PTask = ^TTask;
 
   //for the pioneers
   TPloughTask = class(TTask)

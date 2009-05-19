@@ -6,6 +6,9 @@ uses
   Map, Data, GL, GLUT, Terrain, Language, Colony, Tribe, Nation, Goods,
   Units, SysUtils, BitmapReader, Callbacks, Helper, ErrorTexture;
 
+type
+  TRiverType = (rtOne, rtTwo_Bend, rtTwo_Straight, rtThree);
+
 const
   x_Fields = 15;
   y_Fields = 12;
@@ -75,6 +78,13 @@ const
        'tropical.bmp', //ttTropicalForest
        'hills.bmp', //ttHills
        'mountain.bmp'  //ttMountains
+     );
+
+  cRiverTexNames: array [TRiverType] of string =(
+       'river_n.bmp', //one (spring)
+       'river_ne.bmp', //2, bend
+       'river_ns.bmp', //2, straight
+       'river_nes.bmp' //3
      );
 
   cGoodTexNames: array [TGoodType] of string =(
@@ -158,14 +168,14 @@ const
       ('storage.bmp', 'storage2.bmp', ''), //btWareHouse, 2
       ('stable.bmp', '', ''), //btStable, 1
       ('customhouse.bmp', '', ''), //btCustomHouse, 1
-      ('', '', ''), //btPress
+      ('', '', ''), //btPress, 2
       ('school.bmp', 'college.bmp', 'university.bmp'), //btSchool, 3
-      ('', '', ''), //btArmory
+      ('', '', ''), //btArmory, 3
       ('townhall.bmp', '', ''), //btTownhall, 1
-      ('', '', ''), //btWeaver
-      ('tobacconist.bmp', '', ''), //btTobacconist
-      ('', '', ''), //btDistiller
-      ('', '', ''), //btFurTrader
+      ('', '', ''), //btWeaver, 3
+      ('tobacconist.bmp', '', ''), //btTobacconist, 3
+      ('', '', ''), //btDistiller, 3
+      ('', '', ''), //btFurTrader, 3
       ('carpenter.bmp', 'sawmill.bmp', ''), //btCarpenter, 2
       ('church.bmp', 'cathedral.bmp', ''), //btChurch, 2
       ('blacksmith.bmp', '', '')  //btBlackSmith, 3
@@ -250,6 +260,8 @@ type
                  end;//rec
       //terrain texture "names" (as in OpenGL names)
       m_TerrainTexNames: array [TTerrainType] of GLuint;
+      //river texture "names" (as in OpenGL names)
+      m_RiverTexNames: array [TRiverType] of GLuint;
       //good texture "names" (as in OpenGL names)
       m_GoodTexNames: array [TGoodType] of GLuint;
       //unit texture "names" (as in OpenGL names)
@@ -305,9 +317,10 @@ type
       procedure GetNextMessage;//de-facto dequeue
       procedure HandleMenuSelection(const categ: TMenuCategory; const selected: Integer);
       function  GetMenuStartX(const categ: TMenuCategory): GLfloat;
+      procedure GLUTCallbacksToNil;
     public
       constructor Create;
-      destructor Destroy;
+      destructor Destroy; override;
       procedure KeyFunc(Key: Byte; x, y: LongInt; Special: Boolean = False);
       procedure MouseFunc(const button, state, x,y: LongInt);
       procedure MouseMoveFunc(const x,y: LongInt);
@@ -403,6 +416,25 @@ begin
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     end;//if
   end;//for
+
+  //river textures
+  for i:= Ord(Low(TRiverType)) to Ord(High(TRiverType)) do
+  begin
+    m_RiverTexNames[TRiverType(i)]:= 0;
+    if ReadBitmapToArr32RGB(dat.GetPathBase+terrain_img_path+cRiverTexNames[TRiverType(i)], tempTex, err_str) then
+    begin
+      //change order of color components from blue, green, red (as in file) to
+      //  red, green, blue (as needed for GL)
+      SwapRGB_To_BGR(tempTex);
+      GetAlphaByColor(tempTex, AlphaTex);
+      glGenTextures(1, @m_RiverTexNames[TRiverType(i)]);
+      glBindTexture(GL_TEXTURE_2D, m_RiverTexNames[TRiverType(i)]);
+      glTexImage2D(GL_TEXTURE_2D, 0, 4, 32, 32, 0, GL_RGBA, GL_UNSIGNED_BYTE, @AlphaTex[0].r);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    end;//if
+  end;//for
+
   //good textures
   for i:= Ord(Low(TGoodType)) to Ord(High(TGoodType)) do
   begin
@@ -570,24 +602,50 @@ begin
 end;//constructor
 
 destructor TGui.Destroy;
-var i: Integer;
+var i, j: Integer;
 begin
   {$IFDEF DEBUG_CODE}
     WriteLn('Entered TGui.Destroy');
   {$ENDIF}
+  WriteLn('Debug: Entered TGui.Destroy');
+  GLUTCallbacksToNil;
   dat.Destroy;
   //free textures
   for i:= Ord(Low(TTerrainType)) to Ord(High(TTerrainType)) do
-    if m_TerrainTexNames[TTerrainType(i)]<> 0 then glDeleteTextures(1, @m_TerrainTexNames[TTerrainType(i)]);
+    if m_TerrainTexNames[TTerrainType(i)]<> 0 then
+      glDeleteTextures(1, @m_TerrainTexNames[TTerrainType(i)]);
   for i:= Ord(Low(TGoodType)) to Ord(High(TGoodType)) do
     if m_GoodTexNames[TGoodType(i)]<> 0 then glDeleteTextures(1, @m_GoodTexNames[TGoodType(i)]);
   for i:= Ord(Low(TUnitType)) to Ord(High(TUnitType)) do
     if m_UnitTexNames[TUnitType(i)]<> 0 then glDeleteTextures(1, @m_UnitTexNames[TUnitType(i)]);
+  for i:= Ord(Low(TUnitState)) to Ord(High(TUnitState)) do
+    if m_StateTexNames[TUnitState(i)]<> 0 then glDeleteTextures(1, @m_StateTexNames[TUnitState(i)]);
+  if m_ColonyTexNames[0]<> 0 then glDeleteTextures(1, @m_ColonyTexNames[0]);
+  for i:= Ord(Low(TBuildingType)) to Ord(High(TBuildingType)) do
+    for j:= 1 to 3 do
+      if m_BuildingTexNames[TBuildingType(i), j]<> 0 then
+        glDeleteTextures(1, @m_BuildingTexNames[TBuildingType(i), j]);
+  for i:= cMinIndian to cMaxIndian do
+    if (m_TribeTexNames[i])<>0 then
+      glDeleteTextures(1, @m_TribeTexNames[i]);
+  glDeleteTextures(1, @m_ErrorTexName);
   inherited Destroy;
   {$IFDEF DEBUG_CODE}
     WriteLn('Leaving TGui.Destroy');
   {$ENDIF}
 end;//destructor
+
+procedure TGui.GLUTCallbacksToNil;
+begin
+  //glutDisplayFunc(nil);
+  glutReshapeFunc(nil);
+  glutKeyboardFunc(nil);
+  glutSpecialFunc(nil);
+  glutMouseFunc(nil);
+  glutMotionFunc(nil);
+  glutPassiveMotionFunc(nil);
+  glutIdleFunc(nil);
+end;//proc
 
 procedure TGui.KeyFunc(Key: Byte; x, y: LongInt; Special: Boolean = False);
 var tempUnit: TUnit;
@@ -596,7 +654,6 @@ var tempUnit: TUnit;
     temp_Map: TMap;
     direc: TDirection;
     temp_col: TColony;
-    tempTask: TTask;
 begin
   {$IFDEF DEBUG_CODE}
     WriteLn('Entered TGui.KeyFunc');
@@ -1065,7 +1122,7 @@ begin
     //check for good transfer to port or from port to ship
     else if ((button=GLUT_LEFT) and (state=GLUT_UP)) then
     begin
-      WriteLn('This is European left button GLUT_UP...');
+      WriteLn('Debug: This is European left button GLUT_UP...');
       //from ship to port
       sx:= GetCargoBoxAtMouse(mouse.down_x, mouse.down_y);
       tempGood:= GetGoodAtMouse;
@@ -1293,7 +1350,7 @@ begin
     else begin
       //in america view
       GetSquareAtMouse(pos_x, pos_y);
-      WriteLn('GUI got square: x: ', pos_x, '; y: ', pos_y);//for debug
+      //WriteLn('GUI got square: x: ', pos_x, '; y: ', pos_y);//for debug
     end;//else
     if (pos_x<>-1) then
     begin
@@ -1302,7 +1359,11 @@ begin
       //if not player's colony, set back to nil
       if cur_colony<>nil then
       begin
-        if cur_colony.GetNation<>dat.PlayerNation then begin cur_colony:= nil; WriteLn('Debug: x: ',x, '; y: ', y, #13#10, 'out of colony now'); end;
+        if cur_colony.GetNation<>dat.PlayerNation then
+        begin
+          cur_colony:= nil;
+          WriteLn('Debug: x: ',x, '; y: ', y, #13#10, 'out of colony now');
+        end;
       end//if colony<>nil
       else begin
         {If we don't have a colony there, there might be a unit?}
@@ -1364,6 +1425,7 @@ var i, j: Integer;
     tempColony: TColony;
     tempTribe: TTribe;
     tempMap: TMap;
+    tex: GLuint;
 begin
   {$IFDEF DEBUG_CODE}
     WriteLn('Entered TGui.Draw');
@@ -1466,6 +1528,80 @@ begin
           glEnd;
           glDisable(GL_TEXTURE_2D);
         end;//else branch
+
+        //check for river and draw, if present
+          //still to do here
+        if (tempMap.GetRiverType(i,j)<>cMapRiverNone) then
+        begin
+          //determine texture name
+          case tempMap.GetRiverType(i,j) of
+            cMapRiverNorth, cMapRiverEast, cMapRiverSouth, cMapRiverWest:
+                     tex:= m_RiverTexNames[rtOne];
+            cMapRiverNS, cMapRiverEW: tex:= m_RiverTexNames[rtTwo_Straight];
+            cMapRiverNE, cMapRiverSE, cMapRiverSW, cMapRiverNW:
+                     tex:= m_RiverTexNames[rtTwo_Bend];
+            cMapRiverNotN, cMapRiverNotE, cMapRiverNotS, cMapRiverNotW:
+                     tex:= m_RiverTexNames[rtThree];
+          else tex:= 0;
+          end;//case
+          if (tex<>0) then
+          begin
+            glEnable(GL_TEXTURE_2D);
+            glEnable(GL_ALPHA_TEST);
+            glBindTexture(GL_TEXTURE_2D, tex);
+            glBegin(GL_QUADS);
+              glColor3f(1.0, 1.0, 1.0);
+              case tempMap.GetRiverType(i,j) of
+                cMapRiverNorth, cMapRiverNS, cMapRiverNE, cMapRiverNotW, cMapRiverAll:
+                  begin //no rotation needed
+                    glTexCoord2f(0.0, 1.0);
+                    glVertex2f(i-OffsetX, -j+y_Fields+OffsetY);//j: f(j)=-j+y_Fields+OffsetY
+                    glTexCoord2f(0.0, 0.0);
+                    glVertex2f(i-OffsetX, -j-1+y_Fields+OffsetY);//j+1
+                    glTexCoord2f(1.0, 0.0);
+                    glVertex2f(i-OffsetX+1, -j-1+y_Fields+OffsetY);//j+1
+                    glTexCoord2f(1.0, 1.0);
+                    glVertex2f(i-OffsetX+1, -j+y_Fields+OffsetY);//j
+                  end;//no rotation
+                cMapRiverWest, cMapRiverEW, cMapRiverNW, cMapRiverNotS:
+                  begin //rotation: 90° (positive direction)
+                    glTexCoord2f(1.0, 1.0);
+                    glVertex2f(i-OffsetX, -j+y_Fields+OffsetY);//j: f(j)=-j+y_Fields+OffsetY
+                    glTexCoord2f(0.0, 1.0);
+                    glVertex2f(i-OffsetX, -j-1+y_Fields+OffsetY);//j+1
+                    glTexCoord2f(0.0, 0.0);
+                    glVertex2f(i-OffsetX+1, -j-1+y_Fields+OffsetY);//j+1
+                    glTexCoord2f(1.0, 0.0);
+                    glVertex2f(i-OffsetX+1, -j+y_Fields+OffsetY);//j
+                  end; //rot.: 90°
+                cMapRiverSouth, cMapRiverSW, cMapRiverNotE:
+                  begin //rotation: 180° (positive direction)
+                    glTexCoord2f(1.0, 0.0);
+                    glVertex2f(i-OffsetX, -j+y_Fields+OffsetY);//j: f(j)=-j+y_Fields+OffsetY
+                    glTexCoord2f(1.0, 1.0);
+                    glVertex2f(i-OffsetX, -j-1+y_Fields+OffsetY);//j+1
+                    glTexCoord2f(0.0, 1.0);
+                    glVertex2f(i-OffsetX+1, -j-1+y_Fields+OffsetY);//j+1
+                    glTexCoord2f(0.0, 0.0);
+                    glVertex2f(i-OffsetX+1, -j+y_Fields+OffsetY);//j
+                  end; //rot.: 180°
+                cMapRiverEast, cMapRiverSE, cMapRiverNotN:
+                  begin //rotation: 270° (positive direction)
+                    glTexCoord2f(0.0, 0.0);
+                    glVertex2f(i-OffsetX, -j+y_Fields+OffsetY);//j: f(j)=-j+y_Fields+OffsetY
+                    glTexCoord2f(1.0, 0.0);
+                    glVertex2f(i-OffsetX, -j-1+y_Fields+OffsetY);//j+1
+                    glTexCoord2f(1.0, 1.0);
+                    glVertex2f(i-OffsetX+1, -j-1+y_Fields+OffsetY);//j+1
+                    glTexCoord2f(0.0, 1.0);
+                    glVertex2f(i-OffsetX+1, -j+y_Fields+OffsetY);//j
+                  end; //rot.: 270°
+              end;//case
+            glEnd;
+            glDisable(GL_ALPHA_TEST);
+            glDisable(GL_TEXTURE_2D);
+          end;//if river texture present
+        end;//if river present
 
         //check for unit and draw unit icon, if present
         tempUnit:= dat.GetFirstUnitInXY(i,j);

@@ -39,7 +39,7 @@ type
                   function  LessEqual(const n1, n2: Integer): Boolean;
                 public
                   constructor Create;
-                  destructor Destroy;
+                  destructor Destroy; override;
                   function Empty: Boolean;
                   function IsNodePresent(const x,y: Byte): Boolean;
                   function AddNode(const newNode: TSearchNode): Boolean;

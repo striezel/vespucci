@@ -13,46 +13,49 @@ const
   //const for loading/ saving map
   cMapFileHeader = 'VMD';
 
-  //const for coasts
-  MAP_COAST_NONE = 0;
-  MAP_COAST_NORTH = 1;
-  MAP_COAST_EAST = 2;
-  MAP_COAST_SOUTH = 4;
-  MAP_COAST_WEST = 8;
+  //const for rivers
+  cMapRiverNone = 0;
+  cMapRiverNorth = 1;
+  cMapRiverEast = 2;
+  cMapRiverSouth = 4;
+  cMapRiverWest = 8;
 
-  //combined coast consts
-  MAP_COAST_NE = MAP_COAST_NORTH or MAP_COAST_EAST;
-  MAP_COAST_SE = MAP_COAST_SOUTH or MAP_COAST_EAST;
-  MAP_COAST_SW = MAP_COAST_SOUTH or MAP_COAST_WEST;
-  MAP_COAST_NW = MAP_COAST_NORTH or MAP_COAST_WEST;
+  //combined river consts
+  cMapRiverNE = cMapRiverNorth or cMapRiverEast;
+  cMapRiverSE = cMapRiverSouth or cMapRiverEast;
+  cMapRiverSW = cMapRiverSouth or cMapRiverWest;
+  cMapRiverNW = cMapRiverNorth or cMapRiverWest;
 
-  MAP_COAST_NS = MAP_COAST_NORTH or MAP_COAST_SOUTH;
-  MAP_COAST_EW = MAP_COAST_EAST or MAP_COAST_WEST;
+  cMapRiverNS = cMapRiverNorth or cMapRiverSouth;
+  cMapRiverEW = cMapRiverEast or cMapRiverWest;
 
-  MAP_COAST_NOT_N = MAP_COAST_WEST or MAP_COAST_EAST or MAP_COAST_SOUTH;
-  MAP_COAST_NOT_E = MAP_COAST_WEST or MAP_COAST_NORTH or MAP_COAST_SOUTH;
-  MAP_COAST_NOT_S = MAP_COAST_WEST or MAP_COAST_EAST or MAP_COAST_NORTH;
-  MAP_COAST_NOT_W = MAP_COAST_NORTH or MAP_COAST_EAST or MAP_COAST_SOUTH;
+  cMapRiverNotN = cMapRiverWest or cMapRiverEast or cMapRiverSouth;
+  cMapRiverNotE = cMapRiverWest or cMapRiverNorth or cMapRiverSouth;
+  cMapRiverNotS = cMapRiverWest or cMapRiverEast or cMapRiverNorth;
+  cMapRiverNotW = cMapRiverNorth or cMapRiverEast or cMapRiverSouth;
 
-  MAP_COAST_ALL = MAP_COAST_NORTH or MAP_COAST_EAST or MAP_COAST_SOUTH
-                  or MAP_COAST_WEST;
+  cMapRiverAll = cMapRiverNorth or cMapRiverEast or cMapRiverSouth
+                  or cMapRiverWest;
 
 type
   TMap = class
     private
       filled: Boolean; //internal value to determine whether map is not only nil
       discovered: array [0..cMap_X-1, 0..cMap_Y-1] of array [cMin_Nations..cMax_Nations] of Boolean;
+      river: array [0..cMap_X-1, 0..cMap_Y-1] of Byte;
+      procedure GenerateRiverCache;
+      procedure ClearRiverCache;
+      procedure SetRiverType(const x,y: Byte);
     public
       tiles: array [0..cMap_X-1, 0..cMap_Y-1] of TTerrain;
       constructor Create;
-      destructor Destroy;
+      destructor Destroy; override;
       procedure Generate(const Landmass: Single);
       procedure GenerateSpecials(const LandOnly: Boolean=True);
       function SaveToFile(const FileName: string): Boolean;
       function LoadFromFile(const FileName: string): Boolean;
 
-      function GetCoastType(const x,y: Byte): Byte;
-
+      function GetRiverType(const x,y: Byte): Byte;
       //determines, whether a water tile has at least one non-water neighbour
       function IsTouchingLand(const x, y: Byte): Boolean;
       //proc for reavealing surrounding tiles around a unit
@@ -61,7 +64,6 @@ type
       procedure RevealAll(const num_Nation: Integer);
       function IsDiscovered(const x,y: Byte; const num_Nation: Integer): Boolean;
   end;//class
-  PMap = ^TMap;
 
 implementation
 
@@ -75,8 +77,9 @@ begin
     for j:= 0 to cMap_Y-1 do
     begin
       for k:= cMin_Nations to cMax_Nations do
-       discovered[i,j,k] := False;
-      tiles[i,j] := nil;
+        discovered[i,j,k] := False;
+      tiles[i,j]:= nil;
+      river[i,j]:= cMapRiverNone;
     end;//for
 end;//construc
 
@@ -123,6 +126,9 @@ begin
           tiles[i,j].m_Type:= ttGrassland;
     end;//for
 
+  //no rivers yet
+  ClearRiverCache;
+
   //set the flag to indicate that we have data for all tiles
   filled:= True;
 end;//proc
@@ -137,6 +143,33 @@ begin
       if ((not LandOnly) or (not tiles[i,j].IsWater)) then
         if (random<=0.15) then tiles[i,j].CreateSpecial;
 end;//proc
+
+procedure TMap.ClearRiverCache;
+var i,j: Byte;
+begin
+  for i:= 0 to cMap_X-1 do
+    for j:= 0 to cMap_Y -1 do
+      river[i,j]:= cMapRiverNone;
+end;//proc
+
+procedure TMap.GenerateRiverCache;
+var i,j: Byte;
+begin
+  if (not filled) then Exit;
+  for i:= 0 to cMap_X-1 do
+    for j:= 0 to cMap_Y -1 do
+    begin
+      if (tiles[i,j].HasRiver) then SetRiverType(i,j)
+      else river[i,j]:= cMapRiverNone;
+    end;//for
+end;//proc
+
+function TMap.GetRiverType(const x,y: Byte): Byte;
+begin
+  if ((x<cMap_X) and (y<cMap_Y)) then
+    Result:= river[x,y]
+  else Result:= cMapRiverNone;
+end;//func
 
 function TMap.SaveToFile(const FileName: string): Boolean;
 var fs: TFileStream;
@@ -228,26 +261,30 @@ begin
     end;//for
 
   fs.Free;
+  GenerateRiverCache;
   Result:= True;
   filled:= True;
 end;//func
 
 //used later, for GUI
-function TMap.GetCoastType(const x,y: Byte): Byte;
+procedure TMap.SetRiverType(const x,y: Byte);
 begin
-  Result:= MAP_COAST_NONE;
   if ((x<cMap_X) and (y<cMap_Y) and filled) then
   begin
-    if (x>0) then
-      if (not tiles[x-1,y].IsWater) then Result:= Result or MAP_COAST_WEST;
-    if (y>0) then
-      if (not tiles[x,y-1].IsWater) then Result:= Result or MAP_COAST_NORTH;
-    if (x+1<cMap_x) then
-      if (not tiles[x+1,y].IsWater) then Result:= Result or MAP_COAST_EAST;
-    if (y+1<cMap_y) then
-      if (not tiles[x,y+1].IsWater) then Result:= Result or MAP_COAST_SOUTH;
+    river[x,y]:= cMapRiverNone;
+    if (tiles[x,y].HasRiver) then
+    begin
+      if (x>0) then
+        if (tiles[x-1,y].HasRiver) then river[x,y]:= river[x,y] or cMapRiverWest;
+      if (y>0) then
+        if (tiles[x,y-1].HasRiver) then river[x,y]:= river[x,y] or cMapRiverNorth;
+      if (x+1<cMap_x) then
+        if (tiles[x+1,y].HasRiver) then river[x,y]:= river[x,y] or cMapRiverEast;
+      if (y+1<cMap_y) then
+        if (tiles[x,y+1].HasRiver) then river[x,y]:= river[x,y] or cMapRiverSouth;
+    end;//if
   end;//if
-end;//func
+end;//proc
 
 function TMap.IsTouchingLand(const x,y: Byte): Boolean;
 var i,j: Integer;

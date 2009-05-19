@@ -6,7 +6,7 @@ type
   TSettlement = class
     public
       constructor Create(const X, Y: Integer; const ANation: LongInt);
-      destructor Destroy;
+      destructor Destroy; override;
       function GetNation: LongInt;
       procedure ChangeNation(const new_nation: LongInt);
       function GetPosX: Integer;
@@ -16,7 +16,6 @@ type
       m_Nation: LongInt;
       PosX, PosY: LongInt;
   end;//class
-  PSettlement = ^TSettlement;
 
 implementation
 
