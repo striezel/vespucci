@@ -192,7 +192,7 @@ const
        'tents.bmp' //cNationApache
     );
 
-  cWindowCaption = 'Vespucci v0.01.r098';
+  cWindowCaption = 'Vespucci v0.01.r103';
 
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
   cMenuHighColour : array [0..2] of Byte = (255, 20, 20);
@@ -607,7 +607,6 @@ begin
   {$IFDEF DEBUG_CODE}
     WriteLn('Entered TGui.Destroy');
   {$ENDIF}
-  WriteLn('Debug: Entered TGui.Destroy');
   GLUTCallbacksToNil;
   dat.Destroy;
   //free textures
@@ -927,6 +926,8 @@ var pos_x, pos_y: Integer;
     tempUArr: TUnitArr;
     tempAmount: Byte;
     str_arr: TShortStrArr;
+    bx, by: Single;
+    bType: TBuildingType;
 begin
   {$IFDEF DEBUG_CODE}
     WriteLn('Entered TGui.MouseFunc');
@@ -1108,6 +1109,50 @@ begin
     Exit;
   end;//if colony (units' page)
 
+  // ---- events on building page, i.e. moving units from and to buildings
+  if (InColony and ColonyBuildingPage) then
+  begin
+    if ((button=GLUT_LEFT) and (state=GLUT_UP)) then
+    begin
+      //dragging unit from field to building
+      GetColonyFieldAtMouse(sx, sy, mouse.down_x, mouse.down_y);
+      bType:= GetBuildingAtMouse(x,y);
+      if ((bType<>btNone) and (sx<>-2)) then
+      begin
+        tempUnit:= cur_colony.GetUnitInField(sx, sy);
+        if (tempUnit<>nil) then
+        begin
+          //colonist dragged from fields to building
+          sx_d:= cur_colony.GetFirstFreeBuildingSlot(bType);
+          if (sx_d<>-1) then
+          begin
+            cur_colony.SetUnitInField(sx, sy, nil);
+            cur_colony.SetUnitInBuilding(bType, sx_d, tempUnit);
+          end//if
+          else ShowMessageSimple('There cannot be more than three units working in one building.');
+        end;//if unit<>nil
+      end;//if
+      //dragging unit from building to field
+      GetColonyFieldAtMouse(sx, sy, x, y);
+      bType:= GetBuildingAtMouse(mouse.down_x,mouse.down_y);
+      if ((bType<>btNone) and (sx<>-2)) then
+      begin
+        GetBuildingPosition(bType, bx, by);
+        pos_x:= Trunc((mouse.down_x-bx*FieldWidth)/FieldWidth);
+        tempUnit:= cur_colony.GetUnitInBuilding(bType, pos_x);
+        if ((tempUnit<>nil) and ((sx<>0) or (sy<>0))) then
+        begin
+          cur_colony.SetUnitInBuilding(bType, pos_x, nil);
+          cur_colony.SetUnitInField(sx, sy, tempUnit);
+        end;//if (unit<>nil)
+      end;//if (building and field valid)
+    end;//if (left button up)
+    {$IFDEF DEBUG_CODE}
+    WriteLn('Exiting TGui.MouseFunc');
+    {$ENDIF}
+    Exit;
+  end;//if at colony's building page
+
   If InColony then Exit;
 
   //handle European view's mouse events
@@ -1122,11 +1167,10 @@ begin
     //check for good transfer to port or from port to ship
     else if ((button=GLUT_LEFT) and (state=GLUT_UP)) then
     begin
-      WriteLn('Debug: This is European left button GLUT_UP...');
       //from ship to port
       sx:= GetCargoBoxAtMouse(mouse.down_x, mouse.down_y);
       tempGood:= GetGoodAtMouse;
-      WriteLn('Cargo to port: sx: ', sx, '; Good: ', dat.GetLang.GetGoodName(tempGood));
+      WriteLn('Debug: Cargo to port: sx: ', sx, '; Good: ', dat.GetLang.GetGoodName(tempGood));
       if ((sx<>-1) and (tempGood<>gtCross)) then
       begin
         WriteLn('Trying to clear cargo...');
@@ -1612,18 +1656,6 @@ begin
             glEnable(GL_TEXTURE_2D);
             glEnable(GL_ALPHA_TEST);
             DrawUnitIcon(tempUnit, i-OffsetX, -j-1+y_Fields+OffsetY, False, True);
-            {glBindTexture(GL_TEXTURE_2D, m_UnitTexNames[tempUnit.GetType]);
-            glBegin(GL_QUADS);
-              glColor3f(1.0, 1.0, 1.0);
-              glTexCoord2f(0.0, 1.0);
-              glVertex2f(i-OffsetX, -j+y_Fields+OffsetY);//j: f(j)=-j+y_Fields+OffsetY
-              glTexCoord2f(0.0, 0.0);
-              glVertex2f(i-OffsetX, -j-1+y_Fields+OffsetY);//j+1
-              glTexCoord2f(1.0, 0.0);
-              glVertex2f(i-OffsetX+1, -j-1+y_Fields+OffsetY);//j+1
-              glTexCoord2f(1.0, 1.0);
-              glVertex2f(i-OffsetX+1, -j+y_Fields+OffsetY);//j
-            glEnd;}
             glDisable(GL_ALPHA_TEST);
             glDisable(GL_TEXTURE_2D);
           end;//if
@@ -1844,20 +1876,6 @@ begin
         glEnable(GL_TEXTURE_2D);
         glEnable(GL_ALPHA_TEST);
         DrawUnitIcon(cur_colony.GetUnitInField(i,j), i+x_Fields+2.0, y_Fields-3.0-j, True, False);
-        {if m_UnitTexNames[cur_colony.GetUnitInField(i,j).GetType]<>0 then
-          glBindTexture(GL_TEXTURE_2D, m_UnitTexNames[cur_colony.GetUnitInField(i,j).GetType])
-        else glBindTexture(GL_TEXTURE_2D, m_ErrorTexName);
-        glBegin(GL_QUADS);
-          glColor3f(1.0, 1.0, 1.0);
-          glTexCoord2f(0.0, 0.0);
-          glVertex2f(i+x_Fields+2.0, y_Fields-3.0-j);//lower left corner
-          glTexCoord2f(1.0, 0.0);
-          glVertex2f(i+x_Fields+3.0, y_Fields-3.0-j);
-          glTexCoord2f(1.0, 1.0);
-          glVertex2f(i+x_Fields+3.0, y_Fields-2.0-j);
-          glTexCoord2f(0.0, 1.0);
-          glVertex2f(i+x_Fields+2.0, y_Fields-2.0-j);
-        glEnd;}
         glDisable(GL_ALPHA_TEST);
         glDisable(GL_TEXTURE_2D);
       end;//if
@@ -2081,7 +2099,7 @@ end;//procedure GetBuildingPosition
 procedure TGui.DrawColonyBuildings;
 var x, y: Single;
     i: Integer;
-    level: Byte;
+    level, production: Byte;
 begin
   //buildings
   for i:=Ord(Low(TBuildingType)) to Ord(High(TBuildingType)) do
@@ -2090,10 +2108,10 @@ begin
     //check for valid level
     if (level in [1..3]) then
     begin
+      GetBuildingPosition(TBuildingType(i), x,y);
       //check, whether texture is loaded
       if m_BuildingTexNames[TBuildingType(i), level]<>0 then
       begin
-        GetBuildingPosition(TBuildingType(i), x,y);
         glEnable(GL_TEXTURE_2D);
         glEnable(GL_ALPHA_TEST);
         glBindTexture(GL_TEXTURE_2D, m_BuildingTexNames[TBuildingType(i), level]);
@@ -2110,7 +2128,46 @@ begin
         glEnd;
         glDisable(GL_ALPHA_TEST);
         glDisable(GL_TEXTURE_2D);
-      end;//texture present
+      end;//building texture present
+      //sum up production
+      production:= 0;
+      //draw units in buildings
+      for level:= 0 to 2 do
+        if (cur_colony.GetUnitInBuilding(TBuildingType(i), level)<>nil) then
+        begin
+          glEnable(GL_TEXTURE_2D);
+          glEnable(GL_ALPHA_TEST);
+          DrawUnitIcon(cur_colony.GetUnitInBuilding(TBuildingType(i), level), x+level, y, True, False);
+          glDisable(GL_ALPHA_TEST);
+          glDisable(GL_TEXTURE_2D);
+          production:= production + cur_colony.GetProduction(TBuildingType(i), cur_colony.GetUnitInBuilding(TBuildingType(i), level).GetType);
+        end;//if unit present in building
+      //draw production amount
+      if (production>0) then
+      begin
+        //draw good icon
+        glEnable(GL_TEXTURE_2D);
+        glEnable(GL_ALPHA_TEST);
+        if (m_GoodTexNames[GetProducedGood(TBuildingType(i))]<>0) then
+          glBindTexture(GL_TEXTURE_2D, m_GoodTexNames[GetProducedGood(TBuildingType(i))])
+        else glBindTexture(GL_TEXTURE_2D, m_ErrorTexName);
+        glBegin(GL_QUADS);
+          glColor3f(1.0, 1.0, 1.0);
+          glTexCoord2f(0.0, 0.0);
+          glVertex2f(x-0.25, y+1.5);
+          glTexCoord2f(1.0, 0.0);
+          glVertex2f(x+0.75, y+1.5);
+          glTexCoord2f(1.0, 1.0);
+          glVertex2f(x+0.75, y+2.5);
+          glTexCoord2f(0.0, 1.0);
+          glVertex2f(x-0.25, y+2.5);
+        glEnd;
+        glDisable(GL_ALPHA_TEST);
+        glDisable(GL_TEXTURE_2D);
+        //write amount of produced good
+        glColor3ubv(@cMenuTextColour[0]);
+        WriteText(IntToStr(production), x+1.0, y+2.0);
+      end;//if production>0
     end;//if 1<=Level<=3
   end;//for
 end;//proc DrawColonyBuildings
@@ -2952,11 +3009,6 @@ begin
 end;//proc
 
 procedure TGui.WriteText(const msg_txt: string; const x, y: Single);
-//const cFontType = GLUT_BITMAP_8_BY_13;
-{maybe we should try GLUT_BITMAP_9_BY_15 instead.
-   other alternatives:
-   GLUT_BITMAP_HELVETICA_10, GLUT_BITMAP_HELVETICA_12, GLUT_BITMAP_HELVETICA_18
-   GLUT_BITMAP_TIMES_ROMAN_10 }
 var i: Integer;
 begin
   {$IFDEF DEBUG_CODE}
