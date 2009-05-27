@@ -192,7 +192,7 @@ const
        'tents.bmp' //cNationApache
     );
 
-  cWindowCaption = 'Vespucci v0.01.r103';
+  cWindowCaption = 'Vespucci v0.01.r104';
 
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
   cMenuHighColour : array [0..2] of Byte = (255, 20, 20);
@@ -993,7 +993,7 @@ begin
         end;//if
       end//if
       //change job of unit
-      else if ((sx<>-2) and (cur_colony.GetUnitInField(sx, sy)<>nil)) then
+      else if ((sx<>-2) and (sx_d<>-2) and (cur_colony.GetUnitInField(sx, sy)<>nil)) then
       begin
         temp_cbr._type:= CBT_JOB_CHANGE;
         temp_cbr.JobChange.x_shift:= sx;
@@ -1117,7 +1117,7 @@ begin
       //dragging unit from field to building
       GetColonyFieldAtMouse(sx, sy, mouse.down_x, mouse.down_y);
       bType:= GetBuildingAtMouse(x,y);
-      if ((bType<>btNone) and (sx<>-2)) then
+      if ((bType in [btArmory..btBlacksmith]) and (sx<>-2)) then
       begin
         tempUnit:= cur_colony.GetUnitInField(sx, sy);
         if (tempUnit<>nil) then

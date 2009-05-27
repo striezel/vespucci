@@ -450,16 +450,19 @@ function TColony.GetFirstFreeBuildingSlot(const bt: TBuildingType): ShortInt;
 var i: ShortInt;
 begin
   Result:= -1;
-  i:= 0;
-  while i<=2 do
+  if (bt in [btArmory..btBlacksmith]) then
   begin
-    if (UnitsInBuilding[bt, i]=nil) then
+    i:= 0;
+    while i<=2 do
     begin
-      Result:= i;
-      Exit;
-    end;//if
-    i:= i+1;
-  end;//while
+      if (UnitsInBuilding[bt, i]=nil) then
+      begin
+        Result:= i;
+        Exit;
+      end;//if
+      i:= i+1;
+    end;//while
+  end;//if
 end;//func
 
 function TColony.GetInhabitants: Word;
