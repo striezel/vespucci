@@ -49,6 +49,7 @@ type
       procedure SetUnitInField(const x_shift, y_shift: Integer; const AUnit: TUnit; const AGood: TGoodType=gtFood);
       function GetUnitInBuilding(const bt: TBuildingType; const place: Byte): TUnit;
       procedure SetUnitInBuilding(const bt: TBuildingType; const place: Byte; const AUnit: TUnit);
+      function GetFirstFreeBuildingSlot(const bt: TBuildingType): ShortInt;
       function GetInhabitants: Word;
       function AdjacentWater(const AMap: TMap): Boolean;
       function SaveToStream(var fs: TFileStream): Boolean;
@@ -69,8 +70,9 @@ type
   end;//class
 
   TColonyArr = array of TColony;
-  
+
   function GetMaxBuildingLevel(const bt: TBuildingType): Byte;
+  function GetProducedGood(const bt: TBuildingType): TGoodType;
 
 implementation
 
@@ -81,6 +83,22 @@ begin
     btTownHall, btStable, btCustomHouse: Result:= 1;
     btWarehouse, btPress, btCarpenter, btChurch: Result:= 2;
   else Result:= 3;
+  end;//case
+end;//func
+
+function GetProducedGood(const bt: TBuildingType): TGoodType;
+begin
+  case bt of
+    btArmory: Result:= gtMusket;
+    btTownHall: Result:= gtLibertyBell;
+    btWeaver: Result:= gtCloth;
+    btTobacconist: Result:= gtCigar;
+    btDistiller: Result:= gtRum;
+    btFurTrader: Result:= gtCoat;
+    btCarpenter: Result:= gtHammer;
+    btChurch: Result:= gtCross;
+    btBlacksmith: Result:= gtTool;
+  else Result:= gtFood; //gtFood here means: nothing. Food cannot be produced in buildings.
   end;//case
 end;//func
 
@@ -427,6 +445,22 @@ begin
     end;//if
   end;//else
 end;//proc
+
+function TColony.GetFirstFreeBuildingSlot(const bt: TBuildingType): ShortInt;
+var i: ShortInt;
+begin
+  Result:= -1;
+  i:= 0;
+  while i<=2 do
+  begin
+    if (UnitsInBuilding[bt, i]=nil) then
+    begin
+      Result:= i;
+      Exit;
+    end;//if
+    i:= i+1;
+  end;//while
+end;//func
 
 function TColony.GetInhabitants: Word;
 var i, j: Integer;
