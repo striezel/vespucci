@@ -73,6 +73,7 @@ type
 
   function GetMaxBuildingLevel(const bt: TBuildingType): Byte;
   function GetProducedGood(const bt: TBuildingType): TGoodType;
+  procedure GetBuildingCost(const bt: TBuildingType; const level: Byte; var Hammers, Tools: Word);
 
 implementation
 
@@ -101,6 +102,68 @@ begin
   else Result:= gtFood; //gtFood here means: nothing. Food cannot be produced in buildings.
   end;//case
 end;//func
+
+procedure GetBuildingCost(const bt: TBuildingType; const level: Byte; var Hammers, Tools: Word);
+begin
+  Hammers:= 0;
+  Tools:= 0;
+  if ((bt<>btNone) and (level>0) and (level<=GetMaxBuildingLevel(bt))) then
+  begin
+    case bt of
+      btFort: case level of
+                1: Hammers:= 64;
+                2: begin Hammers:= 120; Tools:= 100; end;
+                3: begin Hammers:= 320; Tools:= 200; end;
+              end;//case
+      btDock: case level of
+                1: Hammers:= 52;
+                2: begin Hammers:= 80; Tools:= 50; end;
+                3: begin Hammers:= 240; Tools:= 100; end;
+              end;//case
+      btWarehouse: case level of
+                     1: Hammers:= 80;
+                     2: begin Hammers:= 80; Tools:= 20; end;
+                   end;//case
+      btStable: if level=1 then Hammers:= 64;
+      btCustomHouse: if level=1 then
+                     begin
+                       Hammers:= 160;
+                       Tools:= 50;
+                     end;
+      btPress: case level of
+                 1: begin Hammers:= 52; Tools:= 20; end;
+                 2: begin Hammers:= 120; Tools:= 50; end;
+               end;//case
+      btSchool: case level of
+                  1: Hammers:= 64;
+                  2: begin Hammers:= 160; Tools:= 50; end;
+                  3: begin Hammers:= 200; Tools:= 100; end;
+                end;//case
+      btArmory: case level of
+                  1: Hammers:= 52;
+                  2: begin Hammers:= 120; Tools:= 50; end;
+                  3: begin Hammers:= 240; Tools:= 100; end;
+                end;//case
+      btWeaver, btTobacconist, btDistiller: case level of
+                                              2: begin Hammers:= 64; Tools:= 20; end;
+                                              3: begin Hammers:= 160; Tools:= 100; end;
+                                            end;//case
+      btFurTrader: case level of
+                       2: begin Hammers:= 56; Tools:= 20; end;
+                       3: begin Hammers:= 160; Tools:= 100; end;
+                     end;//case
+      btCarpenter: if (level=2) then Hammers:= 52;
+      btChurch: case level of
+                  1: Hammers:= 64;
+                  2: begin Hammers:= 176; Tools:= 100; end;
+                end;//case
+      btBlacksmith: case level of
+                      2: begin Hammers:= 64; Tools:= 20; end;
+                      3: begin Hammers:= 240; Tools:= 100; end;
+                    end;//case
+    end;//case
+  end;//if
+end;//proc
 
 // **** TColony functions ****
 
