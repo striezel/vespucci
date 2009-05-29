@@ -20,6 +20,7 @@ const
   CBT_ABANDON_COLONY = 11;
   CBT_COLONY_UNIT = 12;
   CBT_GOTO_SHIP = 13;
+  CBT_CONSTRUCTION = 14;
 
 type
   TExitCallback = procedure (const option: Integer);
@@ -75,7 +76,10 @@ type
                     Ship: TUnit;
                     AData: TData;
                   end;//rec
-
+  TConstructionData = record
+                        AColony: TColony;
+                      end;//rec
+  
   TCallbackRec = record
                    option: Integer;
                    inputText: ShortString;
@@ -95,6 +99,7 @@ type
                      11: (AbandonColony: TAbandonColonyData);
                      12: (ColonyUnit: TColonyUnitData);
                      13: (GotoShip: TGotoShipData);
+                     14: (Construction: TConstructionData);
                  end;//rec
 
 const
@@ -380,6 +385,33 @@ begin
   end;//else
 end;//func
 
+function CBF_Construction(const option: Integer; ACol: TColony): Boolean;
+var bt_arr: array of TBuildingType;
+    i: Integer;
+begin
+  Result:= False;
+  if (ACol=nil) then Exit;
+  if (option=0) then
+  begin
+    ACol.SetCurrentConstruction(btNone);
+    Result:= True
+  end
+  else begin
+    SetLength(bt_arr, 0);
+    for i:= Ord(Succ(btNone)) to Ord(High(TBuildingType)) do
+    begin
+      if (ACol.GetBuildingLevel(TBuildingType(i))<GetMaxBuildingLevel(TBuildingType(i))) then
+      begin
+        SetLength(bt_arr, length(bt_arr)+1);
+        bt_arr[High(bt_arr)]:= TBuildingType(i);
+      end;//if
+    end;//for
+    if (option>High(bt_arr)+1) then Exit;
+    ACol.SetCurrentConstruction(bt_arr[option-1]);
+    Result:= True;
+  end;//else-branch
+end;//func
+
 function HandleCallback(const cbRec: TCallbackRec): Boolean;
 begin
   case cbRec._type of
@@ -404,6 +436,7 @@ begin
     CBT_ABANDON_COLONY: Result:= CBF_AbandonColony(cbRec.option, cbRec.AbandonColony.AColony, cbRec.AbandonColony.AData);
     CBT_COLONY_UNIT: Result:= CBF_ColonyUnit(cbRec.option, cbRec.ColonyUnit.AUnit);
     CBT_GOTO_SHIP: Result:= CBF_GoToShip(cbRec.option, cbRec.GotoShip.Ship, cbRec.GotoShip.AData);
+    CBT_CONSTRUCTION: Result:= CBF_Construction(cbRec.option, cbRec.Construction.AColony);
   else
     Result:= False; //unknown callback type or type not supported/ implemented
   end;//case
