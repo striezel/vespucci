@@ -435,6 +435,10 @@ begin
       Buildings[TBuildingType(i),j]:= '';
 
   //"real" content
+  Buildings[btNone, 1]:= 'nichts';
+  Buildings[btNone, 2]:= 'nichts';
+  Buildings[btNone, 3]:= 'nichts';
+  
   Buildings[btFort,1]:= 'Einpfählung';
   Buildings[btFort,2]:= 'Fort';
   Buildings[btFort,3]:= 'Festung';

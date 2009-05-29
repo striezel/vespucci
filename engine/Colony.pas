@@ -32,8 +32,8 @@ type
       function GetName: string;
       procedure SetName(const new_name: string);
       function GetStore(const AGood: TGoodType): Word;
-      function RemoveFromStore(const AGood: TGoodType; const amount: Byte): Byte;
-      procedure AddToStore(const AGood: TGoodType; const amount: Byte);
+      function RemoveFromStore(const AGood: TGoodType; const amount: Word): Word;
+      procedure AddToStore(const AGood: TGoodType; const amount: Word);
       //try to avoid SetStore, use RemoveFromStore or AddToStore instead
       procedure SetStore(const AGood: TGoodType; const new_amount: Word);
       //for buildings
@@ -259,7 +259,7 @@ begin
   Result:= Store[AGood];
 end;//func
 
-function TColony.RemoveFromStore(const AGood: TGoodType; const amount: Byte): Byte;
+function TColony.RemoveFromStore(const AGood: TGoodType; const amount: Word): Word;
 begin
   if Store[AGood]>=amount then
   begin
@@ -272,7 +272,7 @@ begin
   end;//else
 end;//func
 
-procedure TColony.AddToStore(const AGood: TGoodType; const amount: Byte);
+procedure TColony.AddToStore(const AGood: TGoodType; const amount: Word);
 begin
   //no function, it always succeeds. However, storage amount is cut to maximum
   // storage capacity during next call to TColony.NewRound.
@@ -347,6 +347,7 @@ end;//func
 // (production in fields (i.e. by farmers) not included yet)
 procedure TColony.NewRound(const AMap: TMap);
 var i,j, prod: Integer;
+    h, t: Word;
 begin
   if AMap<>nil then
   begin
@@ -446,6 +447,21 @@ begin
     //not enough food - we should put a message and probably let an inhabitant
     // starve from hunger here.
   end;
+  
+  //check for buildings
+  if (CurrentConstruction<>btNone) then
+  begin
+    GetBuildingCost(CurrentConstruction, Buildings[CurrentConstruction]+1, h, t);
+    if ((Store[gtHammer]>=h) and (Store[gtTool]>=t)) then
+    begin
+      //enough material for new building
+      ConstructNextLevel;
+      CurrentConstruction:= btNone;
+      RemoveFromStore(gtHammer, h);
+      RemoveFromStore(gtTool, t);
+    end;//if
+  end;//if
+  
 end;//func
 
 function TColony.GetUnitInField(const x_shift, y_shift: Integer): TUnit;

@@ -192,7 +192,7 @@ const
        'tents.bmp' //cNationApache
     );
 
-  cWindowCaption = 'Vespucci v0.01.r104';
+  cWindowCaption = 'Vespucci v0.01.r106';
 
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
   cMenuHighColour : array [0..2] of Byte = (255, 20, 20);
@@ -313,6 +313,7 @@ type
       function  GetColonyUnitAtMouse(const m_x, m_y: LongInt): Integer;
       function  GetSwitcherButtonAtMouse(const m_x, m_y: LongInt): LongInt;
       function  GetBuildingAtMouse(const mx, my: LongInt): TBuildingType;
+      function  IsMouseInConstructionBar(const mx, my: LongInt): Boolean;
       procedure EnqueueNewMessage(const msg_txt: AnsiString; const opts: TShortStrArr; const inCaption, inText: ShortString; cbRec: TCallbackRec);
       procedure GetNextMessage;//de-facto dequeue
       procedure HandleMenuSelection(const categ: TMenuCategory; const selected: Integer);
@@ -924,7 +925,7 @@ var pos_x, pos_y: Integer;
     tempUnit: TUnit;
     tempGood: TGoodType;
     tempUArr: TUnitArr;
-    tempAmount: Byte;
+    tempAmount, tempWord: Word;
     str_arr: TShortStrArr;
     bx, by: Single;
     bType: TBuildingType;
@@ -953,7 +954,7 @@ begin
       //check for pressing the red "E" in colony view
       if ((x>608) and (y>cWindowHeight-50)) then
       begin
-        WriteLn('x: ',x, '; y: ', y, #13#10, 'out of colony now');
+        //WriteLn('Debug: x: ',x, '; y: ', y, #13#10, 'out of colony now');
         cur_colony:= nil;
         glutPostRedisplay;
         Exit;
@@ -1146,6 +1147,30 @@ begin
           cur_colony.SetUnitInField(sx, sy, tempUnit);
         end;//if (unit<>nil)
       end;//if (building and field valid)
+      
+      //check for clicking construction bar
+      if (IsMouseInConstructionBar(x,y) and IsMouseInConstructionBar(mouse.down_x,mouse.down_y)) then
+      begin
+        temp_cbr._type:= CBT_CONSTRUCTION;
+        temp_cbr.Construction.AColony:= cur_colony;
+        SetLength(str_arr, 1);
+        str_arr[0]:= dat.GetLang.GetOthers(osNothing);
+        for pos_x:= Ord(Succ(btNone)) to Ord(High(TBuildingType)) do
+        begin
+          pos_y:= cur_colony.GetBuildingLevel(TBuildingType(pos_x));
+          if (pos_y<GetMaxBuildingLevel(TBuildingType(pos_x))) then
+          begin
+            SetLength(str_arr, length(str_arr)+1);
+            GetBuildingCost(TBuildingType(pos_x), pos_y+1, tempAmount, tempWord);
+            str_arr[High(str_arr)]:= StretchTo59(
+                 dat.GetLang.GetBuildingName(TBuildingType(pos_x), pos_y+1),
+                 IntToStr(tempAmount)+' '+dat.GetLang.GetGoodName(gtHammer)+', '
+                 +IntToStr(tempWord)+' '+dat.GetLang.GetGoodName(gtTool)
+               );
+          end;//if
+        end;//for
+        ShowMessageOptions('Select building to construct:', str_arr, temp_cbr);
+      end;//construction bar
     end;//if (left button up)
     {$IFDEF DEBUG_CODE}
     WriteLn('Exiting TGui.MouseFunc');
@@ -1170,7 +1195,7 @@ begin
       //from ship to port
       sx:= GetCargoBoxAtMouse(mouse.down_x, mouse.down_y);
       tempGood:= GetGoodAtMouse;
-      WriteLn('Debug: Cargo to port: sx: ', sx, '; Good: ', dat.GetLang.GetGoodName(tempGood));
+      //WriteLn('Debug: Cargo to port: sx: ', sx, '; Good: ', dat.GetLang.GetGoodName(tempGood));
       if ((sx<>-1) and (tempGood<>gtCross)) then
       begin
         WriteLn('Trying to clear cargo...');
@@ -1201,7 +1226,7 @@ begin
       //from port to ship
       sx:= GetCargoBoxAtMouse;
       tempGood:= GetGoodAtMouse(mouse.down_x, mouse.down_y);
-      WriteLn('Cargo to ship: sx: ', sx, '; Good: ', dat.GetLang.GetGoodName(tempGood));
+      // WriteLn('Debug: Cargo to ship: sx: ', sx, '; Good: ', dat.GetLang.GetGoodName(tempGood));
       if ((sx<>-1) and (tempGood<>gtCross)) then
       begin
         WriteLn('Trying to load cargo...');
@@ -1232,7 +1257,7 @@ begin
 
       //check for moving ship from "to new world box" to "expected soon box"
       pos_x:= GetToNewWorldAtMouse(mouse.down_x, mouse.down_y);
-      WriteLn('New World at mouse: pos_x: ', pos_x);
+      //WriteLn('Debug: New World at mouse: pos_x: ', pos_x);
       if (pos_x<>-1) and IsMouseInExpectedSoon then
       begin
         WriteLn('Trying to send back to europe...');
@@ -1243,7 +1268,7 @@ begin
 
       //check for moving ship from "expected soon box" to "to new world box"
       pos_x:= GetExpectedSoonAtMouse(mouse.down_x, mouse.down_y);
-      WriteLn('Expected Soon at mouse: pos_x: ', pos_x);
+      //WriteLn('Debug: Expected Soon at mouse: pos_x: ', pos_x);
       if (pos_x<>-1) and IsMouseInToNewWorld then
       begin
         WriteLn('Trying to send back to new world...');
@@ -1254,7 +1279,7 @@ begin
 
       //check for moving ship from port to "new world box"
       pos_x:= GetShipAtMouse(mouse.down_x, mouse.down_y);
-      WriteLn('Ship at mouse: pos_x: ', pos_x);
+      //WriteLn('Debug: Ship at mouse: pos_x: ', pos_x);
       if (pos_x<>-1) and IsMouseInToNewWorld then
       begin
         WriteLn('Trying to send a ship to new world...');
@@ -1369,7 +1394,7 @@ begin
     if InMenu then
     begin
       GetMenuSelectionAtMouse(temp_cat, pos_x);
-      WriteLn('GUI got selection: cat.: ', Ord(temp_cat), '; sel.: ', pos_x);//for debug
+      //WriteLn('Debug: GUI got selection: cat.: ', Ord(temp_cat), '; sel.: ', pos_x);//for debug
       if (pos_x=0) and (temp_cat=menu_cat) then menu_cat:= mcNone
       else if (pos_x=0) then
       begin
@@ -1939,6 +1964,31 @@ begin
   if ColonyBuildingPage then
   begin
     DrawColonyBuildings;
+    //bar for current construction in progress
+    // --- background
+    glBegin(GL_QUADS);
+      glColor3f(0.5, 0.5, 1.0);
+      glVertex2f(3.0, 1.25);
+      glVertex2f(12.0, 1.25);
+      glVertex2f(12.0, 1.75);
+      glVertex2f(3.0, 1.75);
+    glEnd;
+    // --- border
+    glLineWidth(2.0);
+    glBegin(GL_LINE_LOOP);
+      glColor3f(0.25, 0.25, 1.0);
+      glVertex2f(3.0, 1.25);
+      glVertex2f(12.0, 1.25);
+      glVertex2f(12.0, 1.75);
+      glVertex2f(3.0, 1.75);
+    glEnd;
+    // --- text
+    glColor3f(1.0, 1.0, 1.0);
+    WriteText('Construction:', 3.25, 1.375); //needs to be added into Language class
+    bt:= cur_colony.GetCurrentConstruction;
+    WriteText(dat.GetLang.GetBuildingName(bt, cur_colony.GetBuildingLevel(bt)+1),
+           3.25+4, 1.375);
+    
     //text, if mouse hovers over buildings
     bt:= GetBuildingAtMouse(mouse.x, mouse.y);
     if (bt<>btNone) then
@@ -3869,6 +3919,12 @@ begin
                                   end;//case
   else Result:= btNone;
   end;//case mx
+end;//func
+
+function TGui.IsMouseInConstructionBar(const mx, my: LongInt): Boolean;
+begin
+  Result:= (mx>=3*FieldWidth) and (mx<=12*FieldWidth) and (y_Fields*FieldWidth+16-my>= 1.25*FieldWidth)
+           and (y_Fields*FieldWidth+16-my<= 1.75*FieldWidth);
 end;//func
 
 end.
