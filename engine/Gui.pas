@@ -192,7 +192,7 @@ const
        'tents.bmp' //cNationApache
     );
 
-  cWindowCaption = 'Vespucci v0.01.r106';
+  cWindowCaption = 'Vespucci v0.01.r107';
 
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
   cMenuHighColour : array [0..2] of Byte = (255, 20, 20);
@@ -928,7 +928,7 @@ var pos_x, pos_y: Integer;
     tempAmount, tempWord: Word;
     str_arr: TShortStrArr;
     bx, by: Single;
-    bType: TBuildingType;
+    bType, bType2: TBuildingType;
 begin
   {$IFDEF DEBUG_CODE}
     WriteLn('Entered TGui.MouseFunc');
@@ -1130,7 +1130,7 @@ begin
             cur_colony.SetUnitInField(sx, sy, nil);
             cur_colony.SetUnitInBuilding(bType, sx_d, tempUnit);
           end//if
-          else ShowMessageSimple('There cannot be more than three units working in one building.');
+          else ShowMessageSimple(dat.GetLang.GetBuildingString(bsMaxThree));
         end;//if unit<>nil
       end;//if
       //dragging unit from building to field
@@ -1147,7 +1147,31 @@ begin
           cur_colony.SetUnitInField(sx, sy, tempUnit);
         end;//if (unit<>nil)
       end;//if (building and field valid)
-      
+
+      //check for dragging unit from one building to another building
+      bType:= GetBuildingAtMouse(mouse.down_x,mouse.down_y);
+      bType2:= GetBuildingAtMouse(x,y);
+      if ((bType in [btArmory..btBlacksmith]) and (bType2 in [btArmory..btBlacksmith]) and (bType<>bType2)) then
+      begin
+        //get slot at first building
+        GetBuildingPosition(bType, bx, by);
+        sx:= Trunc(mouse.down_x - bx*FieldWidth) div FieldWidth;
+        //get free slot #
+        sy:= cur_colony.GetFirstFreeBuildingSlot(bType2);
+        //get the unit
+        tempUnit:= cur_colony.GetUnitInBuilding(bType, sx);
+        if ((sx in [0..2]) and (tempUnit<>nil)) then
+        begin
+          if (sy<>-1) then
+          begin
+            cur_colony.SetUnitInBuilding(bType, sx, nil);
+            cur_colony.RealignUnitsInBuilding(bType);
+            cur_colony.SetUnitInBuilding(bType2, sy, tempUnit);
+          end//if
+          else ShowMessageSimple(dat.GetLang.GetBuildingString(bsMaxThree));
+        end;//if
+      end;//if
+
       //check for clicking construction bar
       if (IsMouseInConstructionBar(x,y) and IsMouseInConstructionBar(mouse.down_x,mouse.down_y)) then
       begin
@@ -1169,7 +1193,7 @@ begin
                );
           end;//if
         end;//for
-        ShowMessageOptions('Select building to construct:', str_arr, temp_cbr);
+        ShowMessageOptions(dat.GetLang.GetBuildingString(bsSelectNext), str_arr, temp_cbr);
       end;//construction bar
     end;//if (left button up)
     {$IFDEF DEBUG_CODE}
@@ -1811,6 +1835,10 @@ begin
       // -- terrain of unit's location
       WriteText(dat.GetLang.GetTerrainName(tempMap.tiles[focused.GetPosX,focused.GetPosY].GetType),
                 x_Fields +4*PixelWidth, 6.0);
+      // -- number of tools (if present)
+      if (focused.GetToolAmount>0) then
+        WriteText(IntToStr(focused.GetToolAmount)+' '+dat.GetLang.GetGoodName(gtTool),
+                  x_Fields +4*PixelWidth, 5.5);
 
     end;//if Focused unit present
 
@@ -1983,12 +2011,13 @@ begin
       glVertex2f(3.0, 1.75);
     glEnd;
     // --- text
-    glColor3f(1.0, 1.0, 1.0);
-    WriteText('Construction:', 3.25, 1.375); //needs to be added into Language class
     bt:= cur_colony.GetCurrentConstruction;
-    WriteText(dat.GetLang.GetBuildingName(bt, cur_colony.GetBuildingLevel(bt)+1),
-           3.25+4, 1.375);
-    
+    tempStr:= dat.GetLang.GetBuildingString(bsUnderConstruction)+': '+
+              dat.GetLang.GetBuildingName(bt, cur_colony.GetBuildingLevel(bt)+1);
+    glColor3f(1.0, 1.0, 1.0);
+    //WriteText(tempStr , 3.25, 1.375);
+    WriteText(tempStr , 7.5-length(tempStr)*PixelWidth*4, 1.375);
+
     //text, if mouse hovers over buildings
     bt:= GetBuildingAtMouse(mouse.x, mouse.y);
     if (bt<>btNone) then
@@ -3534,12 +3563,16 @@ begin
     mcGame: begin
               case selected of
                 1: begin //save
-                     temp_cb._type:= CBT_SAVE_GAME;
-                     temp_cb.SaveGame.AData:= dat;
-                     str_arr:= dat.GetSaveSlots;
-                     ShowMessageOptions(dat.GetLang.GetSaveLoad(slsSaveChoose),
-                                        ToShortStrArr(dat.GetLang.GetOthers(osNothing), str_arr),
-                                        temp_cb);
+                     if InWoodenMode then
+                       ShowMessageSimple(dat.GetLang.GetSaveLoad(slsNoGameLoaded))
+                     else begin
+                       temp_cb._type:= CBT_SAVE_GAME;
+                       temp_cb.SaveGame.AData:= dat;
+                       str_arr:= dat.GetSaveSlots;
+                       ShowMessageOptions(dat.GetLang.GetSaveLoad(slsSaveChoose),
+                                          ToShortStrArr(dat.GetLang.GetOthers(osNothing), str_arr),
+                                          temp_cb);
+                     end;//else
                    end;//save
                 2: begin //load
                      temp_cb._type:= CBT_LOAD_GAME;

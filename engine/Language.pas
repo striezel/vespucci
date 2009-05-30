@@ -16,6 +16,7 @@ type
   TReportType = (rtNone, rtEconomy, rtColony, rtFleet);
   TColonyString = (csRenameQuestion, csRenameLabel, csAbandonYes, csAbandonNo, csAbandonQuestion);
   TColonyUnitString = (cusOptions, cusCancelOrders, cusOnBoard, cusFortify);
+  TBuildingString = (bsUnderConstruction, bsSelectNext, bsNotify, bsMaxThree);
   TPioneerString = (psNoTools, psHasRoad, psIsPloughed, psIsCleared, psNeedsClearing, psWrongUnit);
   TLanguage = class
     private
@@ -48,6 +49,8 @@ type
       ColonyUnit: array[TColonyUnitString] of string;
       //for names of buildings on different levels
       Buildings: array[TBuildingType] of array [1..3] of string;
+      //for units in buildings, moving them in and out, etc.
+      BuildingStrings: array[TBuildingString] of string;
       //for managing units in european port
       EuroPortManage: array[TEuroPortString] of string;
       //for pioneer actions
@@ -82,6 +85,7 @@ type
       function GetColonyNames(const num_nation: LongInt; col_count: Byte): string;
       function GetColonyUnit(const which: TColonyUnitString): string;
       function GetBuildingName(const which: TBuildingType; const level: Byte): string;
+      function GetBuildingString(const which: TBuildingString): string;
       function GetEuroPort(const which: TEuroPortString): string;
       function GetPioneer(const which: TPioneerString): string;
       function SaveToFile(const FileName: string): Boolean;
@@ -303,7 +307,15 @@ begin
   for i:= cMinEuropean to cMaxEuropean do
     SetLength(ColonyNames[i], 0);
   InitialColonyNames;
+  //names of buildings
   InitialBuildingNames;
+  //building string (not to be confused with previous one)
+  for i:= Ord(Low(TBuildingString)) to Ord(High(TBuildingString)) do
+    BuildingStrings[TBuildingString(i)]:= '';
+  BuildingStrings[bsUnderConstruction]:= 'Im Bau';
+  BuildingStrings[bsSelectNext]:= 'Wählen Sie das zu bauende Gebäude:';
+  BuildingStrings[bsNotify]:= 'Ein Gebäude wurde fertiggestellt.';
+  BuildingStrings[bsMaxThree]:= 'Es können maximal drei Einheiten im gleichen Gebäude arbeiten.';
   //for European ports
   EuroPortManage[epsManageHeading]:= 'Optionen für Siedler im europäischen Hafen:';
   EuroPortManage[epsNotOnShip]:= 'Nicht aufs nächste Schiff gehen';
@@ -438,7 +450,7 @@ begin
   Buildings[btNone, 1]:= 'nichts';
   Buildings[btNone, 2]:= 'nichts';
   Buildings[btNone, 3]:= 'nichts';
-  
+
   Buildings[btFort,1]:= 'Einpfählung';
   Buildings[btFort,2]:= 'Fort';
   Buildings[btFort,3]:= 'Festung';
@@ -628,6 +640,11 @@ begin
   end;//case
 end;//func
 
+function TLanguage.GetBuildingString(const which: TBuildingString): string;
+begin
+  Result:= BuildingStrings[which];
+end;//func
+
 function TLanguage.GetEuroPort(const which: TEuroPortString): string;
 begin
   Result:= EuroPortManage[which];
@@ -717,6 +734,10 @@ begin
       if (j<=GetMaxBuildingLevel(TBuildingType(i))) then
         WriteLn(dat, Buildings[TBuildingType(i),j]);
   end;//for
+  WriteLn(dat);
+  WriteLn(dat, '[BuildingStrings]');
+  for i:= Ord(Low(TBuildingString)) to Ord(High(TBuildingString)) do
+    WriteLn(dat, BuildingStrings[TBuildingString(i)]);
   CloseFile(dat);
   Result:= True;
 end;//func
@@ -918,6 +939,17 @@ begin
               if str1<>'' then Pioneers[TPioneerString(i)]:= str1;
             end;//if
           end;//for j
+          i:= i+1;
+        end;//while
+      end//if
+      else if str1='[BuildingStrings]' then
+      begin
+        i:= Ord(Low(TBuildingString));
+        while (i<=Ord(High(TBuildingString))) and not Eof(dat) do
+        begin
+          ReadLn(dat, str1);
+          str1:= Trim(str1);
+          if str1<>'' then BuildingStrings[TBuildingString(i)]:= str1;
           i:= i+1;
         end;//while
       end;//if
