@@ -49,6 +49,7 @@ type
       procedure SetUnitInField(const x_shift, y_shift: Integer; const AUnit: TUnit; const AGood: TGoodType=gtFood);
       function GetUnitInBuilding(const bt: TBuildingType; const place: Byte): TUnit;
       procedure SetUnitInBuilding(const bt: TBuildingType; const place: Byte; const AUnit: TUnit);
+      procedure RealignUnitsInBuilding(const bt: TBuildingType);
       function GetFirstFreeBuildingSlot(const bt: TBuildingType): ShortInt;
       function GetInhabitants: Word;
       function AdjacentWater(const AMap: TMap): Boolean;
@@ -344,7 +345,7 @@ begin
 end;//func
 
 //only calculates the good changes due to production in buildings;
-// (production in fields (i.e. by farmers) not included yet)
+// and production in fields (i.e. by farmers)
 procedure TColony.NewRound(const AMap: TMap);
 var i,j, prod: Integer;
     h, t: Word;
@@ -447,12 +448,12 @@ begin
     //not enough food - we should put a message and probably let an inhabitant
     // starve from hunger here.
   end;
-  
+
   //check for buildings
   if (CurrentConstruction<>btNone) then
   begin
     GetBuildingCost(CurrentConstruction, Buildings[CurrentConstruction]+1, h, t);
-    if ((Store[gtHammer]>=h) and (Store[gtTool]>=t)) then
+    if ((Store[gtHammer]>=h) and (Store[gtTool]>=t) and (h+t>0)) then
     begin
       //enough material for new building
       ConstructNextLevel;
@@ -461,7 +462,7 @@ begin
       RemoveFromStore(gtTool, t);
     end;//if
   end;//if
-  
+
 end;//func
 
 function TColony.GetUnitInField(const x_shift, y_shift: Integer): TUnit;
@@ -523,6 +524,20 @@ begin
       UnitsInBuilding[bt, place].SetState(usNormal);
     end;//if
   end;//else
+end;//proc
+
+procedure TColony.RealignUnitsInBuilding(const bt: TBuildingType);
+var i: Byte;
+begin
+  if (bt in [btArmory..btBlacksmith]) then
+  begin
+    for i:= 0 to 1 do
+      if (UnitsInBuilding[bt,i]=nil) then
+      begin
+        UnitsInBuilding[bt,i]:= UnitsInBuilding[bt,i+1];
+        UnitsInBuilding[bt,i+1]:= nil;
+      end;//if
+  end;//if
 end;//proc
 
 function TColony.GetFirstFreeBuildingSlot(const bt: TBuildingType): ShortInt;
