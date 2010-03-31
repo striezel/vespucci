@@ -1,9 +1,31 @@
 #ifndef GOODS_H
 #define GOODS_H
 
-enum TGoodType {gtFood, gtSugar, gtTobacco, gtCotton, gtFur, gtWood, gtOre,
+enum TGoodType {gtFood=0, gtSugar, gtTobacco, gtCotton, gtFur, gtWood, gtOre,
                 gtSilver, gtHorses, gtRum, gtCigar, gtCloth, gtCoat, gtTradegoods,
                 gtTool, gtMusket, gtHammer, gtLibertyBell, gtCross};
+
+//workaround to simulate built-in Object Pascal functions
+TGoodType High(const TGoodType gt)
+{
+  return gtCross;
+}
+
+TGoodType Low(const TGoodType gt)
+{
+  return gtFood;
+}
+
+TGoodType Succ(const TGoodType gt)
+{
+  if (gt<gtCross) return static_cast<TGoodType> (gt+1);
+  throw 42; //maybe we should change that value
+}
+
+int Ord(const TGoodType gt)
+{
+  return static_cast<int> (gt);
+}
 
 struct GoodData
 {
@@ -34,8 +56,6 @@ const GoodData cGoodPrices[] = {
              {diff: 0, start_min: 0, start_max: 0, min: 0, max: 0}//gtCross
            };
 
-
-
 /*
  cGoodPrices: array [TGoodType] of record
                  diff: Byte;
@@ -62,8 +82,6 @@ const GoodData cGoodPrices[] = {
              (diff: 0; start_min: 0; start_max: 0; min: 0; max: 0),//gtLibertyBell
              (diff: 0; start_min: 0; start_max: 0; min: 0; max: 0)//gtCross
            ); */
-
-
 
 #endif // GOODS_H
 
