@@ -16,6 +16,13 @@ enum TTerrainType {//open terrain types
                   //others
                   ttHills, ttMountains};
 
+//workaround for built-in Pascal functions
+int Ord(const TTerrainType tt);
+TTerrainType High(const TTerrainType tt);
+TTerrainType Low(const TTerrainType tt);
+TTerrainType Succ(const TTerrainType tt);
+
+
 class TTerrain
 {
   private:

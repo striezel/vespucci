@@ -86,8 +86,8 @@ end;//construc
 destructor TMap.Destroy;
 var i, j: Byte;
 begin
-  for i:=0 to cMap_X do
-    for j:=0 to cMap_Y do
+  for i:=0 to cMap_X-1 do
+    for j:=0 to cMap_Y-1 do
       if tiles[i,j]<>nil then tiles[i,j].Free;
   inherited Destroy;
 end;//destruc
@@ -202,8 +202,6 @@ begin
     end;//for
   fs.Free;
   Result:= True;
-  //set data flag
-  filled:= True;
 end;//func
 
 function TMap.LoadFromFile(const FileName: string): Boolean;

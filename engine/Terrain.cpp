@@ -1,5 +1,28 @@
 #include "Terrain.h"
 
+//workaround for built-in Pascal function
+int Ord(const TTerrainType tt)
+{
+  return static_cast<int> (tt);
+}
+
+TTerrainType High(const TTerrainType tt)
+{
+  return ttMountains;
+}
+
+TTerrainType Low(const TTerrainType tt)
+{
+  return ttArctic;
+}
+
+TTerrainType Succ(const TTerrainType tt)
+{
+  if (tt<ttMountains) return static_cast<TTerrainType> (tt+1);
+  throw 42; //maybe we should change that value
+}
+
+
 
 TTerrain::TTerrain(const TTerrainType ATerrain, const bool River,
             const bool Road, const bool Special,
