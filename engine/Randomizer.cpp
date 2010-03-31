@@ -18,6 +18,11 @@ Randomizer& Randomizer::GetSingleton()
   return Instance;
 }
 
+float Randomizer::random()
+{
+  return rand()/float(RAND_MAX);
+}
+
 unsigned int Randomizer::d6()
 {
   const float res = rand()/float(RAND_MAX);

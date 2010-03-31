@@ -12,6 +12,9 @@ class Randomizer
     /* Singleton access function */
     static Randomizer& GetSingleton();
 
+    /* returns a random number in [0;1) */
+    float random();
+
     /* "Throws" a six-sided die, returns a random number between 1 and 6 */
     unsigned int d6();
 
