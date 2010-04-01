@@ -24,5 +24,8 @@ std::string StretchTo60(const std::string& s1, const std::string& s2);
 LongInt Min(const LongInt a, const LongInt b);
 double Min(const double a, const double b);
 
+LongInt abs(const LongInt a);
+double abs(const double a);
+
 #endif //HELPER_H
 

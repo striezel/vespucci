@@ -188,7 +188,7 @@ end;//func
 function THeap.PeekMin: TSearchNode;
 begin
   if a_last>=0 then Result:= GetNode(a[0].content.x, a[0].content.y)
-  else GetNode(cNotANode, cNotANode);
+  else Result:= GetNode(cNotANode, cNotANode);
 end;//func
 
 function THeap.RemoveMin: TSearchNode;
