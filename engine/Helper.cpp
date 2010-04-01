@@ -117,3 +117,15 @@ double Min(const double a, const double b)
   if (a<=b) return a;
   return b;
 }//func
+
+LongInt abs(const LongInt a)
+{
+  if (a>=0) return a;
+  return -a;
+}
+
+double abs(const double a)
+{
+  if (a>=0) return a;
+  return -a;
+}
