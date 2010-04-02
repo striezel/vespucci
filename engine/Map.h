@@ -49,10 +49,11 @@ class TMap
     void GenerateRiverCache();
     void ClearRiverCache();
     void SetRiverType(const Byte x, const Byte y);
+    TMap();
   public:
     TTerrain* tiles[cMap_X][cMap_Y]; //should better be private
-    TMap();
     virtual ~TMap();
+    static TMap& GetSingleton();
     void Generate(const float Landmass);
     void GenerateSpecials(const bool LandOnly=true);
     bool SaveToFile(const std::string& FileName) const;

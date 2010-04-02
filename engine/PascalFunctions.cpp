@@ -6,3 +6,7 @@ int Ord(const bool b)
   return 0;
 }
 
+LongInt sqr(const LongInt i)
+{
+  return i*i;
+}
