@@ -35,6 +35,12 @@ TMap::~TMap()
   }
 }//destruc
 
+TMap& TMap::GetSingleton()
+{
+  static TMap Instance;
+  return Instance;
+}
+
 void TMap::Generate(const float Landmass)
 {
   LongInt i,j;
