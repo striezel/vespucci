@@ -5,5 +5,6 @@ typedef int LongInt; //32 bit signed integer
 typedef unsigned char Byte; //8 bit unsigned integer
 typedef unsigned short int Word; //16 bit unsigned integer
 typedef unsigned int LongWord; //32 bit unsigned integer
+typedef short int ShortInt; //signed integer of less than 32 bits
 
 #endif
