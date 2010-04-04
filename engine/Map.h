@@ -50,6 +50,7 @@ class TMap
     void ClearRiverCache();
     void SetRiverType(const Byte x, const Byte y);
     TMap();
+    TMap(const TMap& op) {}
   public:
     TTerrain* tiles[cMap_X][cMap_Y]; //should better be private
     virtual ~TMap();
