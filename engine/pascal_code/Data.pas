@@ -683,7 +683,10 @@ begin
   fs.Free;
   fs:= nil;
   if not Result then
+  begin
     err:= 'TData.SaveData: Error while writing colony file "'+GetPathBase+save_path +'colony'+IntToStr(n)+'.vcd';
+    Exit;
+  end;
 
   //nations
   try
@@ -1078,7 +1081,6 @@ begin
       Result:= False;
       Exit;
     end;//if
-    temp_unit:= NewUnit(utCriminal, cNationEngland, 1,1);
     Result:= Result and LoadUnitFromStream(temp_unit, fs);
     AColony.SetUnitInBuilding(bt, temp_b, temp_unit);
   end;//for
@@ -1152,6 +1154,7 @@ begin
     if not status or (temp_str<>cDataFileHeader) then
     begin
       fs.Free;
+      Result:= '('+lang.GetOthers(osEmpty)+')';
       Exit;
     end;//if
     status:= status and (fs.Read(temp_Year, sizeof(temp_Year))=sizeof(temp_Year));
