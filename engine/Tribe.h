@@ -12,7 +12,9 @@ struct TribeLocRec
   Byte x, y;
 };
 
-const TribeLocRec cTribeLocations[13] = {
+const int cTribeLocationsCount = 13;
+
+const TribeLocRec cTribeLocations[cTribeLocationsCount] = {
       {Nation: cNationAztec, x: 11, y: 23},
       {Nation: cNationAztec, x: 16, y: 26},
       {Nation: cNationAztec, x: 23, y: 27},
