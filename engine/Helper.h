@@ -24,8 +24,11 @@ std::string StretchTo60(const std::string& s1, const std::string& s2);
 LongInt Min(const LongInt a, const LongInt b);
 double Min(const double a, const double b);
 
+namespace Pascal
+{
 LongInt abs(const LongInt a);
 double abs(const double a);
+} //namespace
 
 #endif //HELPER_H
 
