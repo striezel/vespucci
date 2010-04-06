@@ -118,6 +118,8 @@ double Min(const double a, const double b)
   return b;
 }//func
 
+namespace Pascal
+{
 LongInt abs(const LongInt a)
 {
   if (a>=0) return a;
@@ -129,3 +131,4 @@ double abs(const double a)
   if (a>=0) return a;
   return -a;
 }
+} //namespace

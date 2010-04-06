@@ -207,7 +207,7 @@ begin
            AUnit.GiveMuskets(False);
          end//if
          else begin
-           if EuroNat.GetGold>EuroNat.GetPrice(gtMusket, False)*50 then
+           if EuroNat.GetGold>=EuroNat.GetPrice(gtMusket, False)*50 then
            begin
              EuroNat.BuyGood(gtMusket, 50);
              AUnit.GiveMuskets(True);
@@ -223,7 +223,7 @@ begin
            AUnit.GiveHorses(False);
          end//if
          else begin
-           if EuroNat.GetGold>EuroNat.GetPrice(gtHorses, False)*50 then
+           if EuroNat.GetGold>=EuroNat.GetPrice(gtHorses, False)*50 then
            begin
              EuroNat.BuyGood(gtHorses, 50);
              AUnit.GiveHorses(True);
@@ -239,7 +239,7 @@ begin
              AUnit.GiveTools(0);
            end//if
            else begin
-             if (EuroNat.GetGold>EuroNat.GetPrice(gtTool, False)*(100-AUnit.GetToolAmount)) then
+             if (EuroNat.GetGold>=EuroNat.GetPrice(gtTool, False)*(100-AUnit.GetToolAmount)) then
              begin
                EuroNat.BuyGood(gtTool, 100-AUnit.GetToolAmount);
                AUnit.GiveTools(100);
