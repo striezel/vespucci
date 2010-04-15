@@ -1,6 +1,8 @@
 #include "Data.h"
 #include <iostream>
+#include <cstdlib>
 #include "PascalFunctions.h"
+#include "ParamStr.h"
 
 TData::TData(const LongInt NumNation_Player)
 {

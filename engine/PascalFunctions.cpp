@@ -2,7 +2,7 @@
 #include <fstream>
 #include <sys/stat.h>
 
-int Ord(const bool b)
+int Ord_bool(const bool b)
 {
   if (b) return 1;
   return 0;

@@ -1,5 +1,6 @@
 #include "Colony.h"
 #include "Helper.h"
+#include <cstdlib>
 
 //workaround for built-in Pascal functions
 int Ord(const TBuildingType bt)
@@ -70,7 +71,7 @@ void GetBuildingCost(const TBuildingType bt, const Byte level, Word* Hammers, Wo
     {
       case btFort:
            switch (level)
-           { 
+           {
              case 1: *Hammers = 64; break;
              case 2: *Hammers = 120; *Tools = 100; break;
              case 3: *Hammers = 320; *Tools = 200; break;
@@ -100,7 +101,7 @@ void GetBuildingCost(const TBuildingType bt, const Byte level, Word* Hammers, Wo
              *Tools = 50;
            }
            break;
-      case btPress: 
+      case btPress:
            switch (level)
            {
              case 1: *Hammers = 52; *Tools = 20; break;

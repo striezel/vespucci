@@ -6,26 +6,13 @@ enum TGoodType {gtFood=0, gtSugar, gtTobacco, gtCotton, gtFur, gtWood, gtOre,
                 gtTool, gtMusket, gtHammer, gtLibertyBell, gtCross};
 
 //workaround to simulate built-in Object Pascal functions
-TGoodType High(const TGoodType gt)
-{
-  return gtCross;
-}
+TGoodType High(const TGoodType gt);
 
-TGoodType Low(const TGoodType gt)
-{
-  return gtFood;
-}
+TGoodType Low(const TGoodType gt);
 
-TGoodType Succ(const TGoodType gt)
-{
-  if (gt<gtCross) return static_cast<TGoodType> (gt+1);
-  throw 42; //maybe we should change that value
-}
+TGoodType Succ(const TGoodType gt);
 
-int Ord(const TGoodType gt)
-{
-  return static_cast<int> (gt);
-}
+int Ord(const TGoodType gt);
 
 struct GoodData
 {

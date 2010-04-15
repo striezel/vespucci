@@ -242,8 +242,8 @@ void TMap::DiscoverSurroundingTiles(const Byte x, const Byte y, const Byte cNati
   if ((cNation>=cMin_Nations) and (cNation<=cMax_Nations))
   {
     LongInt i, j;
-    for (i= x-1-Ord(two_squares); i<=x+1+Ord(two_squares); ++i)
-      for (j= y-1-Ord(two_squares); j<= y+1+Ord(two_squares); ++j)
+    for (i= x-1-Ord_bool(two_squares); i<=x+1+Ord_bool(two_squares); ++i)
+      for (j= y-1-Ord_bool(two_squares); j<= y+1+Ord_bool(two_squares); ++j)
         if ((i>=0) and (j>=0) and (i<cMap_X) and (j<cMap_Y))
           discovered[i][j][cNation] = true;
   }//if
