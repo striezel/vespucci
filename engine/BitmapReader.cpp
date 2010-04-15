@@ -1,5 +1,6 @@
 #include "BitmapReader.h"
 #include <fstream>
+#include <cstdlib>
 #include "Helper.h"
 
 /*function ReadBitmap(const FileName: string; var bfh: TBitmapFileHeader;

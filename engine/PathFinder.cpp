@@ -1,5 +1,6 @@
 #include "PathFinder.h"
 #include <iostream>
+#include <cstdlib> //abs
 
 LongInt Heuristic(const Byte from_x, const Byte from_y, const Byte to_x, const Byte to_y)
 {
