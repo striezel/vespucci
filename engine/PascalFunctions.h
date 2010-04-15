@@ -4,7 +4,9 @@
 #include "PascalTypes.h"
 #include <string>
 
-int Ord(const bool b);
+int Ord_bool(const bool b);
+
+int Ord_char(const char c);
 
 LongInt sqr(const LongInt i);
 

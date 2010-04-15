@@ -1026,6 +1026,11 @@ TGoToTask::~TGoToTask()
   //inherited Destroy;
 }//destruc
 
+TTaskType TGoToTask::GetType() const
+{
+  return ttGoTo;
+}//func
+
 //general
 TUnitType GetUnitForGood(const TGoodType AGood)
 {

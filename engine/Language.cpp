@@ -21,6 +21,12 @@ TMenuCategory Succ(const TMenuCategory mcc)
   throw 42;
 }
 
+TMenuCategory Pred(const TMenuCategory mcc)
+{
+  if (mcc>mcNone) return static_cast<TMenuCategory> (mcc-1);
+  throw 42;
+}
+
 int Ord(const TBuildingString bss)
 {
   return static_cast<int> (bss);
