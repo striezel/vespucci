@@ -41,6 +41,19 @@ TData::~TData()
   DeInitUnits();
 }//destruc
 
+TData& TData::GetSingleton()
+{
+  static TData Instance = TData(cNationEngland);
+  return Instance;
+}
+
+void TData::SetPlayerNation(const LongInt count)
+{
+  if ((count>=cMinEuropean) and (count<=cMaxEuropean))
+    player_nation = count;
+  else player_nation = cNationEngland;
+}
+
 void TData::InitializeNations()
 {
   const TLanguage& lang = TLanguage::GetSingleton();
@@ -335,10 +348,10 @@ void TData::GetEuropeanQuartett(const LongInt num_nation, TUnitArr& Ships, TUnit
                }//else
                break;//ulEurope
           case ulGoToEurope:
-               ExpectedSoon.push_back(m_Units[i]);       
+               ExpectedSoon.push_back(m_Units[i]);
                break;//ulGoToEurope
           case ulGoToNewWorld:
-               ToNewWorld.push_back(m_Units[i]);  
+               ToNewWorld.push_back(m_Units[i]);
                break;//ulGoToNewWorld
         }//swi
       }//if
@@ -519,7 +532,7 @@ bool TData::SaveData(const Word n, std::string& err)
   }//if
 
   //map
-  
+
   if (!TMap::GetSingleton().SaveToFile(GetPathBase()+save_path +"map"+IntToStr(n)+".vmd"))
   {
     err = "TData::SaveData: Error while writing map file \""+GetPathBase()+save_path +"map"+IntToStr(n)+".vmd";
@@ -580,7 +593,7 @@ bool TData::SaveData(const Word n, std::string& err)
     }
   fs.close();
   if (not fs.good())
-  { 
+  {
     err = "TData.SaveData: Error while writing colony file \""+GetPathBase()+save_path +"colony"+IntToStr(n)+".vcd\".";
     return false;
   }
@@ -673,7 +686,7 @@ bool TData::LoadData(const Word n, std::string& err)
     err = "TData::LoadData: got invalid string length from data file.";
     return false;
   }//if
-  
+
   fs.read(buffer, temp);
   buffer[temp] = '\0';
   temp_str = std::string(buffer);
@@ -684,7 +697,7 @@ bool TData::LoadData(const Word n, std::string& err)
     return false;
   }
   fs.close();
-  
+
   //nations
   LongInt i;
   for (i= cMin_Nations; i<=cMaxIndian; ++i)

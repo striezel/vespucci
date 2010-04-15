@@ -69,12 +69,15 @@ class TData
     void DeInitColonies();
     void DeInitTribes();
     void DeInitUnits();
-  public:
     TData(const LongInt NumNation_Player=cNationEngland);
+    TData(const TData& op) {}
+  public:
+    static TData& GetSingleton();
     virtual ~TData();
     LongInt GetYear() const;
     bool IsAutumn() const;
     LongInt PlayerNation() const;
+    void SetPlayerNation(const LongInt count);
     TNation* GetNation(const LongInt count) const;
     void AdvanceYear();
     //units

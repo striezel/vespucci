@@ -107,7 +107,7 @@ struct TCallbackRec
   LongInt _type;
   union {
     void* Data;
-    TExitCallback* cbExit;
+    TExitCallback cbExit;
     TLandfallData* Landfall;
     TBuildColonyData* BuildColony;
     TSaveGameData* SaveGame;

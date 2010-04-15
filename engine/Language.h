@@ -16,6 +16,7 @@ int Ord(const TMenuCategory mcc);
 TMenuCategory High(const TMenuCategory mcc);
 TMenuCategory Low(const TMenuCategory mcc);
 TMenuCategory Succ(const TMenuCategory mcc);
+TMenuCategory Pred(const TMenuCategory mcc);
 
 enum TSaveLoadString {slsLoadChoose, slsLoadError, slsLoadSuccess, slsSaveChoose, slsSaveError, slsSaveSuccess, slsNoGameLoaded};
 

@@ -8,6 +8,11 @@ int Ord(const bool b)
   return 0;
 }
 
+int Ord_char(const char c)
+{
+  return static_cast<int> (c);
+}
+
 LongInt sqr(const LongInt i)
 {
   return i*i;

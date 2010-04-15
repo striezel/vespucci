@@ -214,6 +214,7 @@ class TGoToTask: public TTask
     virtual bool Execute();
     Byte DestinationX() const;
     Byte DestinationY() const;
+    virtual TTaskType GetType() const;
 };//class
 
 void ApplyDir(Byte* x, Byte* y, const TDirection dir);
