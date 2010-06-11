@@ -12,6 +12,7 @@ const
   TERRAIN_PLOUGHED_BIT = 8;
 
 type
+  { enumeration type to represent the terrain type }
   TTerrainType = (//open terrain types
                   ttArctic, ttSea, ttOpenSea, ttPlains, ttGrassland, ttPrairie,
                   ttSavannah, ttMarsh, ttSwamp, ttDesert, ttTundra,
@@ -20,6 +21,14 @@ type
                   ttConiferForest, ttRainForest, ttTropicalForest,
                   //others
                   ttHills, ttMountains);
+
+{ ********
+    **** TTerrain class
+    ****
+    **** purpose: holds the information about the terrain, i.e. one square in
+    ****          the map, such as type and whether it has a road or a river.
+    *******
+  }
   TTerrain = class
     private
       m_River: Boolean;
@@ -51,35 +60,97 @@ type
       m_Ploughed: Boolean;
 
     public
+      { type of the terrain
+
+         remarks:
+             In theory, this member should be private and not public, but I
+             decided to have this one public for faster access.
+      }
       m_Type: TTerrainType;
 
+      { constructor
+
+        parameters:
+            ATerrain - type of that terrain 
+            River    - boolean to indicate whether or not there shall be a river
+            Road     - boolean to indicate whether or not there shall be a road
+            Special  - boolean to indicate whether or not there shall be a
+                       special ressource on that field
+            Ploughed - boolean to indicate whether or not this terrain shall be
+                       ploughed
+      }
       constructor Create(const ATerrain: TTerrainType; const River: Boolean=False;
                          const Road: Boolean=False; const Special: Boolean=False;
                          const Ploughed: Boolean=False);
+
+      { destructor }
       destructor Destroy; override;
 
+      { returns the type of the terrain }
       function GetType: TTerrainType;
+
+      { returns the type this terrain would become, if all forest would be
+        removed }
       function ClearedBecomes: TTerrainType;
+
+      { returns true, if there's forest on that terrain }
       function HasForest: Boolean;
+
+      { returns true, if there's a river flowing through that square }
       function HasRiver: Boolean;
+
+      { returns true, if this terrain has a road }
       function HasRoad: Boolean;
+
+      { returns true, if this square has a special ressource }
       function HasSpecial: Boolean;
+
+      { returns true, if this terrain was ploughed }
       function IsPloughed: Boolean;
+
+      { returns true, if this terrain isn't land but water }
       function IsWater: Boolean;
 
+      { returns the amount of a certain good that would be produced in that
+        field, if a certain unit was working here
+
+        parameters:
+            AGood  - the good that shall be "produced" (i.e. food, cotton,
+                     tobacco, wood, ...)
+            expert - boolean value that indicates, if the unit is an expert for
+                     the production of this good (true) or not (false)
+      }
       function GetGoodProduction(const AGood: TGoodType; const expert: Boolean): Byte;
       //for colony base fields
+      { returns the amount of food that would be produced in that field, if a
+        colony was build here
+      }
       function GetColonyFood: Byte;
+
+      { returns the type of goods that would be produced in that field, if a
+        colony was build here (use GetColonyGoodAmount to get the amount)
+      }
       function GetColonyGoodType: TGoodType;
+
+      { returns the amount of goods that would be produced in that field, if a
+        colony was build here (use GetColonyGoodType to get the good type)
+      }
       function GetColonyGoodAmount: Byte;
       //defense bonus for terrain, in percent. Maximum is 150, so Byte will do.
       function GetDefenceBonus: Byte;
 
       //change terrain state
+      { if this terrain has a forest, this procedure will remove it }
       procedure ClearForest;
+
+      { creates a road on that field }
       procedure CreateRoad;
+
+      { ploughs that field }
       procedure Plough;
+
       //changes that should only take place at initialization
+      { creates a special ressource here }
       procedure CreateSpecial;
   end;//class
 
