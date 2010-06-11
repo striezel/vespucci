@@ -3,14 +3,51 @@ unit Settlement;
 interface
 
 type
+  { ********
+    **** TSettlement class
+    ****
+    **** purpose: represents a settlement within the game, i.e. a colony or a
+    ****          tribe of the Indians. However, there are more specialised
+    ****          classes for both, derived from TSettlement.
+    *******
+  }
   TSettlement = class
     public
+      { constructor 
+     
+        parameters:
+            X, Y    - x- and y-compoment of settlement's position
+            ANation - nation that founded the settlement
+      *}
       constructor Create(const X, Y: Integer; const ANation: LongInt);
+
+      { destructor }
       destructor Destroy; override;
+
+      { returns the nation that owns this settlement }
       function GetNation: LongInt;
+
+      { changes the nation that owns the settlement
+
+        parameters:
+            new_nation - ID of the new nation
+      }
       procedure ChangeNation(const new_nation: LongInt);
+
+      { returns the x-component of settlement's position }
       function GetPosX: Integer;
+      { returns the x-component of settlement's position }
       function GetPosY: Integer;
+
+      { sets a new map position for the settlement
+
+        parameters:
+            x, y - x- and y-component of the new position
+
+        remarks:
+            Both values, x and y, have to be greater than zero. If they aren't,
+            then the procedure behaves as if they had the value of 1.
+      }
       procedure SetPosition(const x,y: LongInt);
     protected
       m_Nation: LongInt;
