@@ -14,6 +14,9 @@ const
   cMapFileHeader = 'VMD';
 
   //const for rivers
+  { These constants are used during visualisation of the rivers on the map
+    to interact properly with rivers in adjacent fields.
+  }
   cMapRiverNone = 0;
   cMapRiverNorth = 1;
   cMapRiverEast = 2;
@@ -38,30 +41,147 @@ const
                   or cMapRiverWest;
 
 type
+  { ********
+    **** TMap class
+    ****
+    **** purpose: holds the map data for the current game.
+    *******
+    
+    To Do:
+    ======
+       - write a better function for generation of maps
+  }
   TMap = class
     private
       filled: Boolean; //internal value to determine whether map is not only nil
+      { holds information about which fields of the map have already been
+        discovered by the four European nations. }
       discovered: array [0..cMap_X-1, 0..cMap_Y-1] of array [cMin_Nations..cMax_Nations] of Boolean;
+      { "River Cache": holds information about rivers in adjacent fields of all
+         fields on the map }
       river: array [0..cMap_X-1, 0..cMap_Y-1] of Byte;
+      { generates the river cache, i.e. fills the above array with proper values }
       procedure GenerateRiverCache;
+      { clears the "river cache", i.e. sets all fields to cMapRiverNone }
       procedure ClearRiverCache;
+      { determines the river cache entry for a single square on the map
+      
+        parameters:
+            x, y - coordinates of that square
+      }
       procedure SetRiverType(const x,y: Byte);
     public
+      { holds information about all squares/fields on the map
+      
+        remarks:
+            This array should be private and only accessible via public
+            functions. However, I decided to make it public for faster access,
+            because this array will usually be used during every frame (or most
+            frames) while a game is running.
+      }
       tiles: array [0..cMap_X-1, 0..cMap_Y-1] of TTerrain;
+
+      { constructor }
       constructor Create;
+
+      { destructor }
       destructor Destroy; override;
+
+      { generates a map with the given parameters
+      
+        parameters:
+            Landmass - the amount of land on the map - 1.0 means all is land,
+                       while 0.0 means no land and just water. Usually this
+                       value should be between 0.5 and 0.8, I guess.
+      
+        remarks:
+            Although this function already generates a map, it does not do it
+            too well. It just generates a row of arctic terrain at the top and
+            bottom of the map, a column of open sea at the left and right side,
+            and all other land is either grassland or sea.
+            It's quite clear that this function has to be improved in the
+            future, if we really want to use it. Things that could be done are
+            considering terrain height to generate mountains and hills, too;
+            generation of rivers, consideration of climate (given by a new
+            function parameter) to generate different terrain types, and a way
+            to make the generated map look more like a continent (or a group of
+            islands) and not just like randomly thrown squares of land.
+      }
       procedure Generate(const Landmass: Single);
+
+      { generates the special ressources for the map
+
+        parameters:
+            LandOnly - boolean that indicates whether special ressources should
+                       only be generated for land squares (true) or also for
+                       watery squares (false)
+        
+        remarks:
+            Only call this once for a genarates map. For maps loaded from a
+            file, never ever call that function, because loaded maps already
+            have their special ressources set.
+      }
       procedure GenerateSpecials(const LandOnly: Boolean=True);
+
+      { tries to save the map to the given file and returns true on success
+      
+        parameters:
+            FileName - name of the destionation file
+      }
       function SaveToFile(const FileName: string): Boolean;
+
+      { tries to load a map from the given file and returns true on success
+      
+        parameters:
+            FileName - name of the source file
+      }
       function LoadFromFile(const FileName: string): Boolean;
 
+      { returns the river type of a certain square
+      
+        parameters:
+            x, y - coordinates of the square
+      }
       function GetRiverType(const x,y: Byte): Byte;
-      //determines, whether a water tile has at least one non-water neighbour
+
+      { determines, whether a water tile has at least one non-water neighbour
+        and returns true in that case
+
+        parameters:
+            x, y - coordinates of the square
+      }
       function IsTouchingLand(const x, y: Byte): Boolean;
-      //proc for reavealing surrounding tiles around a unit
+      { this procedure reaveals surrounding tiles around a unit (or that is what
+        it's made for)
+        
+        parameters:
+            x, y       - coordinates of unit's position on the map
+            cNation    - integer constant identifying the unit's nation
+            twoSquares - usually, this function only reveals the squares
+                         directly adjacent to the unit's position, i.e. at
+                         maximum nine squares (including the unit's position).
+                         However, if twoSquares is true, this function will also
+                         reveal the squares adjacent to that, revealing each
+                         field that is within two (and not one) square range of
+                         the unit. Usually only scout units do that.
+      }
       procedure DiscoverSurroundingTiles(const x,y: Byte; const cNation: Byte; const two_squares: Boolean);
-      //proc to reaveal complete map ("cheat")
+
+      { This procedure reaveals the complete map for the given nation. Yes,
+        it's a cheat.
+        
+        parameters:
+            num_Nation - integer constant identifying the nation in question      
+      }
       procedure RevealAll(const num_Nation: Integer);
+
+      { returns true, if a certain European nation has discovered a certain
+        field of the map
+
+        parameters:
+            x, y      - coordinates of the field's position
+            numNation - integer constant identifying the nation in question
+      }
       function IsDiscovered(const x,y: Byte; const num_Nation: Integer): Boolean;
   end;//class
 

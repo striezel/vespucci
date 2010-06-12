@@ -6,6 +6,12 @@ uses
   Settlement, Nation, Units;
 
 const
+  { Constant array that holds the lociations of indian tribes that are present
+    in America at the start of a new game.
+  
+    remarks/ to do:
+        still needs to be extended  
+  }
   cTribeLocationsAmerica: array [0..12] of record
                      Nation: LongInt;
                      x,y: Byte;
@@ -15,24 +21,50 @@ const
       (Nation: cNationAztec ; x: 16; y: 26;),
       (Nation: cNationAztec ; x: 23; y: 27;),
       (Nation: cNationAztec ; x: 25; y: 33;),
-      
+
       (Nation: cNationInca ; x: 26; y: 42;),
       (Nation: cNationInca ; x: 34; y: 59;),
       (Nation: cNationInca ; x: 34; y: 65;),
       (Nation: cNationInca ; x: 35; y: 51;),
       (Nation: cNationInca ; x: 36; y: 55;),
-      
+
       (Nation: cNationCherokee ; x: 20; y: 20;),
       (Nation: cNationCherokee ; x: 21; y: 17;),
       (Nation: cNationCherokee ; x: 24; y: 19;),
       (Nation: cNationCherokee ; x: 27; y: 22;)
     );
-    
+
 
 type
+  { ********
+    **** TTribe class
+    ****
+    **** purpose: represents a Indian settlement within the game.
+    ****          Specialised version of TSettlement for Indians.
+    *******
+  }
   TTribe = class(TSettlement)
     public
-      constructor Create(const X, Y: Integer; const ANation: LongInt; KnownFor: TUnitType);
+      { constructor
+
+        parameters:
+            x, y     - position of the tribe
+            ANation  - integer identifier of the Indian nation
+            KnownFor - the skill/job the Indians of that tribe can teach to
+                       unskilled colonists
+      }
+      constructor Create(const X, Y: Integer; const ANation: LongInt; const KnownFor: TUnitType);
+
+      { teaches the given unit the special skill of that tribe
+      
+        parameters:
+            AUnit - the unit that shall learn the skill
+            
+        remarks:
+            Only unskilled units, i.e. servants or colonists, can learn a skill
+            from a tribe. Every European nation can only learn once from the
+            same tribe.
+      }
       procedure Teach(var AUnit: TUnit);
     private
       m_KnownFor: TUnitType;
@@ -43,7 +75,7 @@ implementation
 
 // **** TTribe functions ****
 
-constructor TTribe.Create(const X, Y: Integer; const ANation: LongInt; KnownFor: TUnitType);
+constructor TTribe.Create(const X, Y: Integer; const ANation: LongInt; const KnownFor: TUnitType);
 var i: LongInt;
 begin
   //sets Nation and position
