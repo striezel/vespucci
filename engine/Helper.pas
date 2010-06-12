@@ -1,8 +1,17 @@
+{ ********
+  **** unit Helper
+  ****
+  **** purpose: holds some utility functions, constants and types that are used
+  ****          by different other units
+  *******
+}
+
 unit Helper;
 
 interface
 
 const
+  { constants for quicker construction of strings in function SpaceString() }
   cSpace01 = ' ';
   cSpace02 = '  ';
   cSpace04 = '    ';
@@ -14,19 +23,109 @@ const
   cSpace128 = cSpace64+cSpace64;
 
 type
+  { type to represent an array of (short, i.e. <255 characters) strings }
   TShortStrArr = array of ShortString;
 
+  { returns the string representation of an integer value 
+  
+    parameters:
+        i - the integer value
+
+    remarks:
+        There is a function with the same name and for the same purpose within
+        a certain system unit, but I use that function to avoid that unit in
+        the uses-clause of other units (because IntToStr() is the only function
+        from that system unit that is needed).
+  }
   function IntToStr(const i: Integer): string;
+  
+  { returns a string array with the two specified elements
+  
+    parameters:
+        see overloaded version of function below
+  }
   function ToShortStrArr(const s1, s2: ShortString): TShortStrArr; overload;
+  
+  { returns a string array with the three specified elements
+  
+    parameters:
+        see overloaded version of function below
+  }
   function ToShortStrArr(const s1, s2, s3: ShortString): TShortStrArr; overload;
+  
+  { returns a string array with the four specified elements
+  
+    parameters:
+        see overloaded version of function below
+  }
   function ToShortStrArr(const s1, s2, s3, s4: ShortString): TShortStrArr; overload;
+  
+  { returns a string array with the five specified elements
+  
+    parameters:
+        s1 - first string in the returned array
+        s2 - second string in the returned array
+        s3 - third string in the returned array
+        s4 - fourth string in the returned array
+        s5 - fifth string in the returned array
+  }
   function ToShortStrArr(const s1, s2, s3, s4, s5: ShortString): TShortStrArr; overload;
+  
+  { returns a string array that is constructed by the given string and the array
+  
+    parameters:
+        s1  - first string in the returned array
+        arr - array that holds the rest of the returned array's elements
+  }
   function ToShortStrArr(const s1: ShortString; const arr: TShortStrArr): TShortStrArr; overload;
+
+  { returns a string that entirely consists of spaces
+
+    parameters:
+        len - length of the string (=number of spaces)
+  }
   function SpaceString(const len: Byte): string;
+  
+  { "trims" a string, i.e. deletes all leading and trailing spaces, and returns
+    the trimmed string
+
+    parameters:
+        str1 - the string that has to be trimmed
+
+    remarks:
+        See remarks for IntToStr(), these apply here, too.
+  }
   function Trim(const str1: AnsiString): AnsiString;
+
+  { "stretches" the concatenation of two strings to 59 characters, i.e.
+    concatenates the first and second string, and puts enough spaces between
+    them so that the result is exactly 59 characters long
+
+    parameters:
+        s1 - first part of that string
+        s2 - last part of that string
+
+    remarks:
+        If the concatenation of s1 and s2 is already longer than 59 characters,
+        then only one single space character is put between them.
+  }
   function StretchTo59(const s1, s2: ShortString): ShortString;
+
+  { "stretches" the concatenation of two strings to 60 characters, i.e.
+    concatenates the first and second string, and puts enough spaces between
+    them so that the result is exactly 60 characters long
+
+    parameters:
+        s1 - first part of that string
+        s2 - last part of that string
+
+    remarks:
+        If the concatenation of s1 and s2 is already longer than 60 characters,
+        then only one single space character is put between them.
+  }
   function StretchTo60(const s1, s2: ShortString): ShortString;
 
+  { returns the smaller value of the given parameters }
   function Min(const a,b: Integer): Integer; overload;
   function Min(const a,b: Double): Double; overload;
 

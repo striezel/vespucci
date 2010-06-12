@@ -3,11 +3,25 @@ unit Goods;
 interface
 
 type
+ { enumeration type for all possible goods within the game }
  TGoodType = (gtFood, gtSugar, gtTobacco, gtCotton, gtFur, gtWood, gtOre,
               gtSilver, gtHorses, gtRum, gtCigar, gtCloth, gtCoat, gtTradegoods,
               gtTool, gtMusket, gtHammer, gtLibertyBell, gtCross);
 
 const
+  { constant array that holds a price-related information for all goods
+  
+    diff - difference between high and low price (buying/selling price)
+    start_min - the minimum price of the good at the start of the game
+    start_max - the maximum price of the good at the start of the game
+                Prices will be randomly set for each nation at the start of a
+                new game.
+    min       - the minimum price of the good
+    max       - the maximum price of the good
+                Prices will raise and fall during the game, depending on how
+                much of a good the player buys and sells. These limits make
+                sure tha price stays with a certain range.
+  }
   cGoodPrices: array [TGoodType] of record
                  diff: Byte;
                  start_min, start_max: Byte;
