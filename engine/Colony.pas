@@ -6,6 +6,7 @@ uses
   Settlement, Goods, Units, Map, Classes, Helper;
 
 type
+  { enumeration type to identify the different buildings of a colony }
   TBuildingType = (btNone, //nichts, dummy
                    btFort, //Einpfählung, Fort, Festung
                    btDock, //Hafenanlagen, Trockendock, Werft
@@ -25,34 +26,244 @@ type
                    btBlacksmith //Haus d. Schmieds, Schmiede, Eisenhütte
                   );
 
+
+  { ********
+    **** TColony class
+    ****
+    **** purpose: represents an European settlement within the game, i.e. a
+    ****          colony. Specialised version of TSettlement.
+    *******
+  }
   TColony = class(TSettlement)
     public
+      { constructor
+      
+        parameters:
+            X, Y    - position of the colony
+            ANation - integer constant that identifies the nation who founded
+                      the colony
+            AName   - name of the colony
+      }
       constructor Create(const X, Y: Integer; const ANation: LongInt; const AName: string);
+
+      { destructor }
       destructor Destroy; override;
+
+      { returns the name of the colony }
       function GetName: string;
+
+      { sets a name for the colony
+      
+        parameters:
+            new_name - the new name of the colony
+
+        remarks:
+            Do not use this to set the name directly. Use the constructor
+            parameter to set the name. This is only used during loading process
+            or name change.
+      }
       procedure SetName(const new_name: string);
+
+      { returns the amount of a certain good within the colony's storage
+      
+        parameters:
+            AGood - the type of good you want to check for
+      }
       function GetStore(const AGood: TGoodType): Word;
+      
+      { removes a certain amount of a certain good from the colony's storage
+        and returns the amount that was actually removed
+      
+        parameters:
+            AGood  - the type of good that has to be removed
+            amount - the amount that has to be removed
+      }
       function RemoveFromStore(const AGood: TGoodType; const amount: Word): Word;
+
+      { adds a certain amount of a certain good to the colony's storage
+      
+        parameters:
+            AGood  - the type of good that has to be added
+            amount - the amount that has to be added
+            
+        remarks:
+            This function will always add the given amount of a good to the
+            storage (except in case of range overflow). However, each storage
+            can only hold a certain amount of a good (the maximum is 300), and
+            everything above that amount will be discarded at the next end of
+            a turn.
+      }
       procedure AddToStore(const AGood: TGoodType; const amount: Word);
-      //try to avoid SetStore, use RemoveFromStore or AddToStore instead
+
+      { directly sets the amount of a certain good in the colony's storage
+
+        parameters:
+            AGood      - the type of good that has to be set
+            new_amount - the amount that has to be set
+
+        remarks:
+            Try to avoid SetStore, use RemoveFromStore or AddToStore instead.
+            This function is only used during the loading process.
+      }
       procedure SetStore(const AGood: TGoodType; const new_amount: Word);
+
       //for buildings
+      { returns the current construction level of a certain building
+      
+        parameters:
+            bt - the type of building
+      }
       function GetBuildingLevel(const bt: TBuildingType): Byte;
+
+     { set the current construction level of a certain building
+      
+        parameters:
+            bt        - the type of building whose level has to be set
+            new_level - the new level of that building
+            
+        remarks:
+            Do not use this procedure directly, it's only used druning loading
+            process.
+      }
       procedure SetBuildingLevel(const bt: TBuildingType; const new_level: Byte);
+
+      { returns the type of building that is currently constructed in the
+        colony
+      }
       function GetCurrentConstruction: TBuildingType;
+
+      { sets the type of building that is currently constructed in the colony
+      
+        parameters:
+            bt - the type of building that shall be constructed
+      }
       procedure SetCurrentConstruction(const bt: TBuildingType);
+
+      { constructs the next level of the currently constructed building and }
       procedure ConstructNextLevel;
+
+      { returns the amount of goods that is currently prodcued in a certain
+        building by a certain unit in that colony
+
+        remarks:
+            bt - the type of the building
+            ut - the type of the unit
+      }
       function GetProduction(const bt: TBuildingType; const ut: TUnitType): Integer;
+
+      { starts a new round for that colony, i.e. adds produced goods to storage
+        and so on
+
+        remarks:
+            AMap - the current map (needed to calculate production in some fields
+      }
       procedure NewRound(const AMap: TMap);
+
+      { returns the type of unit in a certain field, or nil if there is no unit
+      
+        parameters:
+            x_shift - horizontal position of the field relative to colony's
+                      position
+            y_shift - vertical position of the field relative to colony's
+                      position
+
+        remarks:
+            Both x_shift and y_shift have to be within the range [-1;1], and at
+            least one of them has to be non-zero.
+      }
       function GetUnitInField(const x_shift, y_shift: Integer): TUnit;
+
+      { returns the type of good a unit in a certain field is producing
+      
+        parameters:
+            x_shift - horizontal position of the field relative to colony's
+                      position
+            y_shift - vertical position of the field relative to colony's
+                      position
+
+        remarks:
+            Both x_shift and y_shift have to be within the range [-1;1], and at
+            least one of them has to be non-zero.
+            The return value of that function only has a meaningful value, if
+            there is a unit in that field, i.e. GetUnitinField() does not
+            return nil for that field.
+      }
       function GetUnitInFieldGood(const x_shift, y_shift: Integer): TGoodType;
+
+      { sets the type unit that works in a certain field around the colony
+      
+        parameters:
+            x_shift - horizontal position of the field relative to colony's
+                      position
+            y_shift - vertical position of the field relative to colony's
+                      position
+            AUnit   - the unit that has to work in that field (nil for no unit)
+            AGood   - the type of good the unit is trying to "produce" there
+
+        remarks:
+            Both x_shift and y_shift have to be within the range [-1;1], and at
+            least one of them has to be non-zero.
+      }
       procedure SetUnitInField(const x_shift, y_shift: Integer; const AUnit: TUnit; const AGood: TGoodType=gtFood);
+
+      { returns the unit in a certain building at a certain position (if any)
+      
+        parameters:
+            bt    - the type of building
+            place - the place of the unit in the building - a sort of offset
+        
+        remarks:
+            place has to be in the range [0;2].
+      }
       function GetUnitInBuilding(const bt: TBuildingType; const place: Byte): TUnit;
+
+      { sets the unit in a certain building at a certain position
+      
+        parameters:
+            bt    - the type of building
+            place - the place of the unit in the building - a sort of offset
+            AUnit - the new unit that shall be put into the building
+        
+        remarks:
+            place has to be in the range [0;2].
+      }
       procedure SetUnitInBuilding(const bt: TBuildingType; const place: Byte; const AUnit: TUnit);
+
+      { utility function to "realign" the units in a certain building, i.e.
+        adjust their positions so that there are no empty spaces between them
+      
+        parameters:
+            bt - the type of the building
+      }
       procedure RealignUnitsInBuilding(const bt: TBuildingType);
+
+      { returns the first free slot within a certain building, or -1 if there
+        is no free slot any more
+      
+        parameters:
+            bt - the type of building
+      }
       function GetFirstFreeBuildingSlot(const bt: TBuildingType): ShortInt;
+
+      { returns the number of inhabitants of that colony }
       function GetInhabitants: Word;
+
+      { returns true, if this colony is adjacent to a water square on the map
+      
+        parameters:
+            AMap - the current map
+      }
       function AdjacentWater(const AMap: TMap): Boolean;
+
+      { tries to save the colony to a stream and returns true in case of success
+      
+        parameters:
+            fs - the file stream the colony has to be saved to
+
+        remarks:
+            The file stream already has to be openend and has to be ready for
+            writing.
+      }
       function SaveToStream(var fs: TFileStream): Boolean;
     private
       m_Name: string;
@@ -68,12 +279,34 @@ type
                                                         u: TUnit;
                                                         GoesFor: TGoodType;
                                                       end;//rec
-  end;//class
+  end;//class TColony
 
+  { array that can hold multiple colonies }
   TColonyArr = array of TColony;
 
+  { returns the maximum level a certain building could reach
+  
+    parameters:
+        bt - the type of the building
+  }
   function GetMaxBuildingLevel(const bt: TBuildingType): Byte;
+
+  { returns the type of good that is produced in a certain building
+  
+    parameters:
+        bt - the type of the building
+  }
   function GetProducedGood(const bt: TBuildingType): TGoodType;
+
+  { returns the amount of hammers and tools that is needed to construct a
+    certain level of a certain building
+  
+    parameters:
+        bt      - the type of the building
+        level   - the level of the building
+        Hammers - the Word that is used to returned the amount of hammers
+        Tools   - the Word that is used to returned the amount of tools
+  }
   procedure GetBuildingCost(const bt: TBuildingType; const level: Byte; var Hammers, Tools: Word);
 
 implementation

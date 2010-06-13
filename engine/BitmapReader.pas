@@ -6,22 +6,26 @@ uses
   SysUtils, Classes;
 
 type
+  { array that can hold a 32x32 px RGB image }
   TArraySq32RGB = array [0..32*32-1] of packed record
                                           r: Byte;
                                           g: Byte;
                                           b: Byte;
                                         end;
+  { array that can hold a 32x32 px RGB image with alpha channel }
   TArraySq32RGBA = array [0..32*32-1] of packed record
                                            r: Byte;
                                            g: Byte;
                                            b: Byte;
                                            a: Byte;
                                          end;
+  { array that can hold a 128x64 px RGB image }
   TArray128x64RGB = array [0..128*64-1] of packed record
                                           r: Byte;
                                           g: Byte;
                                           b: Byte;
                                         end;
+  { array that can hold a 128x64 px RGB image with alpha channel }
   TArray128x64RGBA = array [0..128*64-1] of packed record
                                            r: Byte;
                                            g: Byte;
@@ -30,13 +34,14 @@ type
                                          end;
 
 
-
+  { part of file header used in Bitmap files}
   TBitmapFileHeader = packed record
     bfType: Word;
     bfSize: LongWord;
     bfReserved: LongWord;
     bfOffBits: LongWord;
   end;//rec
+  { part of file header used in Bitmap files}
   TBitmapInfoHeader = packed record
     biSize: LongWord;
     biWidth: Longint;
@@ -54,15 +59,71 @@ type
   {function ReadBitmap(const FileName: string; var bfh: TBitmapFileHeader;
                      var bih: TBitmapInfoHeader; var Data: Pointer;
                      var err: string): Boolean;}
+
+  { tries to read a 32x32 px RGB bitmap from a file and returns true on success
+  
+    parameters:
+        FileName - location of the bitmap
+        Data     - record that will hold the image data in case of success
+        err      - a string that contains an error message after the function
+                   failed
+  }
   function ReadBitmapToArr32RGB(const FileName: string; var Data: TArraySq32RGB;
                      var err: string): Boolean;
+
+  { tries to read a 128x64 px RGB bitmap from a file and returns true on success
+  
+    parameters:
+        FileName - location of the bitmap
+        Data     - record that will hold the image data in case of success
+        err      - a string that contains an error message after the function
+                   failed
+  }
   function ReadBitmapToArr128x64RGB(const FileName: string; var Data: TArray128x64RGB;
                      var err: string): Boolean;
+
+  { swaps the red and blue colour components of the given 32x32 px RGB image
+  
+    parameters:
+        pic - the array containing the image data that has to be altered
+  }
   procedure SwapRGB_To_BGR(var pic: TArraySq32RGB); overload;
+
+  { swaps the red and blue colour components of the given 128x64 px RGB image
+  
+    parameters:
+        pic - the array containing the image data that has to be altered
+  }
   procedure SwapRGB_To_BGR(var pic: TArray128x64RGB); overload;
+
+  { swaps the green and blue colour components of the given 32x32 px RGB image
+  
+    parameters:
+        pic - the array containing the image data that has to be altered
+  }
   procedure SwapRGB_To_RBG(var pic: TArraySq32RGB);
+
+  { swaps the red and green colour components of the given 32x32 px RGB image
+  
+    parameters:
+        pic - the array containing the image data that has to be altered
+  }
   procedure SwapRGB_To_GRB(var pic: TArraySq32RGB);
+
+  { adds alpha channel data to a 32x32 px RGB image
+  
+    parameters:
+        src  - the array containing the source image
+        dest - the returned image with alpha channel
+  }
   procedure GetAlphaByColor(const src: TArraySq32RGB; var dest: TArraySq32RGBA); overload;
+
+  { adds alpha channel data to a 128x64 px RGB image
+  
+    parameters:
+        src  - the array containing the source image
+        dest - the returned image with alpha channel
+  }
   procedure GetAlphaByColor(const src: TArray128x64RGB; var dest: TArray128x64RGBA); overload;
 
 implementation
