@@ -1,3 +1,10 @@
+{ ********
+  **** unit PathFinder
+  ****
+  **** purpose: holds all functions that a used during path finding of units
+  ****          (currently uses A*)
+  *******
+}
 unit PathFinder;
 
 interface
@@ -6,13 +13,20 @@ uses
   Map, Helper;
 
 const
+  { constant value that represents "no node", i.e. end of a list or invalid
+    node
+  }
   cNotANode = 255;
 
 type
   TPresenceList = array [0..cMap_X-1, 0..cMap_Y-1] of Boolean;
+
+  { record that holds coordinates }
   TCoords = record
               x,y: Byte;
             end;//rec
+
+  { array that holds a sequence of coordinates, e.g. a path }
   TCoordArr = array of TCoords;
   TSearchNode = record
                   cost_est: Integer; //known cost plus estimated cost to target
@@ -20,36 +34,151 @@ type
                   x,y: Byte;
                   Parent: TCoords;
                 end;//rec
+
+  { array that holds all search nodes }
   TNodes = array [0..cMap_X-1, 0..cMap_Y-1] of TSearchNode;
+
+  { references a node in the heap }
   THeapNode = record
                 content: record
                            x,y: Byte;
                          end;
               end;//rec
 
+  { ********
+    **** THeap class
+    ****
+    **** purpose: implements a heap of nodes/ coordinates on the map
+    *******
+  }
   THeap = class
                 private
                   Presence: TPresenceList;
                   Nodes: TNodes;
                   a: array of THeapNode;
                   a_last: Integer;
+
+                  { swaps nodes at array positions n1 and n2
+                  
+                    parameters:
+                        n1 - index of first node
+                        n2 - index of second node
+                  }
                   procedure SwapElements(const n1, n2: Integer);
+                  
+                  { restores order in the sub tree of node with index element
+                  
+                    parameters:
+                        element - index of node that is the root of the sub tree
+                                  that has to be sorted
+                  }
                   procedure Sift(const element: Integer);
+
+                  { restores the heap property for the complete heap }
                   procedure Heapify;
+                  
+                  { returns true, if the (estimated) cost of node at index n1 is
+                    less or equal to the (estimated) cost of node at index n2
+                  
+                    parameters:
+                        n1 - index of first node
+                        n2 - index of second node
+                  }
                   function  LessEqual(const n1, n2: Integer): Boolean;
                 public
+                  { constructor }
                   constructor Create;
+
+                  { destructor }
                   destructor Destroy; override;
+
+                  { returns true, if the heap is empty }
                   function Empty: Boolean;
+                  
+                  { returns true, if the node with coordinates (x;y) is present
+
+                    parameters:
+                        x, y - coordinates of the node
+                  }
                   function IsNodePresent(const x,y: Byte): Boolean;
+
+                  { adds a new node to the heap and returns true, if a node was
+                    added
+                    
+                    parameters:
+                        newNode - the node that has to be added to the heap
+
+                    remarks:
+                        A node will not be added, if its coordinates are not on
+                        the map.
+                  }
                   function AddNode(const newNode: TSearchNode): Boolean;
+
+                  { returns the node with the minimum cost
+
+                    remarks:
+                        If the heap is empty, a search node with both x and y
+                        coordinates set to cNotANode will be returned.
+                  }
                   function PeekMin: TSearchNode;
+
+                  { removes the node with the minimum cost from the heap and
+                    returns it
+
+                    remarks:
+                        If the heap is empty, a search node with both x and y
+                        coordinates set to cNotANode will be returned.
+                  }
                   function RemoveMin: TSearchNode;
+                  
+                  { returns the heap node for position (x;y)
+
+                    parameters:
+                        x,y - coordinates of the node
+
+                    remarks:
+                        If the node with the given coordinates is not part of
+                        the heap, then a search node with both x and y
+                        coordinates set to cNotANode will be returned.
+                  }
                   function GetNode(const x,y: Byte): TSearchNode;
               end;//class
 
+  { returns an "optimistic guess" of the moves needed to move from the first
+    specified coordinates to the later specified coordinates
+    
+    parameters:
+        from_x, from_y - first coordinates
+        to_x, to_y     - second coordinates
+
+    remarks:
+        This function returns the "Manhattan distance" of the coordinates,
+        because equals the minimum number of moves required to move between
+        those nodes/coordinates; thus, it's always an "optimistic guess".
+  }
   function Heuristic(const from_x, from_y, to_x, to_y: Byte): Integer;
 
+  { This function does the actual pathfinding and returns true, if a path was
+    found
+  
+    parameters:
+        from_x, from_y     - coordinates of the starting point
+        target_x, target_y - coordinates of the destination
+        WaterWay           - indicates whether the path shall only contain
+                             "watery" squares (true) or land squares (false)
+        AMap               - the map (must not be nil, of you want a solution)
+        path               - array that will hold the coordinates of each node
+                             that needs to be travelled to get from start to the
+                             destionation node (i.e. the path a unit has to walk)
+        SpecialNodeX       - x-coordinate of a special node that can be
+                             travelled even if it does not meet the water/land
+                             requirement
+        SpecialNodeY       - y-coordinate of the above node
+
+    remarks:
+        This function uses the A*-algorithm to do the pathfinding and requires
+        quite a lot of memory (and possibly time), so use it only when needed.
+  }
   function FindPath(const from_x, from_y, target_x, target_y: Byte; const WaterWay: Boolean; AMap: TMap; var path: TCoordArr;
                     const SpecialNodeX: Byte=250; const SpecialNodeY: Byte=250): Boolean;
 
@@ -234,7 +363,7 @@ begin
     WriteLn('--Coordinates out of range!');
     Exit;
   end;//if
-  
+
   //check for map
   if AMap=nil then
   begin
