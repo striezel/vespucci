@@ -11,29 +11,51 @@ const
 {$ELSE}
   path_delimiter = '/';
 {$ENDIF}
+  { string constants that hold various (relative) paths used by vespucci }
   data_path = 'data' + path_delimiter;
+  //path of America map file
   america_map_path = data_path +'america'+path_delimiter+'america.vmd';
   img_path = data_path+'img'+path_delimiter;
+  //path of images for good icons
   good_img_path = img_path+'goods'+path_delimiter;
+  //path of terrain images
   terrain_img_path = img_path+'terrain'+path_delimiter;
+  //path of unit icons
   unit_img_path = img_path+'units'+path_delimiter;
+  //path of state icons for units
   state_img_path = unit_img_path+'state'+path_delimiter;
+  //directory that holds the images of colonies
   colony_img_path = img_path+'colony'+path_delimiter;
+  //directory that holds the images of buildings
   building_img_path = colony_img_path+'building'+path_delimiter;
+  //directory that holds the images of Indian settlements
   tribe_img_path = img_path+'tribe'+path_delimiter;
+  //directoy that holds the saved games
   save_path = data_path+'saves'+path_delimiter;
 
+  { header signatures for data files }
   cDataFileHeader = 'VDD';
   cColonyFileHeader = 'VCD';
   cUnitFileHeader = 'VUD';
   cNationFileHeader = 'VND';
 
 type
+  { ********
+    **** TData class
+    ****
+    **** purpose: holds all the data of a game, i.e. nations, units, settlements;
+    ****          this class is also responsible for loading/saving games.
+    *******
+  }
   TData = class
             private
+              { the current year in the game }
               Year: LongInt;
+              { season flag: true, if it's autumn; false, if it's spring }
               Autumn: Boolean;
+              { integer constant that defines the player's nation }
               player_nation: LongInt;
+              //array that holds all nations
               Nations: array [cMin_Nations..cMaxIndian] of TNation;
               //the units
               m_Units: array of TUnit;
@@ -51,57 +73,310 @@ type
               //relative path
               base_dir: string;
               //loading routines (maybe save routines should be here, too?)
+              { loads a unit from the stream and returns true on success
+
+                parameters:
+                    AUnit - the unit that will hold the loaded data
+                    fs    - the file stream the unit will be loaded from
+              }
               function LoadUnitFromStream(var AUnit: TUnit; var fs: TFileStream): Boolean;
+
+              { loads a colony from the stream and returns true on success
+
+                parameters:
+                    AColony - the colony that will hold the loaded data
+                    fs      - the file stream the colony will be loaded from
+              }
               function LoadColonyFromStream(var AColony: TColony; var fs: TFileStream): Boolean;
+
+              { loads a nation from the stream and returns true on success
+
+                parameters:
+                    ANat - the TNation that will hold the loaded data
+                    fs   - the file stream the nation will be loaded from
+              }
               function LoadNationFromStream(var ANat: TNation; var fs: TFileStream): Boolean;
+
+              { sets the initial values for all nations }
               procedure InitializeNations;
+
+              { initializes the map }
               procedure InitializeMap;
+
+              { sets all tribes that are initially at the America map }
               procedure InitTribes_America;
+
+              { deletes all colonies }
               procedure DeInitColonies;
+
+              { deletes all tribes }
               procedure DeInitTribes;
+
+              { deletes all units }
               procedure DeInitUnits;
             public
+              { constructor
+
+                parameters:
+                    NumNation_Player - integer constant defining the player's
+                                       nation
+              }
               constructor Create(const NumNation_Player: LongInt=cNationEngland);
+
+              { destructor }
               destructor Destroy; override;
+
+              { returns the current game year }
               function GetYear: LongInt;
+
+              { returns true, if it's currently autumn in the game }
               function IsAutumn: Boolean;
+
+              { returns the player's nation }
               function PlayerNation: LongInt;
+
+              { returns a certain nation
+
+                parameters:
+                    count - integer constant defining the desired nation
+              }
               function GetNation(const count: Integer): TNation;
+
+              { advances to next year and/or advances the season }
               procedure AdvanceYear;
-              //units
+              // ---- unit-related functions ----
+              { creates a new unit and returns the created unit
+
+                parameters:
+                    TypeOfUnit - unit's type
+                    ANation    - the nation the unit will belong to
+                    X, Y       - initial position of the unit
+              }
               function NewUnit(const TypeOfUnit: TUnitType; const ANation: Integer; X: Integer=1; Y: Integer=1): TUnit;
+
+              { returns the first unit in a certain field/map square. If no
+                unit was found, nil will be returned.
+
+                parameters:
+                    x,y         - position of the unit
+                    OnlyAmerica - true, if only units in America should be
+                                  considered (default behaviour)
+              }
               function GetFirstUnitInXY(const x, y: Integer; const OnlyAmerica: Boolean=True): TUnit;
+
+              { returns the first "lazy" unit of a nation, i.e. a unit that
+                still has some moves left. If no unit was found, nil will be
+                returned.
+
+                parameters:
+                    num_Nation - integer constant identifying the nation
+              }
               function GetFirstLazyUnit(const num_Nation: Integer): TUnit;
+
+              { returns all ships of a certain nation. If no ships were found,
+                an array of length zero will be returned.
+
+                parameters:
+                    numNation - integer constant identifying the nation
+              }
               function GetAllShips(const numNation: LongInt): TUnitArr;
+
+              { returns all ships in a certain field/map square. If no ships
+                were found, an array of length zero will be returned.
+
+                parameters:
+                    x,y         - position of the unit
+                    OnlyAmerica - true, if only ships in America should be
+                                  considered (default behaviour)
+              }
               function GetAllShipsInXY(const x,y: Integer; const OnlyAmerica: Boolean=True): TUnitArr;
+
+              { returns all ships a certain nation has in Europe. If no ships
+                were found, an array of length zero will be returned.
+
+                parameters:
+                    num_nation - integer constant identifying the nation
+              }
               function GetAllShipsInEurope(const num_nation: Integer): TUnitArr;
+
+              { returns all non-ship units a certain nation has in Europe. If no
+                units were found, an array of length zero will be returned.
+
+                parameters:
+                    num_nation - integer constant identifying the nation
+              }
               function GetAllNonShipsInEurope(const num_nation: Integer): TUnitArr;
+
+              { returns all ship of a certain nation that are sailing to Europe.
+                If no ships were found, an array of length zero will be
+                returned.
+
+                parameters:
+                    num_nation - integer constant identifying the nation
+              }
               function GetAllShipsGoingToEurope(const num_nation: Integer): TUnitArr;
+
+              { returns all ship of a certain nation that are sailing to the New
+                World. If no ships were found, an array of length zero will be
+                returned.
+
+                parameters:
+                    num_nation - integer constant identifying the nation
+              }
               function GetAllShipsGoingToNewWorld(const num_nation: Integer): TUnitArr;
+
+              { This procedure wraps all of the functionality of
+                GetAllShipsInEurope(), GetAllNonShipsInEurope(),
+                GetAllShipsGoingToEurope() and GetAllShipsGoingToNewWorld() in
+                one procedure. It is faster than calling each of these functions
+                separately, because it only has to go through the units once and
+                not four times.
+
+                parameters:
+                    num_nation   - integer constant identifying the nation
+                    Ship         - array that will hold all ships in Europe
+                    People       - array that will hold all non-ship units in
+                                   Europe
+                    ExpectedSoon - array that will hold all ships sailing to
+                                   Europe
+                    ToNewWorld   - array that will hold all ships sailing to
+                                   the new world
+              }
               procedure GetEuropeanQuartett(const num_nation: Integer; var Ships, People, ExpectedSoon, ToNewWorld: TUnitArr);
               //units in colonies
+              { returns all units that are in the field/map square of the given
+                colony, except ships and caravans. If no units were found, an
+                array of length zero will be returned.
+
+                parameters:
+                    ACol - the colony
+              }
               function GetAllUnitsInColony(const ACol: TColony): TUnitArr;
-              //colonies
+              // ---- functions for colonies ----
+              { creates a new colony and returns the created colony
+
+                parameters:
+                    x,y        - position of the colony
+                    num_Nation - integer constant identifying the nation that
+                                 founded the colony
+                    AName      - the name of the colony
+              }
               function NewColony(const x,y: Byte; const num_Nation: Integer; const AName: ShortString): TColony;
+
+              { returns the colony in the field with coordinates (x;y), if any.
+                If no colony is found, nil is returned.
+
+                parameters:
+                    x,y - coordinates of the map square
+              }
               function GetColonyInXY(const x,y: Byte): TColony;
+
+              { returns an array containing all the nations of a certain nation
+
+                parameters:
+                    num_nation - integer constant identifying the nation
+              }
               function GetColonyList(const num_nation: Integer): TColonyArr;
+              
+              { tries to delete the colony at the given position and returns
+                true, if a colony was found and deleted
+
+                parameters:
+                    x,y - coordinates of the colony's position  
+              }
               function DeleteColony(const x,y: Byte): Boolean;
-              //tribes
+              // ---- tribe-related functions ----
+              { creates a new tribe and returns the new created tribe
+
+                parameters:
+                    x,y        - position of the tribe
+                    num_Nation - integer identifying the indian nation the tribe
+                                 belongs to
+                    Teaches    - special skill the tribe can teach to Europeans
+              }
               function NewTribe(const x,y: Byte; const num_Nation: Integer; const Teaches: TUnitType): TTribe;
+
+              { returns the tribe at map location (x;y), if any. If no tribe is
+                found, nil is returned.
+
+                parameters:
+                    x,y - coordinates of the map square
+              }
               function GetTribeInXY(const x,y: Byte): TTribe;
               //general (settlements)
+              { returns true, if the given coordinates and adjacent squares do
+                not hold a settlement yet, and thus this coordinates can be used
+                to build a settlement
+
+                parameters:
+                    x,y - coordinates of the map square
+              }
               function FreeForSettlement(const x,y:Byte): Boolean;
+              
               //others
+              { starts a new round for the given nation
+
+                parameters:
+                    num_nation - integer identifying the nation
+              }
               procedure NewRound(const num_Nation: Integer);
+
+              { tries to save the game to the n-th slot. Returns true in case of
+                success.
+              
+                parameters:
+                    n   - save game slot index (usually in [1;10])
+                    err - string that will contain an error message if the
+                          function failed
+              }
               function SaveData(const n: Word; var err: string): Boolean;
+
+              { tries to load the game from the n-th slot. Returns true in case
+                of success.
+              
+                parameters:
+                    n   - save game slot index (usually in [1;10])
+                    err - string that will contain an error message if the
+                          function failed
+              }
               function LoadData(const n: Word; var err: string): Boolean;
+
+              { returns a short description for the save game in the n-th slot.
+              
+                parameters:
+                    n   - save game slot index (usually in [1;10])
+              }
               function GetSaveInfo(const n: Word): string;
+
+              { same as above, but for the first ten slots }
               function GetSaveSlots: TShortStrArr;
+              
+              { returns the basic path of the application
+
+                remarks:
+                    This is used to turn relative paths into absolute paths.
+              }
               function GetPathBase: string;
+
+              { returns the TLanguage class, that holds all language-related
+                strings
+              }
               function GetLang: TLanguage;
+
+              { returns the current map }
               function GetMap: TMap;
+
+              { returns the list of goods/their amount a unit would produce in
+                a certain field of a colony
+
+                parameters:
+                    x_shift  - horizontal positional offset (has to be in [-1:1])
+                    y_shift  - vertical positional offset (has to be in [-1:1])
+                    Unittype - the type of the unit
+                    ACol     - the colony where the unit works/ will work
+              }
               function GetJobList(const x_shift, y_shift: ShortInt; const UnitType: TUnitType; ACol: TColony): TShortStrArr;
-          end;//class
+          end;//class TData
 
 implementation
 
