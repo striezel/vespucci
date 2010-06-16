@@ -6,6 +6,7 @@ uses
   Units, Map, Data, Colony, Goods, Nation;
 
 const
+  { integer constant that identifies the type of a callback record }
   CBT_ANY = 0;
   CBT_EXIT = 1;
   CBT_LANDFALL = 2;
@@ -26,6 +27,7 @@ type
   TExitCallback = procedure (const option: Integer);
   TLandfallCallback = function (const option: Integer; AShip: TUnit; const AType: TUnitType; const x,y: Byte; AMap: TMap): Boolean;
 
+  { records that hold the data which is not common to all types of callbacks }
   TLandfallData = record
                     cbLandfall: TLandfallCallback;
                     Ship: TUnit;
@@ -79,7 +81,8 @@ type
   TConstructionData = record
                         AColony: TColony;
                       end;//rec
-  
+
+  { record that holds all information that is neccessary to handle a callback }
   TCallbackRec = record
                    option: Integer;
                    inputText: ShortString;
@@ -103,11 +106,20 @@ type
                  end;//rec
 
 const
+  { constant record for an empty callback, i.e. "no callback" }
   cEmptyCallback: TCallbackRec =(option: 0; inputText: ''; _type: CBT_ANY; Data: nil);
 
   procedure CBF_Exit(const option: Integer);
   function CBF_Landfall(const option: Integer; AShip: TUnit; const AType: TUnitType; const x,y: Byte; AMap: TMap): Boolean;
 
+  { handles the given callback record, i.e. calls another function to handle it,
+    and returns true on succes. What exactly "success" means, depends on the
+    type of the callback.
+    
+    parameters:
+        cbRec - the TCallbackRec structure which holds the data needed to handle
+                the callback
+  }
   function HandleCallback(const cbRec: TCallbackRec): Boolean;
 
 implementation
