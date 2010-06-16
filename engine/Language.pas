@@ -6,7 +6,10 @@ uses
   Goods, Units, Terrain, Nation, Colony {building type}, SysUtils;
 
 type
+  { enumeration type to represent a menu category }
   TMenuCategory = (mcNone, mcGame, mcView, mcOrders, mcReports, mcTrade);
+
+  { enumeration types to identify a certain string }
   TSaveLoadString = (slsLoadChoose, slsLoadError, slsLoadSuccess, slsSaveChoose, slsSaveError, slsSaveSuccess, slsNoGameLoaded);
   TTransferString = (tsBoycotted, tsOutOfGold, tsOutOfSpace);
   TOtherString = (osLocation, osDestination, osFreight, osShip, osHighSea,
@@ -18,19 +21,37 @@ type
   TColonyUnitString = (cusOptions, cusCancelOrders, cusOnBoard, cusFortify);
   TBuildingString = (bsUnderConstruction, bsSelectNext, bsNotify, bsMaxThree);
   TPioneerString = (psNoTools, psHasRoad, psIsPloughed, psIsCleared, psNeedsClearing, psWrongUnit);
+
+
+  { ********
+    **** TLanguage class
+    ****
+    **** purpose: holds all strings (captions, messages, names of buildings,
+    ****          units, goods,...) in the game, that might be different in
+    ****          different languages
+    *******
+  }
   TLanguage = class
     private
+      //names of menu categories
       Menu: array[TMenuCategory] of string;
+      //names of menu options
       MenuOptions: array [TMenuCategory] of array [1..10] of string;
       menu_helpers: array [TMenuCategory] of record
                                                max_len: Integer;
                                                count:  Integer;
                                              end;//rec
+      //names of goods
       GoodNames: array[TGoodType] of string;
+      //names of all nations, including Indians
       NationNames: array[cMin_Nations..cMaxIndian] of string;
+      //names of ports in Europe
       PortNames: array[cMinEuropean..cMaxEuropean] of string;
+      //names of terrain types
       TerrainNames: array[TTerrainType] of string;
+      //names of units
       UnitNames: array[TUnitType] of string;
+      //names of the two seasons (spring, autumn)
       Seasons: array[0..1] of string;
       Transfer: array[TTransferString] of string;
       //others
@@ -55,42 +76,250 @@ type
       EuroPortManage: array[TEuroPortString] of string;
       //for pioneer actions
       Pioneers: array[TPioneerString] of string;
+
+      { sets initial values for all strings
+      
+        remarks:
+            The initial strings set by this function are German, however you
+            can change the language by calling LoadFromFile() and load language
+            settings for another language.
+      }
       procedure InitialValues;
+
+      { sets initial names of colonies/ colony name proposals
+
+        remarks:
+            See remarks for InitialValues().
+      }
       procedure InitialColonyNames;
+
+      { sets names of buildings
+
+        remarks:
+            See remarks for InitialValues().
+      }
       procedure InitialBuildingNames;
+
+      { sets some auxillary, menu-related values }
       procedure SetMenuHelpers;
+
+      { returns the number of menu options in a certain category
+
+        parameters:
+            categ - the menu category
+      }
       function privGetOptionCount(const categ: TMenuCategory): Integer;
     public
+      { constructor }
       constructor Create;
-      //menu related
+      // ---- menu related ----
+      { returns the number of menu options in a certain menu category
+      
+        parameters:
+            categ - the category whose number of options you want to know
+      }
       function GetOptionCount(const categ: TMenuCategory): Integer;
+      
+      { returns the name/ label of a certain menu category
+
+      parameters:
+            categ - the category whose name you want to know
+      }
       function GetMenuLabel(const categ: TMenuCategory): string;
+
+      { returns the name/ label of a certain menu option
+
+      parameters:
+            categ  - the category where the option is located
+            option - the number of the option (1-based)
+      }
       function GetMenuOption(const categ: TMenuCategory; const option: Byte): string;
-      //menu helper
+
+      // ---- menu helper ----
+      { utility function that returns the number of characters of the longest
+        option in a certain menu category
+
+        parameters:
+            categ - the menu category
+      }
       function GetMaxLen(const categ: TMenuCategory): Integer;
-      //general stuff
+
+      // ---- general stuff ----
+      { returns the name of a certain good
+
+        parameters:
+            AGood - the good whose name is requested
+      }
       function GetGoodName(const AGood: TGoodType): string;
+
+      { returns the name of a certain nation
+
+        parameters:
+            NationNum - integer identifying the nation whose name is requested
+
+        remarks:
+            The value of NationNum has to be in [cMin_Nations..cMaxIndian], or
+            this function just will return '(no nation)'.
+      }
       function GetNationName(const NationNum: Integer): string;
+
+      { returns the name of the European port of a certain nation
+
+        parameters:
+            NationNum - integer identifying the nation
+
+        remarks:
+            The value of NationNum has to be in [cMinEuropean..cMaxEuropean], or
+            this function just will return '(no port)'.
+      }
       function GetPortName(const NationNum: Integer): string;
+
+      { returns the name of a terrain type
+
+        parameters:
+            ATerrain - the terrain type whose name is requested
+      }
       function GetTerrainName(const ATerrain: TTerrainType): string;
+
+      { returns the name of a unit type
+
+        parameters:
+            AUnit - the unit type whose name is requested
+      }
       function GetUnitName(const AUnit: TUnitType): string;
+      
+      { returns the name of a season
+      
+        parameters:
+            autumn - If set to true, the word for autumn will be returned.
+                     If set to false, the word for spring will be returned.
+                     The game splits years into two turns, so that there are
+                     only two distinct seasons.
+      }
       function GetSeason(const autumn: Boolean): string;
+      
+      { returns a certain string that contains a message related to good
+        transfer from ship to harbour or vice versa
+
+        parameters:
+            which_string - indicates which string is requested
+      }
       function GetTransfer(const which_string: TTransferString): string;
-      //others
+
+      { returns "some other string", i.e. a (more or less) shorter string that
+        does not fit into another message category
+
+        parameters:
+            which_one - identifies the requested string
+      }
       function GetOthers(const which_one: TOtherString): string;
+
+      { returns a certain message that is related to loading or saving the game
+
+        parameters:
+            which - indicates which of the strings is requested
+      }
       function GetSaveLoad(const which: TSaveLoadString): string;
+
+      { returns a string for the landfall message box
+
+        parameters:
+            which - number indicating which string is requested
+      }
       function GetLandfall(const which: Byte): string;
+
+      { returns a message related to the founding of a new colony
+
+        parameters:
+            which - number that indicates the requested message
+      }
       function GetBuildColony(const which: Byte): string;
+
+      { returns messages for some actions in a colony
+
+        parameters:
+            which - indicates the requested message
+      }
       function GetColonyString(const which: TColonyString): string;
+
+      { returns a name proposal for a new colony
+
+        parameters:
+            num_nation - integer that indicates the nation that owns the colony
+            col_count  - number of current colonies of this nation
+      }
       function GetColonyNames(const num_nation: LongInt; col_count: Byte): string;
+
+      { returns a message string related to colonies within the colony square
+        but outside of the colony
+
+        parameters:
+            which - indicates what message is requested
+      }
       function GetColonyUnit(const which: TColonyUnitString): string;
+
+      { returns the name of a certain building
+
+        parameters:
+            which - the type of the building
+            level - the current construction level of the building
+
+        remarks:
+            The value of level must be within [1;3]. Otherwise a string that
+            says "nothing" (or similar in the choosen language) is returned.
+      }
       function GetBuildingName(const which: TBuildingType; const level: Byte): string;
+
+      { returns a string related to construction of buildings
+
+        parameters:
+            which - indicates the requestes string/message
+      }
       function GetBuildingString(const which: TBuildingString): string;
+
+      { returns a string/message related to the European ports
+
+        remarks:
+            which - indicates the requested message
+      }
       function GetEuroPort(const which: TEuroPortString): string;
+
+      { returns a message related to pioneers and their work
+
+        parameters:
+            which - indicates the requested string
+      }
       function GetPioneer(const which: TPioneerString): string;
+
+      { tries to save the language data to the given file and returns true in
+        case of success
+
+        parameters:
+            FileName - path of the file the data will be saved to
+      }
       function SaveToFile(const FileName: string): Boolean;
+
+      { tries to load the language data from the given file and returns true in
+        case of success
+
+        parameters:
+            FileName - path of the file the data will be loaded from
+            
+        remarks:
+            "Success", i.e. the return value true, does not indicate how much
+            data was read from the file - it just indicates that there was no
+            error while reading from the file. In the worst case, the file might
+            be completely empty, so that nothing was read. However, the function
+            will return true in this case.
+            Depending on the content of the given file, this function may also
+            only load certain parts of the language data, i.e. if the file does
+            not contain data for all strings that TLanguage can hold. It is
+            therefore advised to call InitialValues() befor calling
+            LoadFromFile(), because this way you'll have a defined content for
+            the strings not covered in the given file.
+      }
       function LoadFromFile(const FileName: string): Boolean;
-  end;//class
+  end;//class Language
 
 implementation
 
