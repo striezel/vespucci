@@ -12,6 +12,7 @@ const
   UNIT_MUSKET_BIT: Byte = 16;
 
 type
+  { enumeration type for unit type }
   TUnitType = (utCriminal, utServant, utColonist,
                utFarmer, utFisher, utFurHunter, utSilverMiner, utWoodcutter,
                utOreMiner, utSugarplanter, utCottonplanter, utTobaccoplanter,
@@ -29,13 +30,24 @@ type
                utMan_o_War,
 
                utBrave, utBraveOnHorse);
+
+  { enumeration type for units' location }
   TUnitLocation = (ulAmerica, ulInColony, ulGoToEurope, ulGoToNewWorld, ulEurope, ulEmbarked);
+
+  { state of units, i.e. fortified, waiting, going to,... }
   TUnitState = (usNormal,{-} usFortified,{F} usWaitingForShip{S}, usGoTo{G}, usPloughing{P}, usCreateRoad{R});
+
+  { enumeration type for directions }
   TDirection = (dirSW, dirS, dirSE, dirE, dirNE, dirN, dirNW, dirW, dirNone);
 
 const
+  { constant array that holds the prices for ships in Europe }
   cShipPrices: array [utCaravel..utFrigate] of Integer
                 =( 1000, 2000, 3000, 2000, 5000);
+
+  { constant array that holds the prices for recruitung units in Europe. A value
+    of -1 indicates that this type of unit cannot be recruited.
+  }
   cUnitPrices: array [utFarmer..utRegular] of LongInt =(
                  1100, //utFarmer
                  1000, //utFisher
@@ -62,59 +74,369 @@ const
                );
 
 type
+  { forward declaration of TTask (see below TUnit for full declaration) }
   TTask = class;
+
+  { ********
+    **** TUnit class
+    ****
+    **** purpose: represents a single unit within the game, i.e. a colonist,
+    ****          an Indian warrior, a ship,...
+    ********
+    
+      -TO-DO: function LoadGood() still uses a new slot for every good, even if there already is
+       ****** an amount of the given good loaded (e.g. trying to load 20 food and
+              then again less then 80 food will occupy two slots, even though a
+              slot is able to store up to 100 units of a good.
+  }
   TUnit = class
     public
+      { holds the number of moves that the unit still can perform within the
+        current turn
+
+        remarks:
+            This value should usually be private and not public.
+      }
       MovesLeft: Integer;
+
+      { constructor
+
+        parameters:
+            TypeOfUnit - the unit's type
+            ANation    - integer constant identifying the unit's nation
+            x, y       - initial position of the unit
+      }
       constructor Create(const TypeOfUnit: TUnitType; const ANation: Integer; X: Integer=1; Y: Integer=1);
+
+      { destructor }
       destructor Destroy; override;
+
+      { starts a new round for the unit }
       procedure NewRound;
+
+      { tries to moves the unit into a given direction and returns true, if the
+        unit could be moved
+      
+        parameters:
+            direction - the direction into which the unit should be moving
+            AMap      - the current map
+      }
       function Move(const direction: TDirection; const AMap: TMap): Boolean;
+
+      { tries to "teleport" a unit to the given coordinates and returns true on
+        success
+
+        parameters:
+            x, y - destination position of the unit
+            AMap - the current map
+            
+        remarks:
+            This function always succeeds, except for positions which are not
+            on the map. If a map is specified (i.e. not nil), the surrounding
+            tiles of the new position will be discovered by the unit.
+      }
       function WarpToXY(const x, y: Byte; AMap: TMap): Boolean;
+
+      { returns the x-coordinate of the unit's position }
       function GetPosX: LongInt;
+
+      { returns the y-coordinate of the unit's position }
       function GetPosY: LongInt;
+
+      { returns the unit's nation identifier }
       function GetNation: LongInt;
+
+      { changes the nation of the unit
+      
+        parameters:
+            new_nation - the integer identifying the unit's new nation
+      }
       procedure ChangeNation(const new_nation: LongInt);
+
+      { returns the unit's type }
       function GetType: TUnitType;
+
+      { changes the type of the unit
+      
+        parameters:
+            newType - the unit's new type
+      }
       procedure ChangeType(const newType: TUnitType);
+
+      { returns the unit's location as a symbolic enumeration value
+
+        remarks:
+            This is not to be confused with the "real" position, i.e. the map
+            position of a unit. If you want to get that position, use
+            GetPosX() and GetPosY(). 
+      }
       function GetLocation: TUnitLocation;
+
+      { sets the unit's location
+
+        parameters:
+            loc - the new location
+      }
       procedure SetLocation(const loc: TUnitLocation);
+
+      { returns the unit's status }
       function GetState: TUnitState;
+
+      { sets a new unit status
+
+        parameters:
+            state - the new unit state
+      }
       procedure SetState(const state: TUnitState);
+
+      { returns the rounds the unit still is in open sea before it will arrive
+        in Europe or the new World
+
+        remarks:
+            This is only used for ships, as you might have guessed.
+      }
       function GetRoundsInOpenSea: Byte;
+
+      { sets the number of rounds that the unit still is in open sea before it
+        arrives in Europe or the new World
+      
+        parameters:
+            rounds_left - the amount of rounds left until arrival
+      }
       procedure SetRoundsInOpenSea(const rounds_left: Byte);
+
+      { returns true, if the unit is a ship }
       function IsShip: Boolean;
+
+      { returns the number of moves that the unit has per round }
       function MovesPerRound: Integer;
+
+      { returns the combat strength of the unit }
       function AttackStrength: Integer;
+
+      { returns the current AI task that is assigned to this unit, or nil if
+        there is no task at the moment
+      }
       function GetTask: TTask;
+
+      { assigns a new AI task to the unit
+
+        parameters:
+            new_task         - the AI task
+            ImmediateExecute - If set to true, the unit will immediately start
+                               to work according to the assigned task. Otherwise
+                               it will wait until the next round begins.
+      }
       procedure SetTask(const new_task: TTask; const ImmediateExecute: Boolean=True);
-      //go across the big pond
+
+      // ---- go across the big pond ----
+      { tries to send a unit on travel to Europe and returns true on success
+
+        remarks:
+            This function can only succeed for ships, and only if the ship is
+            in the new world. Calling this function for a unit that already is
+            sailing to Europe will return false, too.
+      }
       function SendToEurope: Boolean;
+
+      { tries to send a unit on travel to the new world and returns true on
+        success
+
+        remarks:
+            This function can only succeed for ships, and only if the ship is
+            in Europe. Calling this function for a unit that already is sailing
+            to the new world will return false, too.
+      }
       function SendToNewWorld: Boolean;
+
+      { tries to send a unit which alredy sails to the new world back to Europe
+        and will return true on success
+
+        remarks:
+            This function can only succeed for ships, and only if the ship is
+            already sailing to the new world.
+      }
       function CallBackToEurope: Boolean;
+
+      { tries to send a unit which alredy sails to Europe back to the new world
+        and will return true on success
+
+        remarks:
+            This function can only succeed for ships, and only if the ship is
+            already sailing to Europe.
+      }
       function CallBackToNewWorld: Boolean;
-      //functions for loading/ unloading freigth or passengers and checking freigth status
+
+      // ---- functions for loading/ unloading freigth or passengers and
+      //      checking freigth status ----
+      { returns the total number of slots the unit has
+
+        remarks:
+            For units that are not ships or caravans, this will always return
+            zero.
+      }
       function FreightCapacity: Byte;
+
+      { returns the number of free slots that the unit has
+
+        remarks:
+            For units that are not ships or caravans, this will always return
+            zero.
+      }
       function FreeCapacity: Byte;
+
+      { returns the number of passengers that the ship carries }
       function EmbarkedPassengers: Byte;
+
+      { returns the first embarked unit in the ship, or nil if there are no
+        passengers
+      }
       function GetFirstEmbarkedPassenger: TUnit;
+
+      { returns the ship's passenger within a certain slot
+
+        parameters:
+            slot - the slot (0-based, has to be less than six)
+      }
       function GetPassengerBySlot(const slot: Byte): TUnit;
+      
+      
+      { tries to load num units of good 'AGood', maximum is 100, and returns
+        true, if the goods could be loaded onto the ship/caravan
+
+        parameters:
+            AGood - the type of good that will be loaded
+            num   - the amount of that good
+      }
       function LoadGood(const AGood: TGoodType; const num: Byte): Boolean;
+
+      { tries to unload num units of good AGood and returns the amount that
+        could be unloaded
+
+        parameters:
+            AGood - the type of good that has to be unloaded
+            num   - the corresponding amount
+      }
       function UnloadGood(const AGood: TGoodType; const num: Byte): Byte;
+      
+      { tries to load a unit onto the ship and returns true on success
+      
+        parameters:
+            AUnit - the unit that will be loaded onto the ship
+
+        remarks:
+            Only ships can load units, and the loaded unit must not be a ship
+            or caravan itself.
+      }
       function LoadUnit(AUnit: TUnit): Boolean;
+      
+      { tries to unload a certain unit from a ship and returns true on success
+
+        parameters:
+            AType - the type of the unit that has to be unloaded
+            x,y   - position of the unit after unloading it
+            AMap  - the current map
+        
+        remarks:
+            The position (x;y) has to be adjacent to the ship's position or it
+            should be the ship's position itself. Otherwise, the function will
+            return false and not unload the unit.
+      }
       function UnloadUnit(const AType: TUnitType; const x,y: Byte; AMap: TMap): Boolean;
+
+      { drops all passengers, i.e. unloads all possible units
+
+        remarks:
+            The unloaded units will be placed at the ship's map position.
+      }
       procedure DropAllPassengers;
-      //item functions
+
+      // ---- item-related functions ----
+      { returns the number of tools that the unit carries }
       function GetToolAmount: Byte;
+
+      { sets the amount of tools that the unit has
+
+        parameters:
+            amount - the new amount of tools
+
+        remarks:
+            Any value above 100 will be capped to 100.
+            The amount of tools will also be a multiple of 20; other values
+            will be reduced to the next lower multiple of 20.
+      }
       procedure GiveTools(const amount: Byte);
+
+      { returns true, if the unit has horses }
       function HasHorses: Boolean;
+
+      { sets whether or not the unit has horses
+
+        parameters:
+            has - true, if the unit shall be given horses, false otherwise
+      }
       procedure GiveHorses(const has: Boolean = True);
+
+      { returns true, if the unit is equipped with muskets }
       function HasMuskets: Boolean;
+
+      { sets whether or not the unit shall be equipped with muskets
+
+        parameters:
+            has - if set to true, the unit will have muskets. Otherwise, it won't.
+      }
       procedure GiveMuskets(const has: Boolean = True);
+
+      { sets the interal item byte
+
+        parameters:
+            new_items - value indicating the unit's items
+
+        remarks:
+            Do NOT use this function directly, it's only used during the loading
+            process. If you want to change the items of a unit, you should use
+            the functions GiveTools(), GiveHorses() and GiveMuskets() instead.
+      }
       procedure ChangeAllItems(const new_items: Byte);
+
+      { tries to save the unit to the given file stream and returns true in case
+        of success
+
+        parameters:
+            fs - the file stream the unit shall be saved to
+      }
       function SaveToStream(var fs: TFileStream): Boolean;
+      
+      { sets the good amount that the unit carries in a certain slot
+
+        parameters:
+            slot       - the internal slot (0-based, less than six)
+            new_amount - the amount of the good that has to be stored in the slot
+            AGood      - the type of good that has to be stored in the slot
+
+        remarks:
+            Do not use this function directly, it's only used during the loading
+            process. You should use function LoadGood() instead.
+      }
       procedure SetCargo(const slot: Byte; const new_amount: Byte; const AGood: TGoodType);
+
+      { returns the amount of goods in a certain slot
+
+        parameters:
+            slot - the slot index (has to be in [0;5])
+      }
       function GetCargoAmountBySlot(const slot: Byte): Byte;
+
+      { returns the type of good in a certain slot
+
+        parameters:
+            slot - the slot index (has to be in [0;5])
+
+        remarks:
+            The return value of that function is meaningless, unless the
+            function GetCargoAmountBySlot() returns a value larger than zero
+            for the same slot.
+      }
       function GetCargoGoodBySlot(const slot: Byte): TGoodType;
     private
       PosX, PosY: LongInt;
@@ -135,78 +457,259 @@ type
       AI_Task: TTask;
   end;//class TUnit
 
+  { type for an array of units }
   TUnitArr = array of TUnit;
 
 
-  //the AI stuff
-
+  // ---- the AI stuff ----
+  { enumeration type to indicate the type of an AI task }
   TTaskType = (ttGeneric, ttPlough, ttRoad, ttClear, ttGoTo);
+
+  { ********
+    **** TTask abstract class
+    ****
+    **** purpose: represents a task that a unit has to do, usually assigned by
+    ****          AI or similar. This class is abstract and mainly serves as an
+    ****          interface for derived classes.
+    *******
+  }
   TTask = class
     protected
       target: TUnit;
     public
+      { returns true, if the task is done
+
+        remarks:
+            Derived classes have to implement their own version of that function.
+      }
       function Done: Boolean; virtual; abstract;
+
+      { executes the next step of the task and returns true, if something was
+        done. Usually, a return value of false indicates that the task is
+        already done.
+
+        remarks:
+            Derived classes have to implement their own version of that function.
+      }
       function Execute: Boolean; virtual; abstract;
+      
+      { returns the type of the task (something like a RTTI)
+      
+        remarks:
+            Derived classes have to implement their own version of that function.
+      }
       function GetType: TTaskType; virtual;
+
+      { constructor
+
+        parameters:
+            target_unit - the unit that has to fulfill the task
+
+        remarks:
+            Derived classes will most likely have to implement their own
+            constructor.
+      }
       constructor Create(const target_unit: TUnit);
+
+      { destructor
+
+        remarks:
+            Derived classes might have to implement their own destructor.
+      }
       destructor Destroy; override;
   end;//class
 
-  //for the pioneers
+  // ---- tasks for the pioneers ----
+  { ********
+    **** TPloughTask class
+    ****
+    **** purpose: represents a task where a unit has to plough a certain map
+    ****          square. Usually that unit is a pioneer.
+    ****          Derived from TTask.
+    *******
+  }
   TPloughTask = class(TTask)
     private
       m_X, m_Y: Byte;
       m_Map: TMap;
       RoundsLeft: Byte;
     public
+      { constructor
+
+        parameters:
+            target_unit - the unit that has to fulfill the task
+            X,Y         - position where the unit does the task
+            AMap        - the current map
+      }
       constructor Create(const target_unit: TUnit; X, Y: Byte; const AMap: TMap);
+
+      { returns true, if the ploughing is done }
       function Done: Boolean; override;
+
+      { executes the next step of the task and returns true, if something was
+        done. Usually, a return value of false indicates that the task is
+        already done.
+      }
       function Execute: Boolean; override;
+
+      { returns the type of the task (something like a RTTI) }
       function GetType: TTaskType; override;
   end;//class
 
+  { ********
+    **** TRoadTask class
+    ****
+    **** purpose: represents a task where a unit has to construct a road in a
+    ****          certain map square. Usually that unit is a pioneer.
+    ****          Derived from TTask.
+    *******
+  }
   TRoadTask = class(TTask)
     private
       m_X, m_Y: Byte;
       m_Map: TMap;
       RoundsLeft: Byte;
     public
+      { constructor
+
+        parameters:
+            target_unit - the unit that has to fulfill the task
+            X,Y         - position where the unit does the task
+            AMap        - the current map
+      }
       constructor Create(const target_unit: TUnit; X, Y: Byte; const AMap: TMap);
+
+      { returns true, if the road is constructed }
       function Done: Boolean; override;
+
+      { executes the next step of the task and returns true, if something was
+        done. Usually, a return value of false indicates that the task is
+        already done.
+      }
       function Execute: Boolean; override;
+
+      { returns the type of the task (something like a RTTI) }
       function GetType: TTaskType; override;
   end;//class
 
+  { ********
+    **** TClearTask class
+    ****
+    **** purpose: represents a task where a unit has to clear the forest in a
+    ****          certain map square. Usually that unit is a pioneer.
+    ****          Derived from TTask.
+    *******
+  }
   TClearTask = class(TTask)
     private
       m_X, m_Y: Byte;
       m_Map: TMap;
       RoundsLeft: Byte;
     public
+      { constructor
+
+        parameters:
+            target_unit - the unit that has to fulfill the task
+            X,Y         - position where the unit does the task
+            AMap        - the current map
+      }
       constructor Create(const target_unit: TUnit; X, Y: Byte; const AMap: TMap);
+
+      { returns true, if the forest is cleared }
       function Done: Boolean; override;
+      
+      { executes the next step of the task and returns true, if something was
+        done. Usually, a return value of false indicates that the task is
+        already done.
+      }
       function Execute: Boolean; override;
+
+      { returns the type of the task (something like a RTTI) }
       function GetType: TTaskType; override;
   end;//class
 
+  // ---- task for pathfinding ----
+  { ********
+    **** TGoToTask class
+    ****
+    **** purpose: represents a task where a unit has to travel to a certain map
+    ****          square. This task uses A* for path finding.
+    ****          Derived from TTask.
+    *******
+  }
   TGoToTask = class(TTask)
     protected
       m_X, m_Y: Byte;//destination location
       spec_X, spec_Y: Byte; //location of special field
       m_Map: TMap;
-      m_Path: TCoordArr;
+      m_Path: TCoordArr; //path that the unit will travel
     public
+      { constructor
+
+        parameters:
+            target_unit - the unit that will travel to the given destination
+            ToX,ToY     - destination position
+            AMap        - the current map (must not be nil)
+            SpecialX    - x-coordinate of the "special" field
+            SpecialY    - y-coordinate of the "special" field
+      }
       constructor Create(const target_unit: TUnit; ToX, ToY: Byte; const AMap: TMap; const SpecialX: Byte=250; const SpecialY: Byte=250);
+      
+      { destructor }
       destructor Destroy; override;
+
+      { returns true, if the unit has arrived at its destination of if there is
+        no path to the desired destination }
       function Done: Boolean; override;
+
+      { executes the next step of the task and returns true, if something was
+        done. Usually, a return value of false indicates that the task is
+        already done (see Done()).
+      }
       function Execute: Boolean; override;
+
+      { returns the x-ccordinate of the destination field }
       function DestinationX: Byte;
+
+      { returns the y-ccordinate of the destination field }
       function DestinationY: Byte;
   end;//class
 
+  { applies a given direction to the position, i.e. returns (in x and y) the
+    position that (x;y) would be, if it moved into the given direction
+
+    parameters:
+        x,y - position (before the call: initial position; after the call:
+               new position after the coordinates were moved into the direction)
+        dir - the direction
+  }
   procedure ApplyDir(var x,y: Byte; const dir: TDirection);
+  
+  { returns the direction that has to be applied to get from one square to
+    another, adjacent square. If the two given squares are not directly
+    adjacent, dirNone will be returned.
+  
+    parameters:
+        from_x,from_y - position of the first field
+        to_x, to_y    - position of the second/destination field  
+  }
   function GetApplyingDirection(const from_x, from_y, to_x, to_y: Byte): TDirection;
+  
+  { returns the best unit type for the production of a certain good. If no unit
+    is found, utCriminal is returned.
+
+    parameters:
+        AGood - the type of good
+  }
   function GetUnitForGood(const AGood: TGoodType): TUnitType;
+  
+  { returns true, if the given unit type is an expert for producing the given
+    good type
+
+    parameters:
+        AGood - the type of the good
+        ut    - the unit's type
+  }
   function HasExpertStatus(const AGood: TGoodType; const ut: TUnitType): Boolean;
 
 implementation
@@ -723,10 +1226,12 @@ begin
   begin
     items:= (items or UNIT_HORSE_BIT);
     if UnitType=utRegular then UnitType:= utDragoon;
+    if UnitType=utBrave then UnitType:= utBraveOnHorse;
   end//if
   else begin
     items:= (items and (not UNIT_HORSE_BIT));
     if UnitType=utDragoon then UnitType:= utRegular;
+    if UnitType=utBraveOnHorse then UnitType:= utBrave;
   end;//else
 end;//proc
 
