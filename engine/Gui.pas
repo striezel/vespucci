@@ -10,19 +10,19 @@ type
   TRiverType = (rtOne, rtTwo_Bend, rtTwo_Straight, rtThree);
 
 const
-  x_Fields = 15;
-  y_Fields = 12;
+  x_Fields = 15; // fields on new world map - horizontal direction
+  y_Fields = 12; //fields on new world map - vertical direction
   FieldWidth = 32; //width of field in pixels
   BarWidth = 160; //bar width in px
   PixelWidth = 0.03125; // =1/32, i.e. 1px
 
-  cGoodBarHeight = 52;
+  cGoodBarHeight = 52; //height of bar for goods (Europe; colony)
 
-  Minimap_x_Fields = 56;
-  Minimap_y_Fields = 39;
+  Minimap_x_Fields = 56; //fields on mini map - horizontal direction
+  Minimap_y_Fields = 39; //fields on mini map - vertical direction
 
-  cWindowWidth = 32*x_Fields+BarWidth;
-  cWindowHeight = 32*y_Fields+16+16;
+  cWindowWidth = 32*x_Fields+BarWidth; //width of main window
+  cWindowHeight = 32*y_Fields+16+16; //height of main window
 
   cShipsInExpectedSoon = 5;
   cShipsInToNewWorld = 5;
@@ -32,6 +32,9 @@ const
   BorderWidth: Single = 0.0625; // =1/16, i.e. 2px
   BorderColour: array[0..2] of Byte = (0,0,0); //black
 
+  { constant array that holds the colours of terrain fields for minimap or for
+    terrain types that have no texture (yet)
+  }
   cMapColour: array [TTerrainType] of array [0..2] of Byte=(
        (224, 224, 224), //ttArctic
        (32, 44, 136), //ttSea
@@ -56,6 +59,7 @@ const
        (216, 204, 172)  //ttMountains
       );
 
+  { texture names (as in path) for terrain types }
   cTerrainTexNames: array [TTerrainType] of string =(
        'arctic.bmp', //ttArctic
        'sea.bmp', //ttSea
@@ -80,6 +84,7 @@ const
        'mountain.bmp'  //ttMountains
      );
 
+  { texture names (as in path) for river on map }
   cRiverTexNames: array [TRiverType] of string =(
        'river_n.bmp', //one (spring)
        'river_ne.bmp', //2, bend
@@ -87,6 +92,7 @@ const
        'river_nes.bmp' //3
      );
 
+  { texture names (as in path) for goods (icons) }
   cGoodTexNames: array [TGoodType] of string =(
        'food.bmp', //gtFood
        'sugar.bmp', //gtSugar
@@ -109,6 +115,7 @@ const
        'cross.bmp'//gtCross
     );
 
+  { texture names (as in path) for unit icons }
   cUnitTexNames: array [TUnitType] of string =(
        'criminal.bmp', //utCriminal
        'servant.bmp', //utServant
@@ -148,6 +155,7 @@ const
        'brave_horse.bmp'//utBraveOnHorse
     );
 
+  { texture names (as in path) for unit states }
   cStateTexNames: array[TUnitState] of string =(
        'normal.bmp', //usNormal
        'fortified.bmp', //usFortified
@@ -157,10 +165,16 @@ const
        'road.bmp' //usCreateRoad
     );
 
+  { texture names (as in path) for colony
+  
+    remarks:
+        This still has to be extended for colonies which are forts or a fortress.
+  }
   cColonyTexNames: array [0..0] of string =(
        'colony.bmp' //normal colony
     );
 
+  { texture names (as in path) for buildings }
   cBuildingTexNames: array [TBuildingType] of array [1..3] of string =(
       ('', '', ''), //btNone, 0
       ('stockade.bmp', 'fort.bmp', 'fortress.bmp'), //btFort, 3
@@ -181,6 +195,7 @@ const
       ('blacksmith.bmp', '', '')  //btBlackSmith, 3
     );
 
+  { texture names (as in path) for tribes }
   cTribeTexNames: array [cMinIndian..cMaxIndian] of string =(
        'tents.bmp', //cNationArawak
        'aztec.bmp', //cNationAztec
@@ -192,10 +207,14 @@ const
        'tents.bmp' //cNationApache
     );
 
-  cWindowCaption = 'Vespucci v0.01.r107';
+  { caption of game window }
+  cWindowCaption = 'Vespucci v0.01.r128';
 
+  { text colour (greenish) }
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
+  { colour for highlighted menu items }
   cMenuHighColour : array [0..2] of Byte = (255, 20, 20);
+  { background colour ("wooden" colour) }
   cWoodenColour: array [0..2] of GLfloat = (0.83, 0.66, 0.39);
   cBlueBorderColour: array[0..2] of GLfloat = (0.25, 0.35, 0.64);
 
@@ -220,7 +239,9 @@ const
 {PlaceDollarSignHereDEFINE DEBUG_CODE 1}
 
 type
+  { pointer type for elements of the message queue }
   PQueueElem = ^TQueueElem;
+  { record that hold an element of the message queue }
   TQueueElem = record
                  txt: AnsiString;
                  options:TShortStrArr;
@@ -228,6 +249,14 @@ type
                  cbRec: TCallbackRec;
                  next: PQueueElem;
                end;//rec
+
+  { ********
+    **** TGui class
+    ****
+    **** purpose: implements the graphical user interface of the game, i.e.
+    ****          handles user input and graphical output
+    *******
+  }
   TGui = class
     private
       mouse: record
@@ -235,6 +264,7 @@ type
                down: Boolean;
                down_x, down_y: LongInt;
              end;//rec
+      { the currently selected menu category - if any }
       menu_cat: TMenuCategory;
       selected_menu_option: Integer;
       OffsetX, OffsetY: Integer;
@@ -277,73 +307,509 @@ type
       //Error Texture (yellow sign with black "!" on it)
       m_ErrorTexName: GLuint;
 
+      { draws the menu bar (New World view) }
       procedure DrawMenuBar;
+
+      { draws the good bar (in both colonies and European view) }
       procedure DrawGoodsBar;
+
+      { draws the title bar for colonies }
       procedure DrawColonyTitleBar;
+
+      { draws the title bar for European view }
       procedure DrawEuropeTitleBar;
+
+      { draws the message window (if a message is present) }
       procedure DrawMessage;
+
+      { draws the colony view }
       procedure DrawColonyView;
+
+      { retrieves the position of a building in GL coordinates
+
+        parameters:
+            bt  - the type of the building whose position is needed
+            x,y - var parameters that will contain the x- and y-coordinates of
+                  the building's position
+
+        remarks:
+            The position is the lower left corner of the building texture.
+      }
       procedure GetBuildingPosition(const bt: TBuildingType; var x,y: Single);
+
+      { draws the buildings in a colony }
       procedure DrawColonyBuildings;
+
+      { draws the European view (port of original nation) }
       procedure DrawEuropeanView;
+
+      { draws the icon of the good that is dragged from the good bar to a ship
+        or vice versa
+      }
       procedure DrawGoodDraggedFromBar;
+
+      { draws the buttons in European view, i.e. buttons for buying ships and
+        training units at the academy
+      }
       procedure DrawEuropeButtons;
+
+      { draws all ships that are in the port
+
+        parameters:
+            predefShips - the prefetched list of units (i.e. ships) in the port
+                          This can also be nil. In that case the function will
+                          retrieve the ships for the colony or European port,
+                          respectively, itself.
+
+        remarks:
+            This procedure will do nothing, of the GUI is not in colony view or
+            European view.
+      }
       procedure DrawShipsInPort(const predefShips: TUnitArr);
+
+      { draws all units in European view
+
+        parameters:
+            People - predefined list of units in Europe. If this is nil, then
+                     the procedure will retrieve a list of units of the current
+                     nation itself.
+      }
       procedure DrawPeopleInEurope(const People: TUnitArr);
+
+      { draws all ships that are expected to arrive in Europe soon
+
+        parameters:
+            ExpSoon - the list of ships - must NOT be nil
+      }
       procedure DrawExpectedSoon(const ExpSoon: TUnitArr);
+
+      { draws all ships that are sailing to the new world
+
+        parameters:
+            ToNewWorld - list of ships that are sailing to the new world
+
+        remarks:
+            If ToNewWorld is nil, then no ships will be drawn.
+      }
       procedure DrawShipsToNewWorld(const ToNewWorld: TUnitArr);
+
+      { draws the current report (if any) }
       procedure DrawReport;
+
+      { draws the menu (if active) }
       procedure DrawMenu;
+
+      { draws a unit icon a the given position
+
+        parameters:
+            the_Unit - the unit whose icon has to be drawn (must not be nil, or
+                       nothing will be drawn by this procedure)
+            left     - the x-coordinate of the lower left corner of the icon
+            bottom   - the y-coordinate of the lower left corner of the icon
+            UseErrorIfTexNotPresent - if set to true, the error texture will be
+                                      used as the unit's icon, if no icon
+                                      texture for that unit is present
+            ShowState - if true, the state of the unit will also be drawn
+      }
       procedure DrawUnitIcon(const the_Unit: TUnit; const left, bottom: GLfloat;
                   const UseErrorIfTexNotPresent: Boolean = False; const ShowState: Boolean = False);
+
+      { draws the state icon for a unit
+
+        parameters:
+            state  - the state of the unit
+            left   - the x-coordinate of the lower left corner of the icon
+            bottom - the y-coordinate of the lower left corner of the icon
+      }
       procedure DrawStateIcon(const state: TUnitState; const left, bottom: GLfloat);
+
+      { returns the coordinates of the map square at the current mouse position
+
+        parameters:
+           sq_x - will hold the x-coordinate of the map square, or -1 if the
+                  mouse position is not within a valid map square
+           sq_y - will hold the y-coordinate of the map square, or -1 if the
+                  mouse position is not within a valid map square
+
+        remarks:
+            If the mouse position does not point to a valid map square, both
+            sq_x and sq_y will be set to -1. Therefore, it's sufficient to
+            check only one of these values for -1 in order to detect an invalid
+            mouse position.
+      }
       procedure GetSquareAtMouse(var sq_x, sq_y: Integer);
+
+      { returns the current good at the mouse position
+      
+        parameters:
+            m_x, m_y - the position of the mouse in pixel/ window coordinates.
+                       If both m_x and m_y are set to -1, the current mouse
+                       position will be used.
+
+        remarks:
+            If the given mouse position does not point to a good at the good
+            bar, then the return value will be gtCross. (Crosses are not shown
+            at the good bar, so this can be distinguished from goods shown at
+            the bar.)
+      }
       function  GetGoodAtMouse(const m_x: LongInt=-1; const m_y: LongInt=-1): TGoodType;
+
+      { returns the menu category at the current mouse position
+
+        remarks:
+            If there is no menu category at the mouse position, mcNone will be
+            returned.
+      }
       function  GetMenuCategoryAtMouse: TMenuCategory;
+
+      { returns the menu selection, i.e. menu category and index of the selected
+        option, at the current mouse position
+
+        parameters:
+            cat - used to return the selected category
+            sel_option - used to return the selected option
+
+        remarks:
+            Valid options are zero (i.e. the menu bar itself) or greater than
+            zero (i.e. an option was selected). If a value of -1 is returned,
+            the mouse position cannot be a valid menu selection.
+            To indicate an invalid position for a menu selection, the returned
+            category will be mcNone.
+      }
       procedure GetMenuSelectionAtMouse(var cat: TMenuCategory; var sel_option: Integer);
+
+      { returns the offset of the colony field at the specified mouse position
+
+        parameters:
+            x_shift  - is used to return the x-offset of the colony field
+            y_shift  - is used to return the y-offset of the colony field
+            m_x, m_y - mouse position; if both values are set to -1, the current
+                       mouse position is used
+
+        remarks:
+            If the given mouse position does not point to a valid field, both
+            x_shift and y_shift will be set to -2. (Valid values of x_shift and
+            y_shift are in [-1;1].)
+      }
       procedure GetColonyFieldAtMouse(var x_shift, y_shift: ShortInt; const m_x: LongInt=-1; m_y: LongInt=-1);
+
+      { returns the index of the cargo box at the specified mouse position
+
+        parameters:
+            m_x, m_y - mouse position; if both are set to -1, the current mouse
+                       position is used in the calculation.
+
+        remarks:
+            Valid return values are greater than or equal to zero. A return
+            value of -1 indicates that the mouse position does not point to a
+            valid cargo box.
+      }
       function  GetCargoBoxAtMouse(const m_x: LongInt=-1; m_y: LongInt=-1): ShortInt;
+
+      { returns true, if the given mouse position points to a location within
+        the "Expected Soon" box in European view
+
+        parameters:
+            m_x, m_y - mouse position; if both are set to -1, the current mouse
+                       position is used in the calculation.
+      }
       function  IsMouseInExpectedSoon(const m_x: LongInt=-1; m_y: LongInt=-1): Boolean;
+
+      { returns true, if the given mouse position points to a location within
+        the "Going To New World" box in European view
+
+        parameters:
+            m_x, m_y - mouse position; if both are set to -1, the current mouse
+                       position is used in the calculation.
+      }
       function  IsMouseInToNewWorld(const m_x: LongInt=-1; m_y: LongInt=-1): Boolean;
+
+      { returns the index within the "Expected Soon" box in European view that
+        the given mouse position points to
+
+        parameters:
+            m_x, m_y - mouse position; if both are set to -1, the current mouse
+                       position is used in the calculation.
+
+        remarks:
+            Valid return values are within the range [0;cShipsInExpectedSoon].
+            A value of -1 indicates that the mouse position does not point to a
+            valid location.
+      }
       function  GetExpectedSoonAtMouse(const m_x: LongInt=-1; m_y: LongInt=-1): ShortInt;
+
+      { returns the index within the "Going to new world" box in European view
+        that the given mouse position points to
+
+        parameters:
+            m_x, m_y - mouse position; if both are set to -1, the current mouse
+                       position is used in the calculation.
+
+        remarks:
+            Valid return values are within the range [0;cShipsInToNewWorld].
+            A value of -1 indicates that the mouse position does not point to a
+            valid location.
+      }
       function  GetToNewWorldAtMouse(const m_x: LongInt=-1; m_y: LongInt=-1): ShortInt;
+
+      { returns the index of the ship at the given mouse position
+
+        parameters:
+            m_x, m_y - the position of the mouse
+
+        remarks:
+            A return value of -1 is used to indicate an invalid mouse position.
+            Valid return values are equal to or greater than zero.
+      }
       function  GetShipAtMouse(const m_x, m_y: LongInt): Integer;
+
+      { returns the index of the unit (not ship) at the given mouse position
+
+        parameters:
+            m_x, m_y - the position of the mouse
+
+        remarks:
+            A return value of -1 is used to indicate an invalid mouse position.
+            Valid return values are equal to or greater than zero.
+      }
       function  GetUnitAtMouse(const m_x, m_y: LongInt): Integer;
+
+      { returns the index of the button (European view) at the given mouse
+        position
+
+        parameters:
+            m_x, m_y - the position of the mouse
+
+        remarks:
+            A return value of -1 is used to indicate an invalid mouse position.
+            Valid return values are 1 or 2.
+      }
       function  GetButtonAtMouse(const m_x, m_y: LongInt): Integer;
+
+      { returns the index of the colony unit at the given mouse position
+
+        parameters:
+            m_x, m_y - the position of the mouse
+
+        remarks:
+            A return value of -1 is used to indicate an invalid mouse position.
+            Valid return values are equal to or greater than zero.
+      }
       function  GetColonyUnitAtMouse(const m_x, m_y: LongInt): Integer;
+
+      { returns the index of the switcher button at the given mouse position
+
+        parameters:
+            m_x, m_y - the position of the mouse
+
+        remarks:
+            A return value of -1 is used to indicate an invalid mouse position.
+            Valid return values are zero (upper button) and one (lower button).
+      }
       function  GetSwitcherButtonAtMouse(const m_x, m_y: LongInt): LongInt;
+
+      { returns the type of building at the given mouse position
+
+        parameters:
+            m_x, m_y - the position of the mouse
+
+        remarks:
+            A return value of btNone is used to indicate an invalid mouse
+            position.
+      }
       function  GetBuildingAtMouse(const mx, my: LongInt): TBuildingType;
+
+      { returns true, if the given mouse position points to a location within
+        the construction bar in Colony view
+
+        parameters:
+            m_x, m_y - mouse position
+      }
       function  IsMouseInConstructionBar(const mx, my: LongInt): Boolean;
+
+      { pushes a new message at the end of the message queue
+
+        parameters:
+            msg_txt   - text of the message
+            opts      - array that contains the answer options to that message
+            inCaption - caption for the input field
+            inText    - preset text of the input field
+            cbRec     - callback record; used after the message window was
+                        closed to handle input/ selection
+
+        remarks:
+            If opts contains more than zero options, the player can choose from
+            the specified number of options in the message window.
+            If opts contains no options, but inCaption is not an empty string,
+            the player will get a one-line field to enter a text.
+      }
       procedure EnqueueNewMessage(const msg_txt: AnsiString; const opts: TShortStrArr; const inCaption, inText: ShortString; cbRec: TCallbackRec);
+
+      { deletes the current message and replaces it with the next message in
+        the message queue
+      }
       procedure GetNextMessage;//de-facto dequeue
+
+      { handles the given menu selection
+
+        parameters:
+            categ    - the menu category
+            selected - index of the selected option
+      }
       procedure HandleMenuSelection(const categ: TMenuCategory; const selected: Integer);
+
+      { gets the horizontal offset where the given menu category starts
+      
+        parameters:
+            categ - the menu category
+      }
       function  GetMenuStartX(const categ: TMenuCategory): GLfloat;
+
+      { clears all GLUT callbacks, i.e. sets them to nil }
       procedure GLUTCallbacksToNil;
     public
+      { constructor }
       constructor Create;
+
+      { destructor }
       destructor Destroy; override;
+
+      { procedure to inject key events to the GUI
+
+        parameters:
+            Key     - the key that was pressed
+            x,y     - position (mouse)
+            special - true to indicate that a special key was pressed
+
+        remarks:
+            The first three parameters are equal to those from the corresponding
+            key callback of GLUT.
+      }
       procedure KeyFunc(Key: Byte; x, y: LongInt; Special: Boolean = False);
+
+      { procedure to inject mouse click events to the GUI
+
+        parameters:
+            button - the mouse button that was pressed or released
+            state  - state of the mouse button (up/down)
+            x,y    - mouse position
+
+        remarks:
+            The parameters are equal to those from the corresponding mouse
+            callback of GLUT.
+      }
       procedure MouseFunc(const button, state, x,y: LongInt);
+
+      { procedure to inject mouse movement events to the GUI
+
+        parameters:
+            x,y    - mouse position
+
+        remarks:
+            The parameters are equal to those from the corresponding mouse
+            callback of GLUT.
+      }
       procedure MouseMoveFunc(const x,y: LongInt);
+
+      { procedure that should be called when the window is resized
+      
+        parameters:
+            width, height - new width and height of the window
+      }
       procedure Resize(Width, Height: LongInt);
+
+      { starts the GUI and GLUT's main loop }
       procedure Start;
+
+      { draws a new frame }
       procedure Draw;
+
+      { centers the new world map on a certain map square
+      
+        parameters:
+            x,y - coordinates of the map square that shall be in the center
+      }
       procedure CenterOn(const x, y: Integer);
+
+      { writes a text in the game's standard font at the given position
+
+        parameters:
+            msg_txt - the text that has to be written
+            x,y     - GL-coordinates of the lower left corner of the first letter
+      }
       procedure WriteText(const msg_txt: string; const x, y: Single);
+
+      { writes a text in the Helvetica font at the given position
+
+        parameters:
+            msg_txt - the text that has to be written
+            x,y     - GL-coordinates of the lower left corner of the first letter
+      }
       procedure WriteHelvetica12(const msg_txt: string; const x, y: Single);
+
+      { writes a text in the Times Roman font at the given position
+
+        parameters:
+            msg_txt - the text that has to be written
+            x,y     - GL-coordinates of the lower left corner of the first letter
+      }
       procedure WriteTimesRoman24(const msg_txt: string; const x, y: Single);
 
+      { returns the width in pixels a text string would have if it was written
+        onto the screen with the Times Roman 24 pt font
+
+        parameters:
+            msg_txt - the text
+      }
       function TextWidthTimesRoman24(const msg_txt: string): LongInt;
 
+      { shows a new message with the given text (or better: puts it into the
+        message queue)
+
+        paramaters:
+            msg_text - the text of the message
+      }
       procedure ShowMessageSimple(const msg_txt: AnsiString);
+
+      { shows a new message with the given text and options (or better: puts it
+        into the message queue)
+
+        paramaters:
+            msg_text - the text of the message
+            opts     - the options the player can choose from
+            cbRec    - callback record for callback after player has chosen an
+                       option
+      }
       procedure ShowMessageOptions(const msg_txt: AnsiString; const opts: TShortStrArr; cbRec: TCallbackRec);
+
+      { shows a new message with the given text and an input field (or better:
+         puts the message into the message queue)
+
+        paramaters:
+            msg_text  - the text of the message
+            inCaption - caption of the input field
+            inDefault - default (preset) text for the input field
+            cbRec     - callback record for callback after player has made his
+                        input
+      }
       procedure ShowMessageInput(const msg_txt: AnsiString; const inCaption: ShortString; const inDefault: ShortString; cbRec: TCallbackRec);
 
+      { returns true, if the menu is active }
       function InMenu: Boolean;
+
+      { returns true, if the GUI is in colony view }
       function InColony: Boolean;
+
+      { returns true, if the GUI is in European view }
       function InEurope: Boolean;
+
+      { returns true, if the GUI shows a report }
       function InReport: Boolean;
+
+      { returns true, if the GUI is in "wooden mode" (i.e. has no valid data yet) }
       function InWoodenMode: Boolean;
+
+      { returns the currently focused unit, or nil if no unit is in focus }
       function GetFocusedUnit: TUnit;
   end;//class TGui
 
@@ -3732,7 +4198,8 @@ begin
   if mouse.y<16 then
   begin
     cat:= GetMenuCategoryAtMouse;
-    sel_option:=0;
+    if (cat<>mcNone) then sel_option:=0
+    else sel_option:= -1;
   end//if
   else begin
     //get selected option
