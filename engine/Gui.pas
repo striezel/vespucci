@@ -166,7 +166,7 @@ const
     );
 
   { texture names (as in path) for colony
-  
+
     remarks:
         This still has to be extended for colonies which are forts or a fortress.
   }
@@ -208,7 +208,7 @@ const
     );
 
   { caption of game window }
-  cWindowCaption = 'Vespucci v0.01.r128';
+  cWindowCaption = 'Vespucci v0.01.r129';
 
   { text colour (greenish) }
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
@@ -440,7 +440,7 @@ type
       procedure GetSquareAtMouse(var sq_x, sq_y: Integer);
 
       { returns the current good at the mouse position
-      
+
         parameters:
             m_x, m_y - the position of the mouse in pixel/ window coordinates.
                        If both m_x and m_y are set to -1, the current mouse
@@ -627,6 +627,24 @@ type
       }
       function  IsMouseInConstructionBar(const mx, my: LongInt): Boolean;
 
+      { returns true, if the given mouse position points to a location within
+        the message box
+
+        parameters:
+            m_x, m_y - mouse position
+      }
+      function  IsMouseInMessageBox(const mx, my: LongInt): Boolean;
+
+      { returns the message option at the given mouse position
+
+        parameters:
+            m_x, m_y - the position of the mouse
+
+        remarks:
+            A return value of -1 is used to indicate an invalid mouse position.
+      }
+      function GetMessageOptionAtMouse(const mx, my: LongInt): Integer;
+
       { pushes a new message at the end of the message queue
 
         parameters:
@@ -659,7 +677,7 @@ type
       procedure HandleMenuSelection(const categ: TMenuCategory; const selected: Integer);
 
       { gets the horizontal offset where the given menu category starts
-      
+
         parameters:
             categ - the menu category
       }
@@ -712,7 +730,7 @@ type
       procedure MouseMoveFunc(const x,y: LongInt);
 
       { procedure that should be called when the window is resized
-      
+
         parameters:
             width, height - new width and height of the window
       }
@@ -725,7 +743,7 @@ type
       procedure Draw;
 
       { centers the new world map on a certain map square
-      
+
         parameters:
             x,y - coordinates of the map square that shall be in the center
       }
@@ -812,8 +830,17 @@ type
       { returns the currently focused unit, or nil if no unit is in focus }
       function GetFocusedUnit: TUnit;
   end;//class TGui
+  
+  { returns the vertical mouse position translated to OpenGL coordinates }
+  function MouseYToGLCoord(const my: Longint): Single;
 
 implementation
+
+function MouseYToGLCoord(const my: Longint): Single;
+begin
+  // vertical mouse position translated to OpenGL coordinates
+  Result:= -13.0/cWindowHeight*my+12.5;
+end; //func
 
 // **** TGui functions ****
 
@@ -1399,7 +1426,6 @@ begin
   {$IFDEF DEBUG_CODE}
     WriteLn('Entered TGui.MouseFunc');
   {$ENDIF}
-  if msg.txt<>'' then Exit;
 
   //general stuff
   if ((button=GLUT_LEFT) and (state=GLUT_UP)) then mouse.down:= False
@@ -1409,6 +1435,41 @@ begin
     mouse.down_x:= x;
     mouse.down_y:= y;
   end;//if down
+
+  //handling mouse events for message box
+  // -- remarks: mouse events do nothing in message boxes with input line
+  if (msg.txt<>'') then
+  begin
+    //events are triggered on mouse up of left mouse button
+    if ((button=GLUT_LEFT) and (state=GLUT_UP)) then
+    begin
+      if (IsMouseInMessageBox(x, y) and
+         IsMouseInMessageBox(mouse.down_x, mouse.down_y)) then
+      begin
+        if (msg.inputCaption='') then
+        begin
+          if (length(msg.options)=0) then
+          begin
+            //next message, box is dismissed
+            GetNextMessage;
+            glutPostRedisplay;
+          end//iff
+          else begin
+            //we got options, so check for clicking one of the options
+            pos_x:= GetMessageOptionAtMouse(mouse.x, mouse.y);
+            if (pos_x<>-1) then
+            begin
+              //set selection and then dismiss box
+              msg.selected_option:= pos_x;
+              GetNextMessage;
+              glutPostRedisplay;
+            end;//if
+          end; //else
+        end;//if no input caption
+      end;//if in message box
+    end;//if left and up
+    Exit;
+  end;//if message present
 
   //handling colony view's mouse events
   // ---- general ones, i.e. the ones that work on both pages
@@ -3531,7 +3592,7 @@ begin
     end;//if
   end;//if
   {$IFDEF DEBUG_CODE}
-    WriteLn('Leaving TGui.MouseFunc');
+    WriteLn('Leaving TGui.DrawMessage');
   {$ENDIF}
 end; //TGui.DrawMessage
 
@@ -4425,6 +4486,100 @@ function TGui.IsMouseInConstructionBar(const mx, my: LongInt): Boolean;
 begin
   Result:= (mx>=3*FieldWidth) and (mx<=12*FieldWidth) and (y_Fields*FieldWidth+16-my>= 1.25*FieldWidth)
            and (y_Fields*FieldWidth+16-my<= 1.75*FieldWidth);
+end;//func
+
+function TGui.IsMouseInMessageBox(const mx, my: LongInt): Boolean;
+var msg_lines, msg_opts: Integer;
+    ypsilon: Single;
+begin
+  Result:= False;
+  if (msg.txt<>'') then
+  begin
+    //get required number of lines
+    msg_lines:= (length(msg.txt)+59) div 60;
+    // -- ypsilon:= mouse position translated to OpenGL coordinates
+    ypsilon:= MouseYToGLCoord(my);
+
+    if length(msg.options)=0 then
+    begin
+      if msg.inputCaption='' then
+      begin
+        {we got a simple message, no options, no input :) }
+        {//draw box border
+        glBegin(GL_LINE_LOOP);
+          glColor3f(0.0, 0.0, 0.0);//black
+          glVertex2f(2.0, 5.5 -0.25*msg_lines);
+          glVertex2f(18.0, 5.5 -0.25*msg_lines);
+          glVertex2f(18.0, 6.5 +0.25*msg_lines);
+          glVertex2f(2.0, 6.5 +0.25*msg_lines);
+        glEnd;}
+        Result:= ((mx>2*FieldWidth) and (mx<18*FieldWidth) and
+           (ypsilon>= 5.5-0.25*msg_lines) and (ypsilon<= 6.5+0.25*msg_lines));
+      end//if
+      else begin
+        {we got an input message window here}
+        {//draw box border
+        glLineWidth(2.0);
+        glBegin(GL_LINE_LOOP);
+          glColor3f(0.0, 0.0, 0.0);//black
+          glVertex2f(2.0, 5.25 -0.25*msg_lines);
+          glVertex2f(18.0, 5.25 -0.25*msg_lines);
+          glVertex2f(18.0, 6.75 +0.25*msg_lines);
+          glVertex2f(2.0, 6.75 +0.25*msg_lines);
+        glEnd;}
+        Result:= ((mx>2*FieldWidth) and (mx<18*FieldWidth) and
+           (y_Fields*FieldWidth+16-my>= (5.25-0.25*msg_lines)*FieldWidth)
+           and (y_Fields*FieldWidth+16-my<= (6.75+0.25*msg_lines)*FieldWidth));
+      end;//else
+    end
+    else begin
+      //we got options
+      msg_opts:= length(msg.options);
+      {//draw box border
+      glLineWidth(2.0);
+      glBegin(GL_LINE_LOOP);
+        glColor3f(0.0, 0.0, 0.0);//black
+        glVertex2f(2.0, 5.5 -0.25*(msg_lines+msg_opts));
+        glVertex2f(18.0, 5.5 -0.25*(msg_lines+msg_opts));
+        glVertex2f(18.0, 6.5 +0.25*(msg_lines+msg_opts));
+        glVertex2f(2.0, 6.5 +0.25*(msg_lines+msg_opts));
+      glEnd;}
+      
+      Result:= ((mx>2*FieldWidth) and (mx<18*FieldWidth) and
+           (ypsilon>=(5.5 -0.25*(msg_lines+msg_opts)))
+           and (ypsilon<= (6.5 +0.25*(msg_lines+msg_opts))));
+    end;//if
+  end;//if msg.txt<>''
+end;//func
+
+function TGui.GetMessageOptionAtMouse(const mx, my: LongInt): Integer;
+var msg_lines, msg_opts: Integer;
+    {ypsilon,} temp: Single;
+begin
+  Result:= -1;
+  if ((msg.txt<>'') and (length(msg.options)>0)) then
+  begin
+    {//draw highlighted background for current option
+    glBegin(GL_QUADS);
+      glColor3f(0.83*0.8, 0.66*0.8, 0.39*0.8);
+      glVertex2f(2.5, 5.4+0.25*(msg_lines+msg_opts)-(msg.selected_option+msg_lines)*0.5);
+      glVertex2f(17.5, 5.4+0.25*(msg_lines+msg_opts)-(msg.selected_option+msg_lines)*0.5);
+      glVertex2f(17.5, 5.9+0.25*(msg_lines+msg_opts)-(msg.selected_option+msg_lines)*0.5);
+      glVertex2f(2.5, 5.9+0.25*(msg_lines+msg_opts)-(msg.selected_option+msg_lines)*0.5);
+    glEnd;}
+    if ((mx>2.5*FieldWidth) and (mx<17.5*FieldWidth)) then
+    begin
+      msg_lines:= (length(msg.txt)+59) div 60;
+      msg_opts:= length(msg.options);
+      //calculate selected option
+      // -- ypsilon:= mouse position translated to OpenGL coordinates
+      //ypsilon:= MouseYToGLCoord(my);
+      temp:= (5.9+0.25*(msg_lines+msg_opts)-msg_lines*0.5)-MouseYToGLCoord(my);
+      if (temp<0.0) then Result:= -1
+      else Result:= Trunc(temp/0.5);
+      if ((Result<0) or (Result>msg_opts)) then Result:= -1;
+    end;//if
+  end;//if
 end;//func
 
 end.
