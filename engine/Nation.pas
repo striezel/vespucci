@@ -57,7 +57,7 @@ type
     *******
   }
   TNation = class
-    private
+    protected
       m_count: LongInt;
       m_NameStr: string;
     public
@@ -173,6 +173,8 @@ type
       m_TaxRate: Byte; //can't be more than 100% ;) so a Byte will do
       m_Boycotted: array [TGoodType] of Boolean;
       m_Prices: array [TGoodType] of Byte;
+      //number of destroyed indian villages
+      m_VillagesBurned: LongInt;
     public
       { constructor
 
@@ -219,7 +221,7 @@ type
       //returns the tax rate for this nation in percent
       function GetTaxRate: Byte;
 
-      { increases the nation's tax rate 
+      { increases the nation's tax rate
 
         parameters:
             AddedPercentage - amount that should be added to the current tax rate
@@ -339,6 +341,23 @@ type
       }
       function SellGood(const AGood: TGoodType; const num: Byte): Boolean;
 
+      { returns the number of Indian villages that have been destroyed by this
+        European Nation
+      }
+      function GetVillagesBurned: LongInt;
+
+      { sets the number of Indian villages that have been destroyed by this
+        European Nation
+
+        parameters:
+            villages - the new amount of villages
+
+        remarks:
+           Do not call this function directly - it's only used during the
+           loading process.
+      }
+      procedure SetVillagesBurned(const villages: LongInt);
+
       { tries to save this nation's data to the given stream and returns true
         in case of success, or false if an error occured
 
@@ -440,6 +459,7 @@ begin
     gt:= Succ(gt);
   end;
   m_Boycotted[High(TGoodType)]:= False;
+  m_VillagesBurned:= 0;
 end;//construc
 
 destructor TEuropeanNation.Destroy;
@@ -571,6 +591,16 @@ begin
   end;//else
 end;//func
 
+function TEuropeanNation.GetVillagesBurned: LongInt;
+begin
+  Result:= m_VillagesBurned;
+end;//func
+
+procedure TEuropeanNation.SetVillagesBurned(const villages: LongInt);
+begin
+  if (villages>=0) then m_VillagesBurned:= villages;
+end;//proc
+
 function TEuropeanNation.SaveToStream(var fs: TFileStream): Boolean;
 var i: LongInt;
 begin
@@ -590,6 +620,8 @@ begin
     Result:= Result and (fs.Write(m_Boycotted[TGoodType(i)], sizeof(Boolean))=sizeof(Boolean));
     Result:= Result and (fs.Write(m_Prices[TGoodType(i)], sizeof(Byte))=sizeof(Byte));
   end;//for
+  //burned villages
+  Result:= Result and (fs.Write(m_VillagesBurned, sizeof(LongInt))=sizeof(LongInt));
 end;//func
 
 end.

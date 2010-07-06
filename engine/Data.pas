@@ -40,6 +40,15 @@ const
   cNationFileHeader = 'VND';
 
 type
+  { record type which holds different parts of (player's) score }
+  TScoreRecord = record
+                   Citizens: LongInt;
+                   Congress: LongInt;
+                   Gold:     LongInt;
+                   Villages: LongInt;
+                   Total:    LongInt;
+                 end;//rec
+
   { ********
     **** TData class
     ****
@@ -243,6 +252,25 @@ type
                                    the new world
               }
               procedure GetEuropeanQuartett(const num_nation: Integer; var Ships, People, ExpectedSoon, ToNewWorld: TUnitArr);
+
+              { returns all units of a nation, except ships and caravans
+
+                parameters:
+                    num_nation - integer constant identifying the nation
+              }
+              function GetAllNonCargoUnits(const num_nation: Integer): TUnitArr;
+
+              { returns the score of the given nation
+
+                parameters:
+                    num_nation - integer constant identifying the nation
+                    u_arr      - array that holds all units which should be
+                                 considered for calculation of the score.
+                                 Usually, this is the Result of the function
+                                 GetAllNonCargoUnits().
+              }
+              function GetScore(const num_nation: Integer; const u_arr: TUnitArr): TScoreRecord;
+
               //units in colonies
               { returns all units that are in the field/map square of the given
                 colony, except ships and caravans. If no units were found, an
@@ -277,12 +305,12 @@ type
                     num_nation - integer constant identifying the nation
               }
               function GetColonyList(const num_nation: Integer): TColonyArr;
-              
+
               { tries to delete the colony at the given position and returns
                 true, if a colony was found and deleted
 
                 parameters:
-                    x,y - coordinates of the colony's position  
+                    x,y - coordinates of the colony's position
               }
               function DeleteColony(const x,y: Byte): Boolean;
               // ---- tribe-related functions ----
@@ -312,7 +340,7 @@ type
                     x,y - coordinates of the map square
               }
               function FreeForSettlement(const x,y:Byte): Boolean;
-              
+
               //others
               { starts a new round for the given nation
 
@@ -323,7 +351,7 @@ type
 
               { tries to save the game to the n-th slot. Returns true in case of
                 success.
-              
+
                 parameters:
                     n   - save game slot index (usually in [1;10])
                     err - string that will contain an error message if the
@@ -333,7 +361,7 @@ type
 
               { tries to load the game from the n-th slot. Returns true in case
                 of success.
-              
+
                 parameters:
                     n   - save game slot index (usually in [1;10])
                     err - string that will contain an error message if the
@@ -342,7 +370,7 @@ type
               function LoadData(const n: Word; var err: string): Boolean;
 
               { returns a short description for the save game in the n-th slot.
-              
+
                 parameters:
                     n   - save game slot index (usually in [1;10])
               }
@@ -350,7 +378,7 @@ type
 
               { same as above, but for the first ten slots }
               function GetSaveSlots: TShortStrArr;
-              
+
               { returns the basic path of the application
 
                 remarks:
@@ -696,6 +724,47 @@ begin
       end;//if
     end;//if
 end;//proc
+
+function TData.GetAllNonCargoUnits(const num_nation: Integer): TUnitArr;
+var i: Integer;
+begin
+  SetLength(Result, 0);
+  for i:= 0 to Unit_max do
+    if m_Units[i]<>nil then
+    begin
+      if ((m_Units[i].GetNation=num_nation) and (not m_Units[i].IsShip) and(m_Units[i].GetType<>utConvoy)) then
+      begin
+        SetLength(Result, length(Result)+1);
+        Result[High(Result)]:= m_Units[i];
+      end;//if
+    end;//if <>nil
+end;//func
+
+function TData.GetScore(const num_nation: Integer; const u_arr: TUnitArr): TScoreRecord;
+var ANat: TNation;
+    i: Integer;
+begin
+  Result.Citizens:= 0;
+  for i:= 0 to High(u_arr) do
+  begin
+    case u_arr[i].GetType of
+      utCriminal, utServant: Result.Citizens:= Result.Citizens+1;
+      utColonist:            Result.Citizens:= Result.Citizens+2;
+    else
+      Result.Citizens:= Result.Citizens+4;
+    end;//case
+  end;//for
+  Result.Congress:= 0; //not implemented yet
+  Result.Gold:= 0;
+  Result.Villages:= 0;
+  ANat:= GetNation(num_nation);
+  if (ANat.IsEuropean) then
+  begin
+    Result.Gold:= (ANat as TEuropeanNation).GetGold div 1000;
+    Result.Villages:= -(ANat as TEuropeanNation).GetVillagesBurned;
+  end;
+  Result.Total:= Result.Citizens+Result.Congress+Result.Gold+Result.Villages;
+end;//func
 
 function TData.GetAllUnitsInColony(const ACol: TColony): TUnitArr;
 var i: Integer;
@@ -1403,6 +1472,8 @@ begin
       Result:= Result and (fs.Read(tr, sizeof(Byte))=sizeof(Byte));
       (ANat as TEuropeanNation).ChangePrice(TGoodType(i), tr);
     end;//for
+    Result:= Result and (fs.Read(i, sizeof(LongInt))=sizeof(LongInt));
+    (ANat as TEuropeanNation).SetVillagesBurned(i);
   end;//if
 end;//func
 

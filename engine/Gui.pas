@@ -208,7 +208,7 @@ const
     );
 
   { caption of game window }
-  cWindowCaption = 'Vespucci v0.01.r131';
+  cWindowCaption = 'Vespucci v0.01.r132';
 
   { text colour (greenish) }
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
@@ -891,7 +891,7 @@ begin
   msg.inputText:= '';
   msg_queue.first:= nil;
   msg_queue.last:= nil;
-  
+
   //center on caravel
   Ship:= dat.GetFirstLazyUnit(dat.PlayerNation);
   if (Ship<>nil) then
@@ -3149,8 +3149,10 @@ procedure TGui.DrawReport;
 var i, j, freight_offset: Integer;
     col_arr: TColonyArr;
     u_arr: TUnitArr;
+    str1: string;
+    score: TScoreRecord;
 begin
-  //only economy and fleet implemented yet
+  //only economy, fleet, colony (partially) and score (part.) implemented yet
   case Report of
     rtEconomy: begin
                  col_arr:= dat.GetColonyList(dat.PlayerNation);
@@ -3382,6 +3384,61 @@ begin
                   WriteTimesRoman24('You have no colonies yet.', j*PixelWidth, y_Fields-4.5);
                 end;//else
               end;//rtColony
+    rtScore: begin
+               u_arr:= dat.GetAllNonCargoUnits(dat.PlayerNation);
+               i:= (cWindowWidth-length(dat.GetLang.GetReportString(rlsColonizationScore))*8) div 2;
+               glColor3ubv(@cMenuTextColour[0]);
+               WriteText(dat.GetLang.GetReportString(rlsColonizationScore), i*PixelWidth, y_Fields-0.25);
+               //compose string of leader name, nation, season, year
+               str1:= (dat.GetNation(dat.PlayerNation) as TEuropeanNation).GetLeaderName
+                      +' ('+dat.GetLang.GetNationName(dat.PlayerNation)+'), '
+                      +dat.GetLang.GetSeason(dat.IsAutumn)+' '+IntToStr(dat.GetYear);
+               i:= (cWindowWidth-length(str1)*8) div 2;
+               WriteText(str1, i*PixelWidth, y_Fields-0.75);
+               score:= dat.GetScore(dat.PlayerNation, u_arr);
+               WriteText(dat.GetLang.GetReportString(rlsCitizens)+': +'
+                         +IntToStr(score.Citizens), 0.5, y_Fields-1.5);
+               //draw citizens
+               j:= High(u_arr);
+               if (j>x_Fields*2) then j:= x_Fields*2;
+               glColor3f(1.0, 1.0, 1.0);
+               glEnable(GL_TEXTURE_2D);
+               glEnable(GL_ALPHA_TEST);
+               for i:=0 to j do
+                 DrawUnitIcon(u_arr[i], 0.5+i*0.5, y_Fields-3.0, true);
+               glDisable(GL_ALPHA_TEST);
+               glDisable(GL_TEXTURE_2D);
+               //continental congress
+               glColor3ubv(@CMenuTextColour[0]);
+               WriteText(dat.GetLang.GetReportString(rlsContinentalCongress)
+                         +': +'+IntToStr(score.Congress), 0.5, y_Fields-4.0);
+               //****to do:**** show list of congress members (not implemented yet)
+
+               //gold
+               WriteText(dat.GetLang.GetOthers(osGold)+' ('+IntToStr(
+                         (dat.GetNation(dat.PlayerNation) as TEuropeanNation).GetGold)
+                         +'°): +'+IntToStr(score.Gold), 0.5, y_Fields-7.0);
+               //villages burned
+               WriteText(IntToStr((dat.GetNation(dat.PlayerNation) as TEuropeanNation).GetVillagesBurned)
+                         +' '+dat.GetLang.GetReportString(rlsVillagesBurned)
+                         +': '+IntToStr(score.Villages), 0.5, y_Fields-7.5);
+               //total score
+               WriteText(dat.GetLang.GetReportString(rlsTotalScore)+': '
+                         +IntToStr(score.Total), 0.5, y_Fields-8.0);
+               //"progress bar" - assume that 1000 is the maximum
+               glBegin(GL_QUADS);
+                 glColor3f(0.0, 0.0, 0.0);
+                 glVertex2f(2.0-2*PixelWidth, y_Fields-10.0-2*PixelWidth);
+                 glVertex2f(18.0+2*PixelWidth, y_Fields-10.0-2*PixelWidth);
+                 glVertex2f(18.0+2*PixelWidth, y_Fields-9.0+2*PixelWidth);
+                 glVertex2f(2.0-2*PixelWidth, y_Fields-9.0+2*PixelWidth);
+                 glColor3ubv(@cMenuTextColour[0]);
+                 glVertex2f(2.0, y_Fields-10.0);
+                 glVertex2f(2.0+16.0/1000.0*score.Total, y_Fields-10.0);
+                 glVertex2f(2.0+16.0/1000.0*score.Total, y_Fields-9.0);
+                 glVertex2f(2.0, y_Fields-9.0);
+               glEnd;
+             end;//rtScore
   end;//case
 end;//proc
 
@@ -4226,6 +4283,7 @@ begin
                    1: report:= rtEconomy;
                    2: report:= rtColony;
                    3: report:= rtFleet;
+                   4: report:= rtScore;
                  end;//case
                end;//mcReports
   end;//case
