@@ -16,11 +16,13 @@ type
                   osNewWorld, osMoves, osEmpty, osNothing, osNoChanges, osTax,
                   osGold, osCost, osSaving, osEarnings, osUndefined);
   TEuroPortString = (epsManageHeading, epsNotOnShip, epsGoOnShip, epsArm, epsDisarm, epsGiveHorses, epsNoHorses, epsGiveTools, epsNoTools, epsTrainHeading, epsBuyHeading);
-  TReportType = (rtNone, rtEconomy, rtColony, rtFleet);
+  TReportType = (rtNone, rtEconomy, rtColony, rtFleet, rtScore);
   TColonyString = (csRenameQuestion, csRenameLabel, csAbandonYes, csAbandonNo, csAbandonQuestion);
   TColonyUnitString = (cusOptions, cusCancelOrders, cusOnBoard, cusFortify);
   TBuildingString = (bsUnderConstruction, bsSelectNext, bsNotify, bsMaxThree);
   TPioneerString = (psNoTools, psHasRoad, psIsPloughed, psIsCleared, psNeedsClearing, psWrongUnit);
+  TReportLabelString = (rlsColonizationScore, rlsCitizens, rlsContinentalCongress,
+                        rlsVillagesBurned, rlsTotalScore);
 
 
   { ********
@@ -76,9 +78,11 @@ type
       EuroPortManage: array[TEuroPortString] of string;
       //for pioneer actions
       Pioneers: array[TPioneerString] of string;
+      //for labels in reports
+      ReportLabels: array[TReportLabelString] of string;
 
       { sets initial values for all strings
-      
+
         remarks:
             The initial strings set by this function are German, however you
             can change the language by calling LoadFromFile() and load language
@@ -114,12 +118,12 @@ type
       constructor Create;
       // ---- menu related ----
       { returns the number of menu options in a certain menu category
-      
+
         parameters:
             categ - the category whose number of options you want to know
       }
       function GetOptionCount(const categ: TMenuCategory): Integer;
-      
+
       { returns the name/ label of a certain menu category
 
       parameters:
@@ -187,9 +191,9 @@ type
             AUnit - the unit type whose name is requested
       }
       function GetUnitName(const AUnit: TUnitType): string;
-      
+
       { returns the name of a season
-      
+
         parameters:
             autumn - If set to true, the word for autumn will be returned.
                      If set to false, the word for spring will be returned.
@@ -197,7 +201,7 @@ type
                      only two distinct seasons.
       }
       function GetSeason(const autumn: Boolean): string;
-      
+
       { returns a certain string that contains a message related to good
         transfer from ship to harbour or vice versa
 
@@ -291,6 +295,13 @@ type
       }
       function GetPioneer(const which: TPioneerString): string;
 
+      { returns a message related to reports
+
+        parameters:
+            which - indicates the requested string
+      }
+      function GetReportString(const which: TReportLabelString): string;
+
       { tries to save the language data to the given file and returns true in
         case of success
 
@@ -304,7 +315,7 @@ type
 
         parameters:
             FileName - path of the file the data will be loaded from
-            
+
         remarks:
             "Success", i.e. the return value true, does not indicate how much
             data was read from the file - it just indicates that there was no
@@ -361,6 +372,7 @@ begin
   MenuOptions[mcReports, 1]:= 'Wirtschaftsbericht';
   MenuOptions[mcReports, 2]:= 'Koloniebericht';
   MenuOptions[mcReports, 3]:= 'Flottenbericht';
+  MenuOptions[mcReports, 4]:= 'Kolonialisierungspunkte';
   // -- Handel
   MenuOptions[mcTrade, 1]:= 'Handelsroute festlegen';
   MenuOptions[mcTrade, 2]:= 'Handelsroute ändern';
@@ -570,6 +582,13 @@ begin
                              +'können, Eure Exzellenz.';
   Pioneers[psWrongUnit]:= 'Nur Siedler oder Pioniere, welche mit Werkzeugen ausgerüstet'
                          +' sind, können diese Aktion durchführen, Eure Exzellenz.';
+
+  //for reports
+  ReportLabels[rlsColonizationScore]:= 'Kolonialisierungspunkte';
+  ReportLabels[rlsCitizens]:= 'Bürger';
+  ReportLabels[rlsContinentalCongress]:= 'Kontinentalkongreß';
+  ReportLabels[rlsVillagesBurned]:= 'Niedergebrannte Dörfer';
+  ReportLabels[rlsTotalScore]:= 'Gesamtpunktzahl';
 
   SetMenuHelpers;
 end;//proc
@@ -884,6 +903,11 @@ begin
   Result:= Pioneers[which];
 end;//func
 
+function TLanguage.GetReportString(const which: TReportLabelString): string;
+begin
+  Result:= ReportLabels[which];
+end;//func
+
 function TLanguage.SaveToFile(const FileName: string): Boolean;
 var dat: TextFile;
     i, j: Integer;
@@ -955,6 +979,10 @@ begin
   WriteLn(dat, '[Pioneers]');
   for i:= Ord(Low(TPioneerString)) to Ord(High(TPioneerString)) do
     WriteLn(dat, Pioneers[TPioneerString(i)]);
+  WriteLn(dat);
+  WriteLn(dat, '[ReportLabels]');
+  for i:= Ord(Low(TReportLabelString)) to Ord(High(TReportLabelString)) do
+    WriteLn(dat, ReportLabels[TReportLabelString(i)]);
   WriteLn(dat);
   WriteLn(dat, '[Buildings]');
   for i:= Ord(Succ(btNone)) to Ord(High(TBuildingType)) do
@@ -1151,6 +1179,17 @@ begin
           ReadLn(dat, str1);
           str1:= Trim(str1);
           if str1<>'' then Pioneers[TPioneerString(i)]:= str1;
+          i:= i+1;
+        end;//while
+      end//if
+      else if str1='[ReportLabels]' then
+      begin
+        i:= Ord(Low(TReportLabelString));
+        while (i<=Ord(High(TReportLabelString))) and not Eof(dat) do
+        begin
+          ReadLn(dat, str1);
+          str1:= Trim(str1);
+          if str1<>'' then ReportLabels[TReportLabelString(i)]:= str1;
           i:= i+1;
         end;//while
       end//if
