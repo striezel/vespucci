@@ -208,7 +208,7 @@ const
     );
 
   { caption of game window }
-  cWindowCaption = 'Vespucci v0.01.r129';
+  cWindowCaption = 'Vespucci v0.01.r131';
 
   { text colour (greenish) }
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
@@ -830,7 +830,7 @@ type
       { returns the currently focused unit, or nil if no unit is in focus }
       function GetFocusedUnit: TUnit;
   end;//class TGui
-  
+
   { returns the vertical mouse position translated to OpenGL coordinates }
   function MouseYToGLCoord(const my: Longint): Single;
 
@@ -891,6 +891,14 @@ begin
   msg.inputText:= '';
   msg_queue.first:= nil;
   msg_queue.last:= nil;
+  
+  //center on caravel
+  Ship:= dat.GetFirstLazyUnit(dat.PlayerNation);
+  if (Ship<>nil) then
+  begin
+    CenterOn(Ship.GetPosX, Ship.GetPosY);
+    focused:= Ship;
+  end;
 
   //set texture names to "empty" and then load them
   glEnable(GL_TEXTURE_2D);
@@ -1645,7 +1653,7 @@ begin
       //dragging unit from field to building
       GetColonyFieldAtMouse(sx, sy, mouse.down_x, mouse.down_y);
       bType:= GetBuildingAtMouse(x,y);
-      if ((bType in [btArmory..btBlacksmith]) and (sx<>-2)) then
+      if ((bType in [btArmory..btBlacksmith]) and (cur_colony.GetBuildingLevel(bType)>0) and (sx<>-2)) then
       begin
         tempUnit:= cur_colony.GetUnitInField(sx, sy);
         if (tempUnit<>nil) then
@@ -1678,7 +1686,8 @@ begin
       //check for dragging unit from one building to another building
       bType:= GetBuildingAtMouse(mouse.down_x,mouse.down_y);
       bType2:= GetBuildingAtMouse(x,y);
-      if ((bType in [btArmory..btBlacksmith]) and (bType2 in [btArmory..btBlacksmith]) and (bType<>bType2)) then
+      if ((bType in [btArmory..btBlacksmith]) and (bType2 in [btArmory..btBlacksmith])
+          and (bType<>bType2) and (cur_colony.GetBuildingLevel(bType2)>0)) then
       begin
         //get slot at first building
         GetBuildingPosition(bType, bx, by);
@@ -4544,7 +4553,7 @@ begin
         glVertex2f(18.0, 6.5 +0.25*(msg_lines+msg_opts));
         glVertex2f(2.0, 6.5 +0.25*(msg_lines+msg_opts));
       glEnd;}
-      
+
       Result:= ((mx>2*FieldWidth) and (mx<18*FieldWidth) and
            (ypsilon>=(5.5 -0.25*(msg_lines+msg_opts)))
            and (ypsilon<= (6.5 +0.25*(msg_lines+msg_opts))));
