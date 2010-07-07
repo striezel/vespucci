@@ -4,7 +4,8 @@ interface
 
 uses
   Map, Data, GL, GLUT, Terrain, Language, Colony, Tribe, Nation, Goods,
-  Units, SysUtils, BitmapReader, Callbacks, Helper, ErrorTexture;
+  Units, SysUtils, BitmapReader, Callbacks, Helper, ErrorTexture,
+  FoundingFathers;
 
 type
   TRiverType = (rtOne, rtTwo_Bend, rtTwo_Straight, rtThree);
@@ -208,7 +209,7 @@ const
     );
 
   { caption of game window }
-  cWindowCaption = 'Vespucci v0.01.r132';
+  cWindowCaption = 'Vespucci v0.01.r134';
 
   { text colour (greenish) }
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
@@ -3412,7 +3413,18 @@ begin
                glColor3ubv(@CMenuTextColour[0]);
                WriteText(dat.GetLang.GetReportString(rlsContinentalCongress)
                          +': +'+IntToStr(score.Congress), 0.5, y_Fields-4.0);
-               //****to do:**** show list of congress members (not implemented yet)
+               //show list of congress members
+               j:= 0; //counts how many of them we already have been writing
+               for i:= Ord(Low(TFoundingFathers)) to Ord(High(TFoundingFathers)) do
+               begin
+                 if ((dat.GetNation(dat.PlayerNation) as TEuropeanNation).HasFoundingFather(TFoundingFathers(i))) then
+                 begin
+                   WriteText(dat.GetLang.GetFoundingFatherName(TFoundingFathers(i)),
+                             1.0+(j mod 3)*7.0,
+                             y_Fields-4.5-(j div 3)*0.5);
+                   j:= j+1;
+                 end;//if
+               end;//for
 
                //gold
                WriteText(dat.GetLang.GetOthers(osGold)+' ('+IntToStr(

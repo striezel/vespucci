@@ -3,7 +3,8 @@ unit Data;
 interface
 
 uses
-  Nation, Language, Units, Colony, Tribe, Map, Goods, Classes, SysUtils, Helper;
+  Nation, Language, Units, Colony, Tribe, Map, Goods, FoundingFathers, Classes,
+  SysUtils, Helper;
 
 const
 {$IFDEF Win32}
@@ -760,7 +761,13 @@ begin
   ANat:= GetNation(num_nation);
   if (ANat.IsEuropean) then
   begin
+    //founding fathers: +5 points per founding father
+    for i:= Ord(Low(TFoundingFathers)) to Ord(High(TFoundingFathers)) do
+      if (ANat as TEuropeanNation).HasFoundingFather(TFoundingFathers(i)) then
+        Result.Congress:= Result.Congress+5;
+    //gold: +1 point per 1000 gold
     Result.Gold:= (ANat as TEuropeanNation).GetGold div 1000;
+    //villages: -1 point per burned village
     Result.Villages:= -(ANat as TEuropeanNation).GetVillagesBurned;
   end;
   Result.Total:= Result.Citizens+Result.Congress+Result.Gold+Result.Villages;
@@ -1474,6 +1481,12 @@ begin
     end;//for
     Result:= Result and (fs.Read(i, sizeof(LongInt))=sizeof(LongInt));
     (ANat as TEuropeanNation).SetVillagesBurned(i);
+    //founding fathers
+    for i:= Ord(Low(TFoundingFathers)) to Ord(High(TFoundingFathers)) do
+    begin
+      Result:= Result and (fs.Read(boycott, sizeof(Boolean))=sizeof(Boolean));
+      (ANat as TEuropeanNation).SetFoundingFather(TFoundingFathers(i), boycott);
+    end;//for
   end;//if
 end;//func
 

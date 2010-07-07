@@ -1,9 +1,17 @@
 unit Nation;
 
+{ **********
+  ** TO-DO:
+  **
+  **   - move LoadNationFromFile() from Data to Nation/TEuropeanNation
+  **
+  **********
+}
+
 interface
 
 uses
-  Goods, Classes;
+  Goods, FoundingFathers, Classes;
 
 const
   cMin_Nations = 1;
@@ -175,6 +183,8 @@ type
       m_Prices: array [TGoodType] of Byte;
       //number of destroyed indian villages
       m_VillagesBurned: LongInt;
+      //list of current founding fathers
+      m_FoundingFathers: array[TFoundingFathers] of Boolean;
     public
       { constructor
 
@@ -346,6 +356,23 @@ type
       }
       function GetVillagesBurned: LongInt;
 
+      { returns true, if the given founding father is present at the nation's
+        congress
+
+        parameters:
+            ff - the founding father which has to be checked for
+      }
+      function HasFoundingFather(const ff: TFoundingFathers): Boolean;
+
+      { sets the presence state of a certain founding father
+
+        parameters:
+            ff      - the founding father whose state is set
+            present - true, if the founding father shall be present, false
+                      otherwise
+      }
+      procedure SetFoundingFather(const ff: TFoundingFathers; const present: Boolean);
+
       { sets the number of Indian villages that have been destroyed by this
         European Nation
 
@@ -443,6 +470,7 @@ end;//func
 constructor TEuropeanNation.Create(const num: LongInt; const NameStr: string;
                                    const NameOfLeader: string);
 var gt: TGoodType;
+    ff: TFoundingFathers;
 begin
   inherited Create(num, NameStr);
   //check number and pick some default value to make sure it's European
@@ -460,6 +488,13 @@ begin
   end;
   m_Boycotted[High(TGoodType)]:= False;
   m_VillagesBurned:= 0;
+  //no founding fathers at beginning
+  ff:= Low(TFoundingFathers);
+  while ff<High(TFoundingFathers) do
+  begin
+    m_FoundingFathers[ff]:= false;
+    ff:= Succ(ff);
+  end;//while
 end;//construc
 
 destructor TEuropeanNation.Destroy;
@@ -601,6 +636,16 @@ begin
   if (villages>=0) then m_VillagesBurned:= villages;
 end;//proc
 
+function TEuropeanNation.HasFoundingFather(const ff: TFoundingFathers): Boolean;
+begin
+  Result:= m_FoundingFathers[ff];
+end;//func
+
+procedure TEuropeanNation.SetFoundingFather(const ff: TFoundingFathers; const present: Boolean);
+begin
+  m_FoundingFathers[ff]:= present;
+end;//proc
+
 function TEuropeanNation.SaveToStream(var fs: TFileStream): Boolean;
 var i: LongInt;
 begin
@@ -622,6 +667,12 @@ begin
   end;//for
   //burned villages
   Result:= Result and (fs.Write(m_VillagesBurned, sizeof(LongInt))=sizeof(LongInt));
+  //founding fathers
+  for i:= Ord(Low(TFoundingFathers)) to Ord(High(TFoundingFathers)) do
+  begin
+    Result:= Result and (fs.Write(m_FoundingFathers[TFoundingFathers(i)],
+                                  sizeof(Boolean))=sizeof(Boolean));
+  end;//for
 end;//func
 
 end.

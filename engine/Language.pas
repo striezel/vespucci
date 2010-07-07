@@ -3,7 +3,8 @@ unit Language;
 interface
 
 uses
-  Goods, Units, Terrain, Nation, Colony {building type}, SysUtils;
+  Goods, Units, Terrain, Nation, Colony {building type}, FoundingFathers,
+  SysUtils;
 
 type
   { enumeration type to represent a menu category }
@@ -80,6 +81,11 @@ type
       Pioneers: array[TPioneerString] of string;
       //for labels in reports
       ReportLabels: array[TReportLabelString] of string;
+      
+      //names of founding fathers
+      FoundingFathers: array[TFoundingFathers] of string;
+      //types of founding fathers
+      FoundingFatherTypes: array[TFoundingFatherType] of string;
 
       { sets initial values for all strings
 
@@ -103,6 +109,13 @@ type
             See remarks for InitialValues().
       }
       procedure InitialBuildingNames;
+
+      { sets initial names of founding fathers
+
+        remarks:
+            See remarks for InitialValues().
+      }
+      procedure InitialFoundingFathers;
 
       { sets some auxillary, menu-related values }
       procedure SetMenuHelpers;
@@ -201,6 +214,20 @@ type
                      only two distinct seasons.
       }
       function GetSeason(const autumn: Boolean): string;
+
+      { returns the name of a founding father
+
+        parameters:
+            ff - the founding father whose name is requested
+      }
+      function GetFoundingFatherName(const ff: TFoundingFathers): string;
+
+      { returns the name of a founding father type
+
+        parameters:
+            fft - the fouding father type whose name is requested
+      }
+      function GetFoundingFatherTypeName(const fft: TFoundingFatherType): string;
 
       { returns a certain string that contains a message related to good
         transfer from ship to harbour or vice versa
@@ -589,6 +616,9 @@ begin
   ReportLabels[rlsContinentalCongress]:= 'Kontinentalkongreß';
   ReportLabels[rlsVillagesBurned]:= 'Niedergebrannte Dörfer';
   ReportLabels[rlsTotalScore]:= 'Gesamtpunktzahl';
+  
+  //founding fathers
+  InitialFoundingFathers;
 
   SetMenuHelpers;
 end;//proc
@@ -748,6 +778,51 @@ begin
   Buildings[btBlacksmith,3]:= 'Eisenhütte';
 end;//proc
 
+procedure TLanguage.InitialFoundingFathers;
+begin
+  //trade
+  FoundingFathers[ffSmith]:= 'Adam Smith';
+  FoundingFathers[ffFugger]:= 'Jakob Fugger';
+  FoundingFathers[ffMinuit]:= 'Peter Minuit';
+  FoundingFathers[ffStuyvesant]:= 'Peter Stuyvesant';
+  FoundingFathers[ffDeWitt]:= 'Jan de Witt';
+
+  //exploration
+  FoundingFathers[ffCoronado]:= 'Francisco Coronado';
+  FoundingFathers[ffHudson]:= 'Henry Hudson';
+  FoundingFathers[ffLaSalle]:= 'La Salle';
+  FoundingFathers[ffMagellan]:= 'Ferdinand Magellan';
+  FoundingFathers[ffDeSoto]:= 'Hernando de Soto';
+
+  //military
+  FoundingFathers[ffCortes]:= 'Hernando Cortes';
+  FoundingFathers[ffDrake]:= 'Francis Drake';
+  FoundingFathers[ffJones]:= 'John Paul Jones';
+  FoundingFathers[ffRevere]:= 'Paul Revere';
+  FoundingFathers[ffWashington]:= 'George Washington';
+
+  //political
+  FoundingFathers[ffBolivar]:= 'Simon Bolivar';
+  FoundingFathers[ffFranklin]:= 'Benjamin Franklin';
+  FoundingFathers[ffJefferson]:= 'Thomas Jefferson';
+  FoundingFathers[ffPaine]:= 'Thomas Paine';
+  FoundingFathers[ffPocahontas]:= 'Pocahontas';
+
+  //religious
+  FoundingFathers[ffBrebeuf]:= 'Jean de Brebeuf';
+  FoundingFathers[ffBrewster]:= 'William Brewster';
+  FoundingFathers[ffLasCasas]:= 'Bartolome de las Casas';
+  FoundingFathers[ffPenn]:= 'William Penn';
+  FoundingFathers[ffSepulveda]:= 'Juan de Sepulveda';
+
+  //types of founding fathers
+  FoundingFatherTypes[fftTrade]:= 'Handel';
+  FoundingFatherTypes[fftExploration]:= 'Erkundung';
+  FoundingFatherTypes[fftMilitary]:= 'Militär';
+  FoundingFatherTypes[fftPolitical]:= 'Politik';
+  FoundingFatherTypes[fftReligious]:= 'Religion';
+end;//proc
+
 procedure TLanguage.SetMenuHelpers;
 var i, j, temp: Integer;
 begin
@@ -827,6 +902,16 @@ function TLanguage.GetSeason(const autumn: Boolean): string;
 begin
   if autumn then Result:= Seasons[1]
   else Result:= Seasons[0];
+end;//func
+
+function TLanguage.GetFoundingFatherName(const ff: TFoundingFathers): string;
+begin
+  Result:= FoundingFathers[ff];
+end;//func
+
+function TLanguage.GetFoundingFatherTypeName(const fft: TFoundingFatherType): string;
+begin
+  Result:= FoundingFatherTypes[fft];
 end;//func
 
 function TLanguage.GetTransfer(const which_string: TTransferString): string;
@@ -943,6 +1028,14 @@ begin
   WriteLn(dat, '[Seasons]');
   WriteLn(dat, Seasons[0]);
   WriteLn(dat, Seasons[1]);
+  WriteLn(dat);
+  WriteLn(dat, '[FoundingFathers]');
+  for i:= Ord(Low(TFoundingFathers)) to Ord(High(TFoundingFathers)) do
+    WriteLn(dat, FoundingFathers[TFoundingFathers(i)]);
+  WriteLn(dat);
+  WriteLn(dat, '[FoundingFatherTypes]');
+  for i:= Ord(Low(TFoundingFatherType)) to Ord(High(TFoundingFatherType)) do
+    WriteLn(dat, FoundingFatherTypes[TFoundingFatherType(i)]);
   WriteLn(dat);
   WriteLn(dat, '[Transfer]');
   for i:= Ord(Low(TTransferString)) to Ord(High(TTransferString)) do
@@ -1080,6 +1173,28 @@ begin
           ReadLn(dat, str1);
           str1:= Trim(str1);
           if str1<>'' then Seasons[i]:= str1;
+          i:= i+1;
+        end;//while
+      end//if
+      else if str1='[FoundingFathers]' then
+      begin
+        i:= Ord(Low(TFoundingFathers));
+        while (i<=Ord(High(TFoundingFathers))) and not Eof(dat) do
+        begin
+          ReadLn(dat, str1);
+          str1:= Trim(str1);
+          if str1<>'' then FoundingFathers[TFoundingFathers(i)]:= str1;
+          i:= i+1;
+        end;//while
+      end//if
+      else if str1='[FoundingFatherTypes]' then
+      begin
+        i:= Ord(Low(TFoundingFatherType));
+        while (i<=Ord(High(TFoundingFatherType))) and not Eof(dat) do
+        begin
+          ReadLn(dat, str1);
+          str1:= Trim(str1);
+          if str1<>'' then FoundingFatherTypes[TFoundingFatherType(i)]:= str1;
           i:= i+1;
         end;//while
       end//if
