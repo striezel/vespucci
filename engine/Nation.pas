@@ -1,17 +1,9 @@
 unit Nation;
 
-{ **********
-  ** TO-DO:
-  **
-  **   - move LoadNationFromFile() from Data to Nation/TEuropeanNation
-  **
-  **********
-}
-
 interface
 
 uses
-  Goods, FoundingFathers, Classes;
+  Goods, FoundingFathers, Helper, Classes;
 
 const
   cMin_Nations = 1;
@@ -131,6 +123,13 @@ type
             The file stream already has to be opened and be ready for writing.
       }
       function SaveToStream(var fs: TFileStream): Boolean; virtual;
+
+      { loads the nation from the stream and returns true on success
+
+        parameters:
+            fs   - the file stream the nation will be loaded from
+      }
+      function LoadFromStream(var fs: TFileStream): Boolean; virtual;
   end;//class
 
 
@@ -426,7 +425,14 @@ type
             The file stream already has to be opened and be ready for writing.
       }
       function SaveToStream(var fs: TFileStream): Boolean; override;
-  end;//class
+
+      { loads the European nation from the stream and returns true on success
+
+        parameters:
+            fs   - the file stream the nation will be loaded from
+      }
+      function LoadFromStream(var fs: TFileStream): Boolean; override;
+  end;//class TEuropeanNation
 
 implementation
 
@@ -474,6 +480,37 @@ begin
   Result:= Result and (fs.Write(m_NameStr[1], length(m_NameStr))=length(m_NameStr));
 end;//func
 
+function TNation.LoadFromStream(var fs: TFileStream): Boolean;
+var i: LongInt;
+    temp_str: string;
+begin
+  Result:= False;
+  if (fs=nil) then  Exit;
+  Result:= (fs.Read(i, sizeof(LongInt))=sizeof(LongInt));
+  if (not Result) then
+  begin
+    WriteLn('TNation.LoadFromStream: Error while reading count.');
+    Exit;
+  end;//if
+  self.ChangeCount(i);
+  Result:= Result and (fs.Read(i, sizeof(LongInt))=sizeof(LongInt));
+  if (i<=0) or (i>255) then
+  begin
+    Result:= False; //string to short or to long
+    WriteLn('TNation.LoadFromStream: Error: name string does not meet the '
+            +'length requirements.');
+    Exit;
+  end;//if
+  temp_str:= SpaceString(i);
+  Result:= Result and (fs.Read(temp_str[1], i)=i);
+  if (not Result) then
+  begin
+    WriteLn('TNation.LoadFromStream: Error while reading name.');
+    Exit;
+  end;//if
+  temp_str:= Trim(temp_str);
+  ChangeName(temp_str);
+end;//func
 
 // **** functions of TIndianNation ****
 
@@ -728,6 +765,114 @@ begin
   for i:= cMinEuropean to cMaxEuropean do
     Result:= Result and (fs.Write(m_Diplomatic[i], sizeof(TDiplomaticStatus))
                          =sizeof(TDiplomaticStatus));
+end;//func
+
+function TEuropeanNation.LoadFromStream(var fs: TFileStream): Boolean;
+var i: LongInt;
+    temp_str: string;
+    tr: Byte;
+    boycott: Boolean;
+    diplomatic: TDiplomaticStatus;
+begin
+  Result:= False;
+  if (fs=nil) then  Exit;
+  Result:= (fs.Read(i, sizeof(LongInt))=sizeof(LongInt));
+  if (not Result) then
+  begin
+    WriteLn('TEuropeanNation.LoadFromStream: Error while reading count.');
+    Exit;
+  end;//if
+  self.ChangeCount(i);
+  Result:= Result and (fs.Read(i, sizeof(LongInt))=sizeof(LongInt));
+  if (i<=0) or (i>255) then
+  begin
+    Result:= False; //string to short or to long
+    WriteLn('TEuropeanNation.LoadFromStream: Error: name string does not meet '
+            +'the length requirements.');
+    Exit;
+  end;//if
+  temp_str:= SpaceString(i);
+  Result:= Result and (fs.Read(temp_str[1], i)=i);
+  if (not Result) then
+  begin
+    WriteLn('TEuropeanNation.LoadFromStream: Error while reading name.');
+    Exit;
+  end;//if
+  temp_str:= Trim(temp_str);
+  ChangeName(temp_str);
+  //--- European part starts here ----
+  Result:= Result and (fs.Read(i, sizeof(LongInt))=sizeof(LongInt));
+  if (i<=0) or (i>255) then
+  begin
+    Result:= False; //string to short or to long
+    WriteLn('TEuropeanNation.LoadFromStream: Error: leader name string does '
+            +'not meet the length requirements.');
+    Exit;
+  end;//if
+  temp_str:= SpaceString(i);
+  Result:= Result and (fs.Read(temp_str[1], i)=i);
+  if (not Result) then
+  begin
+    WriteLn('TEuropeanNation.LoadFromStream: Error while reading leader''s name.');
+    Exit;
+  end;//if
+  ChangeLeaderName(Trim(temp_str));
+  Result:= Result and (fs.Read(i, sizeof(LongInt))=sizeof(LongInt));
+  if ((not Result) or (i<0)) then
+  begin
+    WriteLn('TEuropeanNation.LoadFromStream: Error while reading gold amount.');
+    Exit;
+  end;//if
+  m_Gold:= i;
+  Result:= Result and (fs.Read(tr, sizeof(Byte))=sizeof(Byte));
+  if ((not Result) or (tr>100)) then
+  begin
+    WriteLn('TEuropeanNation.LoadFromStream: Error while reading tax rate.');
+    Exit;
+  end;//if
+  ChangeTaxRate(tr);
+  for i:= Ord(Low(TGoodType)) to Ord(High(TGoodType)) do
+  begin
+    //boycott status
+    Result:= Result and (fs.Read(Boycott, sizeof(Boolean))=sizeof(Boolean));
+    m_Boycotted[TGoodtype(i)]:= Boycott;
+    //price of good
+    Result:= Result and (fs.Read(tr, sizeof(Byte))=sizeof(Byte));
+    ChangePrice(TGoodType(i), tr);
+  end;//for
+  //burned villages
+  Result:= Result and (fs.Read(i, sizeof(LongInt))=sizeof(LongInt));
+  if ((not Result) or (i<0)) then
+  begin
+    WriteLn('TEuropeanNation.LoadFromStream: Error while reading number of '
+            +'villages burned.');
+    Exit;
+  end;//if
+  SetVillagesBurned(i);
+  //founding fathers
+  for i:= Ord(Low(TFoundingFathers)) to Ord(High(TFoundingFathers)) do
+  begin
+    Result:= Result and (fs.Read(boycott, sizeof(Boolean))=sizeof(Boolean));
+    m_FoundingFathers[TFoundingFathers(i)]:= boycott;
+  end;//for
+  if (not Result) then
+  begin
+    WriteLn('TEuropeanNation.LoadFromStream: Error while reading information '
+            +'about founding fathers.');
+    Exit;
+  end;//if
+  //diplomatic status
+  for i:= cMinEuropean to cMaxEuropean do
+  begin
+    Result:= Result and (fs.Read(diplomatic, sizeof(TDiplomaticStatus))
+                         =sizeof(TDiplomaticStatus));
+    SetDiplomatic(i, diplomatic);
+  end;//for
+  if (not Result) then
+  begin
+    WriteLn('TEuropeanNation.LoadFromStream: Error while reading diplomatic '
+            +'status.');
+  end;//if
 end;//func
 
 end.

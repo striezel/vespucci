@@ -111,14 +111,6 @@ type
               }
               function LoadColonyFromStream(var AColony: TColony; var fs: TFileStream): Boolean;
 
-              { loads a nation from the stream and returns true on success
-
-                parameters:
-                    ANat - the TNation that will hold the loaded data
-                    fs   - the file stream the nation will be loaded from
-              }
-              function LoadNationFromStream(var ANat: TNation; var fs: TFileStream): Boolean;
-
               { sets the initial values for all nations }
               procedure InitializeNations;
 
@@ -283,7 +275,7 @@ type
                                  GetAllNonCargoUnits().
               }
               function GetScore(const num_nation: Integer; const u_arr: TUnitArr): TScoreRecord;
-              
+
               { returns the numbers of a nation which are shown in the foreign affairs report
 
                 parameters:
@@ -469,12 +461,19 @@ end;//destruc
 procedure TData.InitializeNations;
 var i: Integer;
 begin
+  if (Nations[cNationEngland]<>nil) then Nations[cNationEngland].Destroy;
   Nations[cNationEngland]:= TEuropeanNation.Create(cNationEngland, lang.GetNationName(cNationEngland), 'Walter Raleigh');
+  if (Nations[cNationFrance]<>nil) then Nations[cNationFrance].Destroy;
   Nations[cNationFrance]:= TEuropeanNation.Create(cNationFrance, lang.GetNationName(cNationFrance), 'Jacques Cartier');
+  if (Nations[cNationSpain]<>nil) then Nations[cNationSpain].Destroy;
   Nations[cNationSpain]:= TEuropeanNation.Create(cNationSpain, lang.GetNationName(cNationSpain), 'Christoph Columbus');
+  if (Nations[cNationHolland]<>nil) then Nations[cNationHolland].Destroy;
   Nations[cNationHolland]:= TEuropeanNation.Create(cNationHolland, lang.GetNationName(cNationHolland), 'Michiel De Ruyter');
   for i:= cMinIndian to cMaxIndian do
+  begin
+    if (Nations[i]<>nil) then Nations[i].Destroy;
     Nations[i]:= TIndianNation.Create(i, lang.GetNationName(i));
+  end;//for
 end;//proc
 
 procedure TData.InitTribes_America;
@@ -794,7 +793,7 @@ end;//func
 
 function TData.GetForeignReport(const num_nation: Integer): TForeignRecord;
 var i, sum: Integer;
-begin                
+begin
   Result.Colonies:= 0;
   Result.Average:= 0;
   Result.Population:= 0;
@@ -1353,7 +1352,7 @@ begin
   end;//tryxcept
   for i:= cMinEuropean to cMaxEuropean do
   begin
-    Result:= Result and LoadNationFromStream(Nations[i], fs);
+    Result:= Result and Nations[i].LoadFromStream(fs);
     Result:= Result and (Nations[i].GetCount=i);
   end;//for
   fs.Free;
@@ -1514,67 +1513,6 @@ begin
     Result:= Result and LoadUnitFromStream(temp_unit, fs);
     AColony.SetUnitInBuilding(bt, temp_b, temp_unit);
   end;//for
-end;//func
-
-function TData.LoadNationFromStream(var ANat: TNation; var fs: TFileStream): Boolean;
-var i: LongInt;
-    temp_str: string;
-    tr: Byte;
-    boycott: Boolean;
-    diplomatic: TDiplomaticStatus;
-begin
-  Result:= False;
-  if ((fs=nil) or (ANat=nil)) then  Exit;
-  Result:= (fs.Read(i, sizeof(LongInt))=sizeof(LongInt));
-  ANat.ChangeCount(i);
-  Result:= Result and (fs.Read(i, sizeof(LongInt))=sizeof(LongInt));
-  if (i<=0) or (i>255) then
-  begin
-    Result:= False; //string to short or to long
-    Exit;
-  end;//if
-  temp_str:= SpaceString(i);
-  Result:= Result and (fs.Read(temp_str[1], i)=i);
-  temp_str:= Trim(temp_str);
-  ANat.ChangeName(temp_str);
-  if ANat.IsEuropean then
-  begin
-    Result:= Result and (fs.Read(i, sizeof(LongInt))=sizeof(LongInt));
-    if (i<=0) or (i>255) then
-    begin
-      Result:= False; //string to short or to long
-      Exit;
-    end;//if
-    temp_str:= SpaceString(i);
-    Result:= Result and (fs.Read(temp_str[1], i)=i);
-    (ANat as TEuropeanNation).ChangeLeaderName(Trim(temp_str));
-    Result:= Result and (fs.Read(i, sizeof(LongInt))=sizeof(LongInt));
-    (ANat as TEuropeanNation).IncreaseGold(i-(ANat as TEuropeanNation).GetGold);
-    Result:= Result and (fs.Read(tr, sizeof(Byte))=sizeof(Byte));
-    (ANat as TEuropeanNation).ChangeTaxRate(tr);
-    for i:= Ord(Low(TGoodType)) to Ord(High(TGoodType)) do
-    begin
-      Result:= Result and (fs.Read(Boycott, sizeof(Boolean))=sizeof(Boolean));
-      if Boycott then (ANat as TEuropeanNation).DoBoycott(TGoodType(i)) else (ANat as TEuropeanNation).UndoBoycott(TGoodType(i));
-      Result:= Result and (fs.Read(tr, sizeof(Byte))=sizeof(Byte));
-      (ANat as TEuropeanNation).ChangePrice(TGoodType(i), tr);
-    end;//for
-    Result:= Result and (fs.Read(i, sizeof(LongInt))=sizeof(LongInt));
-    (ANat as TEuropeanNation).SetVillagesBurned(i);
-    //founding fathers
-    for i:= Ord(Low(TFoundingFathers)) to Ord(High(TFoundingFathers)) do
-    begin
-      Result:= Result and (fs.Read(boycott, sizeof(Boolean))=sizeof(Boolean));
-      (ANat as TEuropeanNation).SetFoundingFather(TFoundingFathers(i), boycott);
-    end;//for
-    //diplomatic status
-    for i:= cMinEuropean to cMaxEuropean do
-    begin
-      Result:= Result and (fs.Read(diplomatic, sizeof(TDiplomaticStatus))
-                           =sizeof(TDiplomaticStatus));
-      (ANat as TEuropeanNation).SetDiplomatic(i, diplomatic);
-    end;//for
-  end;//if
 end;//func
 
 function TData.GetSaveInfo(const n: Word): string;
