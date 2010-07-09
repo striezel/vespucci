@@ -17,13 +17,18 @@ type
                   osNewWorld, osMoves, osEmpty, osNothing, osNoChanges, osTax,
                   osGold, osCost, osSaving, osEarnings, osUndefined);
   TEuroPortString = (epsManageHeading, epsNotOnShip, epsGoOnShip, epsArm, epsDisarm, epsGiveHorses, epsNoHorses, epsGiveTools, epsNoTools, epsTrainHeading, epsBuyHeading);
-  TReportType = (rtNone, rtEconomy, rtColony, rtFleet, rtScore);
+  TReportType = (rtNone, rtEconomy, rtColony, rtFleet, rtForeign, rtScore);
   TColonyString = (csRenameQuestion, csRenameLabel, csAbandonYes, csAbandonNo, csAbandonQuestion);
   TColonyUnitString = (cusOptions, cusCancelOrders, cusOnBoard, cusFortify);
   TBuildingString = (bsUnderConstruction, bsSelectNext, bsNotify, bsMaxThree);
   TPioneerString = (psNoTools, psHasRoad, psIsPloughed, psIsCleared, psNeedsClearing, psWrongUnit);
-  TReportLabelString = (rlsColonizationScore, rlsCitizens, rlsContinentalCongress,
-                        rlsVillagesBurned, rlsTotalScore);
+  TReportLabelString = (//report for colonization score 
+                        rlsColonizationScore, rlsCitizens, rlsContinentalCongress,
+                        rlsVillagesBurned, rlsTotalScore,
+                        //foreign affairs report
+                        rlsForeignAffairs, rlsRebels, rlsLoyalists, rlsWar,
+                        rlsPeace, rlsColonies, rlsAverageColony, rlsPopulation,
+                        rlsMilitaryPower, rlsNavalPower, rlsMerchantMarine);
 
 
   { ********
@@ -81,7 +86,7 @@ type
       Pioneers: array[TPioneerString] of string;
       //for labels in reports
       ReportLabels: array[TReportLabelString] of string;
-      
+
       //names of founding fathers
       FoundingFathers: array[TFoundingFathers] of string;
       //types of founding fathers
@@ -399,7 +404,8 @@ begin
   MenuOptions[mcReports, 1]:= 'Wirtschaftsbericht';
   MenuOptions[mcReports, 2]:= 'Koloniebericht';
   MenuOptions[mcReports, 3]:= 'Flottenbericht';
-  MenuOptions[mcReports, 4]:= 'Kolonialisierungspunkte';
+  MenuOptions[mcReports, 4]:= 'Außenpolitikbericht';
+  MenuOptions[mcReports, 5]:= 'Kolonialisierungspunkte';
   // -- Handel
   MenuOptions[mcTrade, 1]:= 'Handelsroute festlegen';
   MenuOptions[mcTrade, 2]:= 'Handelsroute ändern';
@@ -611,12 +617,25 @@ begin
                          +' sind, können diese Aktion durchführen, Eure Exzellenz.';
 
   //for reports
+  // --- score
   ReportLabels[rlsColonizationScore]:= 'Kolonialisierungspunkte';
   ReportLabels[rlsCitizens]:= 'Bürger';
   ReportLabels[rlsContinentalCongress]:= 'Kontinentalkongreß';
   ReportLabels[rlsVillagesBurned]:= 'Niedergebrannte Dörfer';
   ReportLabels[rlsTotalScore]:= 'Gesamtpunktzahl';
-  
+  // --- foreign affairs
+  ReportLabels[rlsForeignAffairs]:= 'Außenpolitikbericht';
+  ReportLabels[rlsRebels]:= 'Rebellen';
+  ReportLabels[rlsLoyalists]:= 'Loyalisten';
+  ReportLabels[rlsWar]:= 'Krieg';
+  ReportLabels[rlsPeace]:= 'Frieden';
+  ReportLabels[rlsColonies]:= 'Kolonien';
+  ReportLabels[rlsAverageColony]:= 'Koloniedurchschnitt';
+  ReportLabels[rlsPopulation]:= 'Bevölkerung';
+  ReportLabels[rlsMilitaryPower]:= 'Militärmacht';
+  ReportLabels[rlsNavalPower]:= 'Marinemacht';
+  ReportLabels[rlsMerchantMarine]:= 'Handelsmarine';
+
   //founding fathers
   InitialFoundingFathers;
 

@@ -56,6 +56,9 @@ const
                  );
 
 type
+  { enumeration type to describe the relation between two European nations }
+  TDiplomaticStatus = (dsUndefined, dsPeace, dsWar);
+
   { ********
     **** TNation class
     ****
@@ -185,6 +188,8 @@ type
       m_VillagesBurned: LongInt;
       //list of current founding fathers
       m_FoundingFathers: array[TFoundingFathers] of Boolean;
+      //contains relationship to other nations
+      m_Diplomatic: array [cMinEuropean..cMaxEuropean] of TDiplomaticStatus;
     public
       { constructor
 
@@ -385,6 +390,32 @@ type
       }
       procedure SetVillagesBurned(const villages: LongInt);
 
+      { returns the diplomatic status of the relations between this nation and
+        the specified other European nation
+
+        parameters:
+            other_nation - integer constant identifying the other nation
+
+        remarks:
+            If other_nation does not identify a European nation, dsUndefined
+            will be returned. However, dsUndefined is also a valid return value,
+            if this nation and the other nation have not met yet.
+      }
+      function GetDiplomatic(const other_nation: LongInt): TDiplomaticStatus;
+
+      { sets the diplomatic status of the relations between this nation and
+        the specified other European nation
+
+        parameters:
+            other_nation - integer constant identifying the other nation
+            new_status   - the status that has to be set
+
+        remarks:
+            If other_nation does not identify a European nation, then no changes
+            are made to any diplomatic status.
+      }
+      procedure SetDiplomatic(const other_nation: LongInt; const new_status: TDiplomaticStatus);
+
       { tries to save this nation's data to the given stream and returns true
         in case of success, or false if an error occured
 
@@ -471,6 +502,7 @@ constructor TEuropeanNation.Create(const num: LongInt; const NameStr: string;
                                    const NameOfLeader: string);
 var gt: TGoodType;
     ff: TFoundingFathers;
+    i: Integer;
 begin
   inherited Create(num, NameStr);
   //check number and pick some default value to make sure it's European
@@ -495,6 +527,10 @@ begin
     m_FoundingFathers[ff]:= false;
     ff:= Succ(ff);
   end;//while
+  for i:= cMinEuropean to cMaxEuropean do
+  begin
+    m_Diplomatic[i]:= dsUndefined;
+  end;//for
 end;//construc
 
 destructor TEuropeanNation.Destroy;
@@ -646,6 +682,21 @@ begin
   m_FoundingFathers[ff]:= present;
 end;//proc
 
+function TEuropeanNation.GetDiplomatic(const other_nation: LongInt): TDiplomaticStatus;
+begin
+  if (other_nation in [cMinEuropean..cMaxEuropean]) then Result:= m_Diplomatic[other_nation]
+  else Result:= dsUndefined;
+end;//func
+
+procedure TEuropeanNation.SetDiplomatic(const other_nation: LongInt; const new_status: TDiplomaticStatus);
+begin
+  if (other_nation in [cMinEuropean..cMaxEuropean]) then
+  begin
+    if (other_nation<>GetCount) then m_Diplomatic[other_nation]:= new_status
+    else m_Diplomatic[other_nation]:= dsUndefined;
+  end;//if
+end;//proc
+
 function TEuropeanNation.SaveToStream(var fs: TFileStream): Boolean;
 var i: LongInt;
 begin
@@ -673,6 +724,10 @@ begin
     Result:= Result and (fs.Write(m_FoundingFathers[TFoundingFathers(i)],
                                   sizeof(Boolean))=sizeof(Boolean));
   end;//for
+  //diplomatic status
+  for i:= cMinEuropean to cMaxEuropean do
+    Result:= Result and (fs.Write(m_Diplomatic[i], sizeof(TDiplomaticStatus))
+                         =sizeof(TDiplomaticStatus));
 end;//func
 
 end.

@@ -50,6 +50,18 @@ type
                    Total:    LongInt;
                  end;//rec
 
+  { record which holds information about a nation (foreign affairs report) }
+  TForeignRecord = record
+                     Colonies:   LongInt;
+                     Average:    Byte;
+                     Population: LongInt;
+                     Military:   LongInt;
+                     Naval:      LongInt;
+                     Merchant:   LongInt;
+                     Rebels:     LongInt;
+                     Loyals:     LongInt;
+                     Diplomatic: array [cMinEuropean..cMaxEuropean] of TDiplomaticStatus;
+                   end;//rec
   { ********
     **** TData class
     ****
@@ -271,6 +283,13 @@ type
                                  GetAllNonCargoUnits().
               }
               function GetScore(const num_nation: Integer; const u_arr: TUnitArr): TScoreRecord;
+              
+              { returns the numbers of a nation which are shown in the foreign affairs report
+
+                parameters:
+                    num_nation - integer constant identifying the nation
+              }
+              function GetForeignReport(const num_nation: Integer): TForeignRecord;
 
               //units in colonies
               { returns all units that are in the field/map square of the given
@@ -771,6 +790,66 @@ begin
     Result.Villages:= -(ANat as TEuropeanNation).GetVillagesBurned;
   end;
   Result.Total:= Result.Citizens+Result.Congress+Result.Gold+Result.Villages;
+end;//func
+
+function TData.GetForeignReport(const num_nation: Integer): TForeignRecord;
+var i, sum: Integer;
+begin                
+  Result.Colonies:= 0;
+  Result.Average:= 0;
+  Result.Population:= 0;
+  Result.Military:= 0;
+  Result.Naval:= 0;
+  Result.Merchant:= 0;
+  Result.Rebels:= 0;
+  Result.Loyals:= 0;
+  for i:= cMinEuropean to cMaxEuropean do
+  begin
+    Result.Diplomatic[i]:= dsUndefined;
+  end;//for
+  //abort here, if nation is no European nation
+  if not (num_nation in [cMinEuropean..cMaxEuropean]) then Exit;
+  // ---- colonies
+  sum:= 0;
+  for i:= 0 to Colony_max do
+  begin
+    if (m_Colonies[i].GetNation=num_nation) then
+    begin
+      Result.Colonies:= Result.Colonies+1;
+      sum:= sum + m_Colonies[i].GetInhabitants;
+    end;//if
+  end;//for
+  if Result.Colonies>0 then Result.Average:= sum div Result.Colonies
+  else Result.Average:= 0;
+  // ---- units
+  for i:= 0 to Unit_max do
+  begin
+    if (m_Units[i].GetNation=num_nation) then
+    begin
+      case m_Units[i].GetType of
+        //merchant ships
+        utCaravel, utTradingShip, utGalleon:
+             Result.Merchant:= Result.Merchant + m_Units[i].FreightCapacity;
+        //naval ships
+        utPrivateer, utFrigate, utMan_o_War:
+            Result.Naval:= Result.Naval + m_Units[i].AttackStrength;
+        //military
+        utRegular, utDragoon, utScout, utArtillery:
+            Result.Military:= Result.Military + m_Units[i].AttackStrength;
+        //convoy
+        utConvoy: //do nothing
+      //any other unit
+      else Result.Population:= Result.Population +1;
+      end;//case
+    end;//if Unit belongs to that nation
+  end;//for
+  //We haven't implemented Rebels/Loyalists yet, so assume the worst.
+  Result.Loyals:= Result.Population;
+  // ---- diplomatic status
+  for i:= cMinEuropean to cMaxEuropean do
+  begin
+    Result.Diplomatic[i]:= (Nations[num_nation] as TEuropeanNation).GetDiplomatic(i);
+  end;//for
 end;//func
 
 function TData.GetAllUnitsInColony(const ACol: TColony): TUnitArr;
@@ -1442,6 +1521,7 @@ var i: LongInt;
     temp_str: string;
     tr: Byte;
     boycott: Boolean;
+    diplomatic: TDiplomaticStatus;
 begin
   Result:= False;
   if ((fs=nil) or (ANat=nil)) then  Exit;
@@ -1486,6 +1566,13 @@ begin
     begin
       Result:= Result and (fs.Read(boycott, sizeof(Boolean))=sizeof(Boolean));
       (ANat as TEuropeanNation).SetFoundingFather(TFoundingFathers(i), boycott);
+    end;//for
+    //diplomatic status
+    for i:= cMinEuropean to cMaxEuropean do
+    begin
+      Result:= Result and (fs.Read(diplomatic, sizeof(TDiplomaticStatus))
+                           =sizeof(TDiplomaticStatus));
+      (ANat as TEuropeanNation).SetDiplomatic(i, diplomatic);
     end;//for
   end;//if
 end;//func
