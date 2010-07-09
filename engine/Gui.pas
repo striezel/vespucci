@@ -209,7 +209,7 @@ const
     );
 
   { caption of game window }
-  cWindowCaption = 'Vespucci v0.01.r135';
+  cWindowCaption = 'Vespucci v0.01.r137';
 
   { text colour (greenish) }
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
@@ -2748,8 +2748,6 @@ begin
         glDisable(GL_ALPHA_TEST);
         glDisable(GL_TEXTURE_2D);
       end;//building texture present
-      //sum up production
-      production:= 0;
       //draw units in buildings
       for level:= 0 to 2 do
         if (cur_colony.GetUnitInBuilding(TBuildingType(i), level)<>nil) then
@@ -2759,9 +2757,9 @@ begin
           DrawUnitIcon(cur_colony.GetUnitInBuilding(TBuildingType(i), level), x+level, y, True, False);
           glDisable(GL_ALPHA_TEST);
           glDisable(GL_TEXTURE_2D);
-          production:= production + cur_colony.GetProduction(TBuildingType(i), cur_colony.GetUnitInBuilding(TBuildingType(i), level).GetType);
         end;//if unit present in building
       //draw production amount
+      production:= cur_colony.GetTotalProduction(TBuildingType(i));
       if (production>0) then
       begin
         //draw good icon
@@ -4279,7 +4277,7 @@ begin
                   1: europe:= TEuropeanNation(dat.GetNation(dat.PlayerNation)); //europe
                   2: if focused<>nil then CenterOn(focused.GetPosX, focused.GetPosY); //center view
                 end;//case
-              end;//if not in "wooden" mode  
+              end;//if not in "wooden" mode
             end;//mcView
     mcOrders: begin
                 if (not InWoodenMode) then
@@ -4384,7 +4382,7 @@ begin
                      4: report:= rtForeign;
                      5: report:= rtScore;
                    end;//case
-                 end;//if  
+                 end;//if
                end;//mcReports
   end;//case
 end;//proc
