@@ -37,7 +37,7 @@ type
   TColony = class(TSettlement)
     public
       { constructor
-      
+
         parameters:
             X, Y    - position of the colony
             ANation - integer constant that identifies the nation who founded
@@ -53,7 +53,7 @@ type
       function GetName: string;
 
       { sets a name for the colony
-      
+
         parameters:
             new_name - the new name of the colony
 
@@ -65,15 +65,15 @@ type
       procedure SetName(const new_name: string);
 
       { returns the amount of a certain good within the colony's storage
-      
+
         parameters:
             AGood - the type of good you want to check for
       }
       function GetStore(const AGood: TGoodType): Word;
-      
+
       { removes a certain amount of a certain good from the colony's storage
         and returns the amount that was actually removed
-      
+
         parameters:
             AGood  - the type of good that has to be removed
             amount - the amount that has to be removed
@@ -81,11 +81,11 @@ type
       function RemoveFromStore(const AGood: TGoodType; const amount: Word): Word;
 
       { adds a certain amount of a certain good to the colony's storage
-      
+
         parameters:
             AGood  - the type of good that has to be added
             amount - the amount that has to be added
-            
+
         remarks:
             This function will always add the given amount of a good to the
             storage (except in case of range overflow). However, each storage
@@ -109,18 +109,18 @@ type
 
       //for buildings
       { returns the current construction level of a certain building
-      
+
         parameters:
             bt - the type of building
       }
       function GetBuildingLevel(const bt: TBuildingType): Byte;
 
      { set the current construction level of a certain building
-      
+
         parameters:
             bt        - the type of building whose level has to be set
             new_level - the new level of that building
-            
+
         remarks:
             Do not use this procedure directly, it's only used druning loading
             process.
@@ -133,7 +133,7 @@ type
       function GetCurrentConstruction: TBuildingType;
 
       { sets the type of building that is currently constructed in the colony
-      
+
         parameters:
             bt - the type of building that shall be constructed
       }
@@ -142,14 +142,13 @@ type
       { constructs the next level of the currently constructed building and }
       procedure ConstructNextLevel;
 
-      { returns the amount of goods that is currently prodcued in a certain
-        building by a certain unit in that colony
+      { returns the total amount of goods that is currently prodcued in a
+         certain building
 
         remarks:
             bt - the type of the building
-            ut - the type of the unit
       }
-      function GetProduction(const bt: TBuildingType; const ut: TUnitType): Integer;
+      function GetTotalProduction(const bt: TBuildingType): Integer;
 
       { starts a new round for that colony, i.e. adds produced goods to storage
         and so on
@@ -160,7 +159,7 @@ type
       procedure NewRound(const AMap: TMap);
 
       { returns the type of unit in a certain field, or nil if there is no unit
-      
+
         parameters:
             x_shift - horizontal position of the field relative to colony's
                       position
@@ -174,7 +173,7 @@ type
       function GetUnitInField(const x_shift, y_shift: Integer): TUnit;
 
       { returns the type of good a unit in a certain field is producing
-      
+
         parameters:
             x_shift - horizontal position of the field relative to colony's
                       position
@@ -191,7 +190,7 @@ type
       function GetUnitInFieldGood(const x_shift, y_shift: Integer): TGoodType;
 
       { sets the type unit that works in a certain field around the colony
-      
+
         parameters:
             x_shift - horizontal position of the field relative to colony's
                       position
@@ -207,23 +206,23 @@ type
       procedure SetUnitInField(const x_shift, y_shift: Integer; const AUnit: TUnit; const AGood: TGoodType=gtFood);
 
       { returns the unit in a certain building at a certain position (if any)
-      
+
         parameters:
             bt    - the type of building
             place - the place of the unit in the building - a sort of offset
-        
+
         remarks:
             place has to be in the range [0;2].
       }
       function GetUnitInBuilding(const bt: TBuildingType; const place: Byte): TUnit;
 
       { sets the unit in a certain building at a certain position
-      
+
         parameters:
             bt    - the type of building
             place - the place of the unit in the building - a sort of offset
             AUnit - the new unit that shall be put into the building
-        
+
         remarks:
             place has to be in the range [0;2].
       }
@@ -231,7 +230,7 @@ type
 
       { utility function to "realign" the units in a certain building, i.e.
         adjust their positions so that there are no empty spaces between them
-      
+
         parameters:
             bt - the type of the building
       }
@@ -239,7 +238,7 @@ type
 
       { returns the first free slot within a certain building, or -1 if there
         is no free slot any more
-      
+
         parameters:
             bt - the type of building
       }
@@ -249,14 +248,14 @@ type
       function GetInhabitants: Word;
 
       { returns true, if this colony is adjacent to a water square on the map
-      
+
         parameters:
             AMap - the current map
       }
       function AdjacentWater(const AMap: TMap): Boolean;
 
       { tries to save the colony to a stream and returns true in case of success
-      
+
         parameters:
             fs - the file stream the colony has to be saved to
 
@@ -265,6 +264,16 @@ type
             writing.
       }
       function SaveToStream(var fs: TFileStream): Boolean;
+
+    protected
+      { returns the amount of goods that is currently prodcued in a certain
+        building by a certain unit in that colony
+
+        remarks:
+            bt - the type of the building
+            ut - the type of the unit
+      }
+      function GetProduction(const bt: TBuildingType; const ut: TUnitType): Integer;
     private
       m_Name: string;
       Store: array[TGoodType] of Word; //max. is 300, a word should do it;
@@ -285,14 +294,14 @@ type
   TColonyArr = array of TColony;
 
   { returns the maximum level a certain building could reach
-  
+
     parameters:
         bt - the type of the building
   }
   function GetMaxBuildingLevel(const bt: TBuildingType): Byte;
 
   { returns the type of good that is produced in a certain building
-  
+
     parameters:
         bt - the type of the building
   }
@@ -300,12 +309,12 @@ type
 
   { returns the amount of hammers and tools that is needed to construct a
     certain level of a certain building
-  
+
     parameters:
         bt      - the type of the building
         level   - the level of the building
-        Hammers - the Word that is used to returned the amount of hammers
-        Tools   - the Word that is used to returned the amount of tools
+        Hammers - the Word that is used to return the amount of hammers
+        Tools   - the Word that is used to return the amount of tools
   }
   procedure GetBuildingCost(const bt: TBuildingType; const level: Byte; var Hammers, Tools: Word);
 
@@ -577,6 +586,24 @@ begin
   end;//case
 end;//func
 
+function TColony.GetTotalProduction(const bt: TBuildingType): Integer;
+var i: Integer;
+begin
+  if bt=btTownHall then
+  begin
+    //Empty town hall produces one liberty bell
+    if Buildings[btPress]<=1 then Result:= 1
+    else Result:= 2; //...or even two, if we have a newspaper
+  end
+  else Result:= 0;
+  if (bt in [btArmory..btBlacksmith]) then
+  begin
+    for i:=0 to 2 do
+      if UnitsInBuilding[bt][i]<>nil then
+        Result:=Result+GetProduction(bt, UnitsInBuilding[bt][i].GetType);
+  end;//if
+end;//func
+
 //only calculates the good changes due to production in buildings;
 // and production in fields (i.e. by farmers)
 procedure TColony.NewRound(const AMap: TMap);
@@ -600,70 +627,41 @@ begin
   end;//if
   //calculate production of all buildings
   //church first
-  prod:= 0;
-  for i:=0 to 2 do
-    if UnitsInBuilding[btChurch][i]<>nil then
-      prod:=prod+GetProduction(btChurch, UnitsInBuilding[btChurch][i].GetType);
-  Store[gtCross]:= Store[gtCross]+prod;
+  Store[gtCross]:= Store[gtCross]+GetTotalProduction(btChurch);
   //town hall second
-  prod:= 0;
-  for i:=0 to 2 do
-    if UnitsInBuilding[btTownHall][i]<>nil then
-      prod:=prod+GetProduction(btTownHall, UnitsInBuilding[btTownHall][i].GetType);
-  Store[gtLibertyBell]:= Store[gtLibertyBell]+prod;
+  Store[gtLibertyBell]:= Store[gtLibertyBell]+GetTotalProduction(btTownHall);
   //carpenter third
-  prod:= 0;
-  for i:=0 to 2 do
-    if UnitsInBuilding[btCarpenter][i]<>nil then
-      prod:=prod+GetProduction(btCarpenter, UnitsInBuilding[btCarpenter][i].GetType);
+  prod:= GetTotalProduction(btCarpenter);
   if Store[gtWood]<prod then prod:= Store[gtWood];
   Store[gtWood]:= Store[gtWood]-prod;
   Store[gtHammer]:= Store[gtHammer]+prod;
   //Blacksmith fourth
-  prod:= 0;
-  for i:=0 to 2 do
-    if UnitsInBuilding[btBlacksmith][i]<>nil then
-      prod:=prod+GetProduction(btBlacksmith, UnitsInBuilding[btBlacksmith][i].GetType);
+  prod:= GetTotalProduction(btBlackSmith);
   if Store[gtOre]<prod then prod:= Store[gtOre];
   Store[gtOre]:= Store[gtOre]-prod;
   Store[gtTool]:= Store[gtTool]+prod;
   //armory fifth
-  prod:= 0;
-  for i:=0 to 2 do
-    if UnitsInBuilding[btArmory][i]<>nil then
-      prod:=prod+GetProduction(btArmory, UnitsInBuilding[btArmory][i].GetType);
+  prod:= GetTotalProduction(btArmory);
   if Store[gtTool]<prod then prod:= Store[gtTool];
   Store[gtTool]:= Store[gtTool]-prod;
   Store[gtMusket]:= Store[gtMusket]+prod;
   //fur traders sixth
-  prod:= 0;
-  for i:=0 to 2 do
-    if UnitsInBuilding[btFurTrader][i]<>nil then
-      prod:=prod+GetProduction(btFurTrader, UnitsInBuilding[btFurTrader][i].GetType);
+  prod:= GetTotalProduction(btFurTrader);
   if Store[gtFur]<prod then prod:= Store[gtFur];
   Store[gtFur]:= Store[gtFur]-prod;
   Store[gtCoat]:= Store[gtCoat]+prod;
   //weaver seventh
-  prod:= 0;
-  for i:=0 to 2 do
-    if UnitsInBuilding[btWeaver][i]<>nil then
-      prod:=prod+GetProduction(btWeaver, UnitsInBuilding[btWeaver][i].GetType);
+  prod:= GetTotalProduction(btWeaver);
   if Store[gtCotton]<prod then prod:= Store[gtCotton];
   Store[gtCotton]:= Store[gtCotton]-prod;
   Store[gtCloth]:= Store[gtCloth]+prod;
   //tobacconist eight
-  prod:= 0;
-  for i:=0 to 2 do
-    if UnitsInBuilding[btTobacconist][i]<>nil then
-      prod:=prod+GetProduction(btTobacconist, UnitsInBuilding[btTobacconist][i].GetType);
+  prod:= GetTotalProduction(btTobacconist);
   if Store[gtTobacco]<prod then prod:= Store[gtTobacco];
   Store[gtTobacco]:= Store[gtTobacco]-prod;
   Store[gtCigar]:= Store[gtCigar]+prod;
   //distiller ninth
-  prod:= 0;
-  for i:=0 to 2 do
-    if UnitsInBuilding[btDistiller][i]<>nil then
-      prod:=prod+GetProduction(btDistiller, UnitsInBuilding[btDistiller][i].GetType);
+  prod:= GetTotalProduction(btDistiller);
   if Store[gtSugar]<prod then prod:= Store[gtSugar];
   Store[gtSugar]:= Store[gtSugar]-prod;
   Store[gtRum]:= Store[gtRum]+prod;
