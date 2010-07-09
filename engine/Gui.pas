@@ -209,7 +209,7 @@ const
     );
 
   { caption of game window }
-  cWindowCaption = 'Vespucci v0.01.r134';
+  cWindowCaption = 'Vespucci v0.01.r135';
 
   { text colour (greenish) }
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
@@ -396,6 +396,9 @@ type
 
       { draws the current report (if any) }
       procedure DrawReport;
+
+      { draws the foreign affairs report }
+      procedure DrawForeignAffairsReport;
 
       { draws the menu (if active) }
       procedure DrawMenu;
@@ -3329,7 +3332,7 @@ begin
                end;//if
              end;//rtFleet
     rtColony: begin
-                glColor3ubv(@CMenuTextColour[0]);
+                glColor3ubv(@cMenuTextColour[0]);
                 WriteText(dat.GetLang.GetMenuOption(mcReports, 2), 3.0, y_Fields-0.25);
                 WriteText('Name', 0.5, y_Fields-0.75);
                 WriteText('Einheiten', 6.5, y_Fields-0.75);
@@ -3385,6 +3388,7 @@ begin
                   WriteTimesRoman24('You have no colonies yet.', j*PixelWidth, y_Fields-4.5);
                 end;//else
               end;//rtColony
+    rtForeign: DrawForeignAffairsReport;
     rtScore: begin
                u_arr:= dat.GetAllNonCargoUnits(dat.PlayerNation);
                i:= (cWindowWidth-length(dat.GetLang.GetReportString(rlsColonizationScore))*8) div 2;
@@ -3453,6 +3457,80 @@ begin
              end;//rtScore
   end;//case
 end;//proc
+
+procedure TGui.DrawForeignAffairsReport;
+var i, j, count: Integer;
+    EuroNat: TEuropeanNation;
+    f_rec: TForeignRecord;
+    offset: GLfloat;
+begin
+  i:= (cWindowWidth-length(dat.GetLang.GetReportString(rlsForeignAffairs))*8) div 2;
+  glColor3ubv(@CMenuTextColour[0]);
+  WriteText(dat.GetLang.GetReportString(rlsForeignAffairs), i*PixelWidth, y_Fields);
+
+  for i:= cMinEuropean to cMaxEuropean do
+  begin
+    glColor3ubv(@cMenuTextColour[0]);
+    glLineWidth(2.0);
+    glBegin(GL_LINES);
+      glVertex2f(0.0, y_Fields-0.5 -(i-cMinEuropean)*3.0);
+      glVertex2f(20.0, y_Fields-0.5 -(i-cMinEuropean)*3.0);
+    glEnd;
+    EuroNat:= dat.GetNation(i) as TEuropeanNation;
+    //leader's & nation's name
+    WriteText(EuroNat.GetLeaderName()+', '+dat.GetLang.GetNationName(i)+':',
+              0.5, y_Fields-1.0 -(i-cMinEuropean)*3.0);
+    f_rec:= dat.GetForeignReport(i);
+    if ((dat.GetNation(dat.PlayerNation) as TEuropeanNation).HasFoundingFather(ffDeWitt)) then
+    begin
+      //colony-related data
+      WriteText(dat.GetLang.GetReportString(rlsColonies)+': '+IntToStr(f_rec.Colonies),
+                0.5, y_Fields-1.5 -(i-cMinEuropean)*3.0);
+      WriteText(dat.GetLang.GetReportString(rlsAverageColony)+': '+IntToStr(f_rec.Average),
+                7.0, y_Fields-1.5 -(i-cMinEuropean)*3.0);
+      WriteText(dat.GetLang.GetReportString(rlsPopulation)+': '+IntToStr(f_rec.Population),
+                14.0, y_Fields-1.5 -(i-cMinEuropean)*3.0);
+      //military/ naval/ merchants
+      WriteText(dat.GetLang.GetReportString(rlsMilitaryPower)+': '+IntToStr(f_rec.Military),
+                0.5, y_Fields-2.0 -(i-cMinEuropean)*3.0);
+      WriteText(dat.GetLang.GetReportString(rlsNavalPower)+': '+IntToStr(f_rec.Naval),
+                7.0, y_Fields-2.0 -(i-cMinEuropean)*3.0);
+      WriteText(dat.GetLang.GetReportString(rlsMerchantMarine)+': '+IntToStr(f_rec.Merchant),
+                14.0, y_Fields-2.0 -(i-cMinEuropean)*3.0);
+    end;//if De Witt is present
+    //diplomatic status
+    count:= 0;
+    for j:= cMinEuropean to cMaxEuropean do
+    begin
+      if f_rec.Diplomatic[j]<>dsUndefined then
+      begin
+        glColor3ubv(@cMenuTextColour[0]);
+        WriteText(dat.GetLang.GetNationName(j)+': ', 0.5+6.5*count,
+                  y_Fields-2.5 -(i-cMinEuropean)*3.0);
+        offset:= (length(dat.GetLang.GetNationName(j))+2)*8*PixelWidth;
+        case f_rec.Diplomatic[j] of
+          dsWar: begin
+                   glColor3f(1.0, 0.0, 0.0);
+                   WriteText(dat.GetLang.GetReportString(rlsWar),
+                     0.5+6.5*count+offset, y_Fields-2.5 -(i-cMinEuropean)*3.0);
+                 end;//war
+          dsPeace: begin
+                     glColor3f(1.0, 1.0, 1.0);
+                     WriteText(dat.GetLang.GetReportString(rlsPeace),
+                       0.5+6.5*count+offset, y_Fields-2.5 -(i-cMinEuropean)*3.0);
+                   end;//peace
+        end;//case
+        count:= count +1;
+      end;//if
+    end;//for
+    //rebels / tories
+    glColor3ubv(@cMenuTextColour[0]);
+    WriteText(dat.GetLang.GetReportString(rlsRebels)+': '+IntToStr(f_rec.Rebels),
+              0.5, y_Fields-3.0 -(i-cMinEuropean)*3.0);
+    WriteText(dat.GetLang.GetReportString(rlsLoyalists)+': '+IntToStr(f_rec.Loyals),
+              7.0, y_Fields-3.0 -(i-cMinEuropean)*3.0);
+  end;//for
+end;//proc Foreign affairs report
 
 procedure TGui.DrawMenu;
 var count, i, max_len: Integer;
@@ -4195,108 +4273,118 @@ begin
               end;//case
             end;//mcGame
     mcView: begin
-              case selected of
-                1: europe:= TEuropeanNation(dat.GetNation(dat.PlayerNation)); //europe
-                2: if focused<>nil then CenterOn(focused.GetPosX, focused.GetPosY); //center view
-              end;//case
+              if (not InWoodenMode) then
+              begin
+                case selected of
+                  1: europe:= TEuropeanNation(dat.GetNation(dat.PlayerNation)); //europe
+                  2: if focused<>nil then CenterOn(focused.GetPosX, focused.GetPosY); //center view
+                end;//case
+              end;//if not in "wooden" mode  
             end;//mcView
     mcOrders: begin
-                case selected of
-                  1: //fortify
-                     if focused<>nil then
-                       if focused.GetState=usFortified then focused.SetState(usNormal)
-                       else focused.SetState(usFortified);
-                  2: //goto
-                     if focused<>nil then
-                     begin
-                       if focused.IsShip then
+                if (not InWoodenMode) then
+                begin
+                  case selected of
+                    1: //fortify
+                       if focused<>nil then
+                         if focused.GetState=usFortified then focused.SetState(usNormal)
+                         else focused.SetState(usFortified);
+                    2: //goto
+                       if focused<>nil then
                        begin
-                         col_arr:= dat.GetColonyList(focused.GetNation);
-                         SetLength(str_arr, 1);
-                         str_arr[0]:= dat.GetLang.GetOthers(osNoChanges);
-                         for i:= 0 to High(col_arr) do
-                           if col_arr[i].AdjacentWater(dat.GetMap) then
-                           begin
-                             SetLength(str_arr, length(str_arr)+1);
-                             str_arr[High(str_arr)]:= col_arr[i].GetName;
-                           end;//if
-                         temp_cb._type:= CBT_GOTO_SHIP;
-                         temp_cb.option:= 0;
-                         temp_cb.GotoShip.Ship:= focused;
-                         temp_cb.GotoShip.AData:= dat;
-                         ShowMessageOptions('Choose a destination location:', str_arr, temp_cb);
-                       end;//if
-                     end;//if; mcOrders,2, goto
-                  3: //clear forest
-                     if focused<>nil then
-                     begin
-                       if not dat.GetMap.tiles[focused.GetPosX, focused.GetPosY].HasForest then
-                         ShowMessageSimple(dat.GetLang.GetPioneer(psIsCleared))
-                       else if focused.IsShip or (focused.GetType in [utRegular, utDragoon, utScout, utConvoy]) then
-                         ShowMessageSimple(dat.GetLang.GetPioneer(psWrongUnit))
-                       else if focused.GetToolAmount<20 then ShowMessageSimple(dat.GetLang.GetPioneer(psNoTools))
-                       else begin
-                         //do the real work now :)
-                         tempTask:= TClearTask.Create(focused, focused.GetPosX, focused.GetPosY, dat.GetMap);
-                         focused.SetTask(tempTask);
-                       end;//else
-                     end;//if //3 of orders (clear forest)
-                  4: //plough fields
-                     if focused<>nil then
-                     begin
-                       if dat.GetMap.tiles[focused.GetPosX, focused.GetPosY].IsPloughed then
-                         ShowMessageSimple(dat.GetLang.GetPioneer(psIsPloughed))
-                       else if dat.GetMap.tiles[focused.GetPosX, focused.GetPosY].HasForest then
-                         ShowMessageSimple(dat.GetLang.GetPioneer(psNeedsClearing))
-                       else if focused.IsShip or (focused.GetType in [utRegular, utDragoon, utScout, utConvoy]) then
-                         ShowMessageSimple(dat.GetLang.GetPioneer(psWrongUnit))
-                       else if focused.GetToolAmount<20 then ShowMessageSimple(dat.GetLang.GetPioneer(psNoTools))
-                       else begin
-                         //do the real work now :)
-                         tempTask:= TPloughTask.Create(focused, focused.GetPosX, focused.GetPosY, dat.GetMap);
-                         focused.SetTask(tempTask);
-                       end;//else
-                     end;//if //4 of mcOrders (plough fields)
-                  5: //construct road
-                     if focused<>nil then
-                     begin
-                       if dat.GetMap.tiles[focused.GetPosX,focused.GetPosY].HasRoad then
-                         ShowMessageSimple(dat.GetLang.GetPioneer(psHasRoad))
-                       else if focused.IsShip or (focused.GetType in [utRegular, utDragoon, utScout, utConvoy]) then
-                         ShowMessageSimple(dat.GetLang.GetPioneer(psWrongUnit))
-                       else if focused.GetToolAmount<20 then ShowMessageSimple(dat.GetLang.GetPioneer(psNoTools))
-                       else begin
-                         //do the real work now :)
-                         tempTask:= TRoadTask.Create(focused, focused.GetPosX, focused.GetPosY, dat.GetMap);
-                         focused.SetTask(tempTask);
-                       end;//else
-                     end;//if //5 of mcOrders (create road)
-                  6: //no orders
-                     if focused<>nil then
-                     begin
-                       focused.MovesLeft:= 0;
-                       tempUnit:= dat.GetFirstLazyUnit(dat.PlayerNation);
-                       if tempUnit<>nil then
+                         if focused.IsShip then
+                         begin
+                           col_arr:= dat.GetColonyList(focused.GetNation);
+                           SetLength(str_arr, 1);
+                           str_arr[0]:= dat.GetLang.GetOthers(osNoChanges);
+                           for i:= 0 to High(col_arr) do
+                             if col_arr[i].AdjacentWater(dat.GetMap) then
+                             begin
+                               SetLength(str_arr, length(str_arr)+1);
+                               str_arr[High(str_arr)]:= col_arr[i].GetName;
+                             end;//if
+                           temp_cb._type:= CBT_GOTO_SHIP;
+                           temp_cb.option:= 0;
+                           temp_cb.GotoShip.Ship:= focused;
+                           temp_cb.GotoShip.AData:= dat;
+                           ShowMessageOptions('Choose a destination location:', str_arr, temp_cb);
+                         end;//if
+                       end;//if; mcOrders,2, goto
+                    3: //clear forest
+                       if focused<>nil then
                        begin
-                         focused:= tempUnit;
-                         CenterOn(focused.GetPosX, focused.GetPosY);
-                       end//if
-                       else begin
-                         //no units left, start new round
-                         dat.AdvanceYear;
-                         dat.NewRound(dat.PlayerNation);
-                         focused:= dat.GetFirstLazyUnit(dat.PlayerNation);
-                       end;//else
-                     end; //6 of mcOrders
-                end;//case
+                         if not dat.GetMap.tiles[focused.GetPosX, focused.GetPosY].HasForest then
+                           ShowMessageSimple(dat.GetLang.GetPioneer(psIsCleared))
+                         else if focused.IsShip or (focused.GetType in [utRegular, utDragoon, utScout, utConvoy]) then
+                           ShowMessageSimple(dat.GetLang.GetPioneer(psWrongUnit))
+                         else if focused.GetToolAmount<20 then ShowMessageSimple(dat.GetLang.GetPioneer(psNoTools))
+                         else begin
+                           //do the real work now :)
+                           tempTask:= TClearTask.Create(focused, focused.GetPosX, focused.GetPosY, dat.GetMap);
+                           focused.SetTask(tempTask);
+                         end;//else
+                       end;//if //3 of orders (clear forest)
+                    4: //plough fields
+                       if focused<>nil then
+                       begin
+                         if dat.GetMap.tiles[focused.GetPosX, focused.GetPosY].IsPloughed then
+                           ShowMessageSimple(dat.GetLang.GetPioneer(psIsPloughed))
+                         else if dat.GetMap.tiles[focused.GetPosX, focused.GetPosY].HasForest then
+                           ShowMessageSimple(dat.GetLang.GetPioneer(psNeedsClearing))
+                         else if focused.IsShip or (focused.GetType in [utRegular, utDragoon, utScout, utConvoy]) then
+                           ShowMessageSimple(dat.GetLang.GetPioneer(psWrongUnit))
+                         else if focused.GetToolAmount<20 then ShowMessageSimple(dat.GetLang.GetPioneer(psNoTools))
+                         else begin
+                           //do the real work now :)
+                           tempTask:= TPloughTask.Create(focused, focused.GetPosX, focused.GetPosY, dat.GetMap);
+                           focused.SetTask(tempTask);
+                         end;//else
+                       end;//if //4 of mcOrders (plough fields)
+                    5: //construct road
+                       if focused<>nil then
+                       begin
+                         if dat.GetMap.tiles[focused.GetPosX,focused.GetPosY].HasRoad then
+                           ShowMessageSimple(dat.GetLang.GetPioneer(psHasRoad))
+                         else if focused.IsShip or (focused.GetType in [utRegular, utDragoon, utScout, utConvoy]) then
+                           ShowMessageSimple(dat.GetLang.GetPioneer(psWrongUnit))
+                         else if focused.GetToolAmount<20 then ShowMessageSimple(dat.GetLang.GetPioneer(psNoTools))
+                         else begin
+                           //do the real work now :)
+                           tempTask:= TRoadTask.Create(focused, focused.GetPosX, focused.GetPosY, dat.GetMap);
+                           focused.SetTask(tempTask);
+                         end;//else
+                       end;//if //5 of mcOrders (create road)
+                    6: //no orders
+                       if focused<>nil then
+                       begin
+                         focused.MovesLeft:= 0;
+                         tempUnit:= dat.GetFirstLazyUnit(dat.PlayerNation);
+                         if tempUnit<>nil then
+                         begin
+                           focused:= tempUnit;
+                           CenterOn(focused.GetPosX, focused.GetPosY);
+                         end//if
+                         else begin
+                           //no units left, start new round
+                           dat.AdvanceYear;
+                           dat.NewRound(dat.PlayerNation);
+                           focused:= dat.GetFirstLazyUnit(dat.PlayerNation);
+                         end;//else
+                       end; //6 of mcOrders
+                  end;//case
+                end;//if not in "wooden" mode
               end;//mcOrders
     mcReports: begin
-                 case selected of
-                   1: report:= rtEconomy;
-                   2: report:= rtColony;
-                   3: report:= rtFleet;
-                   4: report:= rtScore;
-                 end;//case
+                 if (not InWoodenMode) then
+                 begin
+                   case selected of
+                     1: report:= rtEconomy;
+                     2: report:= rtColony;
+                     3: report:= rtFleet;
+                     4: report:= rtForeign;
+                     5: report:= rtScore;
+                   end;//case
+                 end;//if  
                end;//mcReports
   end;//case
 end;//proc
