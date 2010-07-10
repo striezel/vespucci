@@ -62,6 +62,9 @@ type
                      Loyals:     LongInt;
                      Diplomatic: array [cMinEuropean..cMaxEuropean] of TDiplomaticStatus;
                    end;//rec
+  { array that holds information about unit types/ jobs }
+  TWorkArray = array[utCriminal..utDragoon] of Word;
+
   { ********
     **** TData class
     ****
@@ -282,6 +285,13 @@ type
                     num_nation - integer constant identifying the nation
               }
               function GetForeignReport(const num_nation: Integer): TForeignRecord;
+
+              { returns the numbers of a nation which are shown in the job report
+
+                parameters:
+                    num_nation - integer constant identifying the nation
+              }
+              function GetWorkArray(const num_nation: Integer): TWorkArray;
 
               //units in colonies
               { returns all units that are in the field/map square of the given
@@ -849,6 +859,23 @@ begin
   begin
     Result.Diplomatic[i]:= (Nations[num_nation] as TEuropeanNation).GetDiplomatic(i);
   end;//for
+end;//func
+
+function TData.GetWorkArray(const num_nation: Integer): TWorkArray;
+var ut: TUnitType;
+    i: Integer;
+begin
+  ut:= utCriminal;
+  while ut<=utDragoon do
+  begin
+    Result[ut]:= 0;
+    ut:= Succ(ut);
+  end;//while
+  //units
+  for i:= 0 to Unit_max do
+    if m_Units[i]<>nil then
+      if ((m_Units[i].GetNation=num_nation) and (m_Units[i].GetType in [utCriminal..utDragoon])) then
+        Result[m_Units[i].GetType]:= Result[m_Units[i].GetType]+1;
 end;//func
 
 function TData.GetAllUnitsInColony(const ACol: TColony): TUnitArr;
