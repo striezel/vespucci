@@ -486,6 +486,7 @@ var i: LongInt;
 begin
   Result:= False;
   if (fs=nil) then  Exit;
+  i:= 0;
   Result:= (fs.Read(i, sizeof(LongInt))=sizeof(LongInt));
   if (not Result) then
   begin
@@ -776,6 +777,7 @@ var i: LongInt;
 begin
   Result:= False;
   if (fs=nil) then  Exit;
+  i:= 0;
   Result:= (fs.Read(i, sizeof(LongInt))=sizeof(LongInt));
   if (not Result) then
   begin
@@ -824,6 +826,8 @@ begin
     Exit;
   end;//if
   m_Gold:= i;
+  //tax rate
+  tr := 255;
   Result:= Result and (fs.Read(tr, sizeof(Byte))=sizeof(Byte));
   if ((not Result) or (tr>100)) then
   begin

@@ -209,7 +209,7 @@ const
     );
 
   { caption of game window }
-  cWindowCaption = 'Vespucci v0.01.r137';
+  cWindowCaption = 'Vespucci v0.01.r140';
 
   { text colour (greenish) }
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
@@ -3439,7 +3439,7 @@ begin
                //total score
                WriteText(dat.GetLang.GetReportString(rlsTotalScore)+': '
                          +IntToStr(score.Total), 0.5, y_Fields-8.0);
-               //"progress bar" - assume that 1000 is the maximum
+               //"progress bar" - assume that 5000 is the maximum
                glBegin(GL_QUADS);
                  glColor3f(0.0, 0.0, 0.0);
                  glVertex2f(2.0-2*PixelWidth, y_Fields-10.0-2*PixelWidth);
@@ -3448,8 +3448,8 @@ begin
                  glVertex2f(2.0-2*PixelWidth, y_Fields-9.0+2*PixelWidth);
                  glColor3ubv(@cMenuTextColour[0]);
                  glVertex2f(2.0, y_Fields-10.0);
-                 glVertex2f(2.0+16.0/1000.0*score.Total, y_Fields-10.0);
-                 glVertex2f(2.0+16.0/1000.0*score.Total, y_Fields-9.0);
+                 glVertex2f(2.0+16.0/5000.0*score.Total, y_Fields-10.0);
+                 glVertex2f(2.0+16.0/5000.0*score.Total, y_Fields-9.0);
                  glVertex2f(2.0, y_Fields-9.0);
                glEnd;
              end;//rtScore
@@ -3905,9 +3905,11 @@ begin
   //colony
   if cur_colony<>nil then
   begin
-    glColor3ub(0,0,0);
     for i:= Ord(gtFood) to Ord(gtMusket) do
     begin
+      if ((TGoodType(i)=gtFood) or (cur_colony.GetStore(TGoodType(i)) <= (cur_colony.GetBuildingLevel(btWarehouse)+1)*100)) then
+        glColor3ub(0,0,0) //black numbers
+      else glColor3ub(255, 0, 0); //red numbers for goods that are more than the colony can store
       WriteText(IntToStr(cur_colony.GetStore(TGoodType(i))), (5+i*38)*PixelWidth, 4*PixelWidth -0.5);
     end;//for
   end//if
