@@ -15,20 +15,22 @@ type
   TTransferString = (tsBoycotted, tsOutOfGold, tsOutOfSpace);
   TOtherString = (osLocation, osDestination, osFreight, osShip, osHighSea,
                   osNewWorld, osMoves, osEmpty, osNothing, osNoChanges, osTax,
-                  osGold, osCost, osSaving, osEarnings, osUndefined);
+                  osGold, osCost, osSaving, osEarnings, osName, osUndefined);
   TEuroPortString = (epsManageHeading, epsNotOnShip, epsGoOnShip, epsArm, epsDisarm, epsGiveHorses, epsNoHorses, epsGiveTools, epsNoTools, epsTrainHeading, epsBuyHeading);
   TReportType = (rtNone, rtEconomy, rtColony, rtFleet, rtForeign, rtScore);
   TColonyString = (csRenameQuestion, csRenameLabel, csAbandonYes, csAbandonNo, csAbandonQuestion);
   TColonyUnitString = (cusOptions, cusCancelOrders, cusOnBoard, cusFortify);
   TBuildingString = (bsUnderConstruction, bsSelectNext, bsNotify, bsMaxThree);
   TPioneerString = (psNoTools, psHasRoad, psIsPloughed, psIsCleared, psNeedsClearing, psWrongUnit);
-  TReportLabelString = (//report for colonization score 
+  TReportLabelString = (//report for colonization score
                         rlsColonizationScore, rlsCitizens, rlsContinentalCongress,
                         rlsVillagesBurned, rlsTotalScore,
                         //foreign affairs report
                         rlsForeignAffairs, rlsRebels, rlsLoyalists, rlsWar,
                         rlsPeace, rlsColonies, rlsAverageColony, rlsPopulation,
-                        rlsMilitaryPower, rlsNavalPower, rlsMerchantMarine);
+                        rlsMilitaryPower, rlsNavalPower, rlsMerchantMarine,
+                        //colony report
+                        rlsMilitaryGarrisons, rlsSonsOfLiberty);
 
 
   { ********
@@ -537,6 +539,7 @@ begin
   Others[osCost]:= 'Kosten';
   Others[osSaving]:= 'Einsparung';
   Others[osEarnings]:= 'Gewinn';
+  Others[osName]:= 'Name';
   Others[osUndefined]:= 'Nicht definiert';
   //save/ load messages
   SaveLoad[slsLoadChoose]:= 'Wählen Sie den zu ladenden Spielstand.';
@@ -635,7 +638,9 @@ begin
   ReportLabels[rlsMilitaryPower]:= 'Militärmacht';
   ReportLabels[rlsNavalPower]:= 'Marinemacht';
   ReportLabels[rlsMerchantMarine]:= 'Handelsmarine';
-
+  // --- colony report
+  ReportLabels[rlsMilitaryGarrisons]:= 'Militärgarnison';
+  ReportLabels[rlsSonsOfLiberty]:= 'Söhne der Freiheit';
   //founding fathers
   InitialFoundingFathers;
 

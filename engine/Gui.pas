@@ -209,7 +209,7 @@ const
     );
 
   { caption of game window }
-  cWindowCaption = 'Vespucci v0.01.r140';
+  cWindowCaption = 'Vespucci v0.01.r141';
 
   { text colour (greenish) }
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
@@ -277,6 +277,7 @@ type
       focused: TUnit;
       dat: TData;
       report: TReportType;
+      report_pages: Integer;
       //text messages
       msg: record
              txt: AnsiString;
@@ -396,6 +397,9 @@ type
 
       { draws the current report (if any) }
       procedure DrawReport;
+
+      { draws the colony report }
+      procedure DrawColonyReport;
 
       { draws the foreign affairs report }
       procedure DrawForeignAffairsReport;
@@ -883,6 +887,7 @@ begin
   menu_cat:= mcNone;
   selected_menu_option:= 1;
   report:= rtNone;
+  report_pages:= 0;
   cur_colony:= nil;
   ColonyBuildingPage:= False;
   europe:= nil;
@@ -1239,7 +1244,11 @@ begin
   begin
     if InColony then cur_colony:= nil
     else if InEurope then europe:= nil
-    else if InReport then report:= rtNone
+    else if InReport then
+    begin
+      report_pages:= report_pages -1;
+      if (report_pages<=0) then report:= rtNone;
+    end
     else begin
       temp_cb._type:= CBT_EXIT;
       temp_cb.cbExit:= @CBF_Exit;
@@ -1250,7 +1259,10 @@ begin
   if InReport then
   begin
     case KEY of
-      KEY_RETURN, KEY_SPACE: report:= rtNone;
+      KEY_RETURN, KEY_SPACE: begin
+                               report_pages:= report_pages -1;
+                               if (report_pages<=0) then report:= rtNone;
+                             end;//return, space
     end;//case
     Exit;
   end;//if InReport
@@ -1945,7 +1957,11 @@ begin
 
   if InReport then
   begin
-    if ((button=GLUT_LEFT) and (state=GLUT_UP)) then report:= rtNone;
+    if ((button=GLUT_LEFT) and (state=GLUT_UP)) then
+    begin
+      report_pages:= report_pages-1;
+      if report_pages<=0 then report:= rtNone;
+    end;//if
     {$IFDEF DEBUG_CODE}
     WriteLn('Exiting TGui.MouseFunc');
     {$ENDIF}
@@ -3329,63 +3345,7 @@ begin
                  end;//for i
                end;//if
              end;//rtFleet
-    rtColony: begin
-                glColor3ubv(@cMenuTextColour[0]);
-                WriteText(dat.GetLang.GetMenuOption(mcReports, 2), 3.0, y_Fields-0.25);
-                WriteText('Name', 0.5, y_Fields-0.75);
-                WriteText('Einheiten', 6.5, y_Fields-0.75);
-                col_arr:= dat.GetColonyList(dat.PlayerNation);
-                if length(col_arr)>0 then
-                begin
-                  for i:= 0 to Min(High(col_arr), y_Fields) do
-                  begin
-                    if (m_ColonyTexNames[0]<>0) then
-                    begin
-                      glEnable(GL_TEXTURE_2D);
-                      glEnable(GL_ALPHA_TEST);
-                      glBindTexture(GL_TEXTURE_2D, m_ColonyTexNames[0]);
-                      glBegin(GL_QUADS);
-                        glColor3f(1.0, 1.0, 1.0);
-                        glTexCoord2f(0.0, 0.0);
-                        glVertex2f(0.0, y_Fields-2-i);
-                        glTexCoord2f(1.0, 0.0);
-                        glVertex2f(1.0, y_Fields-2-i);
-                        glTexCoord2f(1.0, 1.0);
-                        glVertex2f(1.0, y_Fields-1-i);
-                        glTexCoord2f(0.0, 1.0);
-                        glVertex2f(0.0, y_Fields-1-i);
-                      glEnd;
-                      glDisable(GL_ALPHA_TEST);
-                      glDisable(GL_TEXTURE_2D);
-                    end;//if ColonyTex present
-                    glColor3ubv(@CMenuTextColour[0]);
-                    WriteText(IntToStr(col_arr[i].GetInhabitants), 1.25, y_Fields-1.75-i);
-                    WriteText(col_arr[i].GetName, 2.25, y_Fields-1.75-i);
-                    u_arr:= dat.GetAllUnitsInColony(col_arr[i]);
-                    glEnable(GL_TEXTURE_2D);
-                    glEnable(GL_ALPHA_TEST);
-                    for j:= 0 to min(20, High(u_arr)) do
-                    begin
-                      DrawUnitIcon(u_arr[j], 7.0+j, y_Fields-2-i, True, True);
-                    end;//for
-                    glDisable(GL_ALPHA_TEST);
-                    glDisable(GL_TEXTURE_2D);
-                  end;//for
-                end//if
-                else begin
-                  glColor3f(0.0, 0.0, 0.0);
-                  i:= TextWidthTimesRoman24('You have no colonies yet.');
-                  j:= (cWindowWidth-i) div 2;
-                  glBegin(GL_QUADS);
-                    glVertex2f(j*PixelWidth-1.0, y_Fields-4.75);
-                    glVertex2f((i+j)*PixelWidth+1.0, y_Fields-4.75);
-                    glVertex2f((i+j)*PixelWidth+1.0, y_Fields-3.75);
-                    glVertex2f(j*PixelWidth-1.0, y_Fields-3.75);
-                  glEnd;
-                  glColor3ub(255, 0, 0);
-                  WriteTimesRoman24('You have no colonies yet.', j*PixelWidth, y_Fields-4.5);
-                end;//else
-              end;//rtColony
+    rtColony: DrawColonyReport;
     rtForeign: DrawForeignAffairsReport;
     rtScore: begin
                u_arr:= dat.GetAllNonCargoUnits(dat.PlayerNation);
@@ -3416,7 +3376,7 @@ begin
                WriteText(dat.GetLang.GetReportString(rlsContinentalCongress)
                          +': +'+IntToStr(score.Congress), 0.5, y_Fields-4.0);
                //show list of congress members
-               j:= 0; //counts how many of them we already have been writing
+               j:= 0; //counts how many of them we already have been written
                for i:= Ord(Low(TFoundingFathers)) to Ord(High(TFoundingFathers)) do
                begin
                  if ((dat.GetNation(dat.PlayerNation) as TEuropeanNation).HasFoundingFather(TFoundingFathers(i))) then
@@ -3455,6 +3415,163 @@ begin
              end;//rtScore
   end;//case
 end;//proc
+
+procedure TGui.DrawColonyReport;
+var col_arr: TColonyArr;
+    u_arr:   TUnitArr;
+    i, j: Integer;
+    tempUnit: TUnit;
+begin
+  if (report_pages=2) then
+  begin
+    glColor3ubv(@cMenuTextColour[0]);
+    WriteText(dat.GetLang.GetMenuOption(mcReports, 2), 3.0, y_Fields-0.25);
+    WriteText(dat.GetLang.GetOthers(osName), 0.5, y_Fields-0.75);
+    WriteText(dat.GetLang.GetReportString(rlsMilitaryGarrisons), 6.5, y_Fields-0.75);
+    col_arr:= dat.GetColonyList(dat.PlayerNation);
+    if length(col_arr)>0 then
+    begin
+      for i:= 0 to Min(High(col_arr), y_Fields) do
+      begin
+        if (m_ColonyTexNames[0]<>0) then
+        begin
+          glEnable(GL_TEXTURE_2D);
+          glEnable(GL_ALPHA_TEST);
+          glBindTexture(GL_TEXTURE_2D, m_ColonyTexNames[0]);
+          glBegin(GL_QUADS);
+            glColor3f(1.0, 1.0, 1.0);
+            glTexCoord2f(0.0, 0.0);
+            glVertex2f(0.0, y_Fields-2-i);
+            glTexCoord2f(1.0, 0.0);
+            glVertex2f(1.0, y_Fields-2-i);
+            glTexCoord2f(1.0, 1.0);
+            glVertex2f(1.0, y_Fields-1-i);
+            glTexCoord2f(0.0, 1.0);
+            glVertex2f(0.0, y_Fields-1-i);
+          glEnd;
+          glDisable(GL_ALPHA_TEST);
+          glDisable(GL_TEXTURE_2D);
+        end;//if ColonyTex present
+        glColor3ubv(@CMenuTextColour[0]);
+        WriteText(IntToStr(col_arr[i].GetInhabitants), 1.25, y_Fields-1.75-i);
+        WriteText(col_arr[i].GetName, 2.25, y_Fields-1.75-i);
+        u_arr:= dat.GetAllUnitsInColony(col_arr[i]);
+        glEnable(GL_TEXTURE_2D);
+        glEnable(GL_ALPHA_TEST);
+        for j:= 0 to min(20, High(u_arr)) do
+        begin
+          DrawUnitIcon(u_arr[j], 7.0+j, y_Fields-2-i, True, True);
+        end;//for
+        glDisable(GL_ALPHA_TEST);
+        glDisable(GL_TEXTURE_2D);
+      end;//for
+    end//if
+    else begin
+      glColor3f(0.0, 0.0, 0.0);
+      i:= TextWidthTimesRoman24('You have no colonies yet.');
+      j:= (cWindowWidth-i) div 2;
+      glBegin(GL_QUADS);
+        glVertex2f(j*PixelWidth-1.0, y_Fields-4.75);
+        glVertex2f((i+j)*PixelWidth+1.0, y_Fields-4.75);
+        glVertex2f((i+j)*PixelWidth+1.0, y_Fields-3.75);
+        glVertex2f(j*PixelWidth-1.0, y_Fields-3.75);
+      glEnd;
+      glColor3ub(255, 0, 0);
+      WriteTimesRoman24('You have no colonies yet.', j*PixelWidth, y_Fields-4.5);
+    end;//else
+  end //report_pages=2
+  else begin //report_page <> 2
+    glColor3ubv(@cMenuTextColour[0]);
+    WriteText(dat.GetLang.GetMenuOption(mcReports, 2), 3.0, y_Fields-0.25);
+    WriteText(dat.GetLang.GetOthers(osName), 0.5, y_Fields-0.75);
+    WriteText(dat.GetLang.GetReportString(rlsSonsOfLiberty), 6.5, y_Fields-0.75);
+    col_arr:= dat.GetColonyList(dat.PlayerNation);
+    
+    if length(col_arr)>0 then
+    begin
+      for i:= 0 to Min(High(col_arr), y_Fields) do
+      begin
+        if (m_ColonyTexNames[0]<>0) then
+        begin
+          glEnable(GL_TEXTURE_2D);
+          glEnable(GL_ALPHA_TEST);
+          glBindTexture(GL_TEXTURE_2D, m_ColonyTexNames[0]);
+          glBegin(GL_QUADS);
+            glColor3f(1.0, 1.0, 1.0);
+            glTexCoord2f(0.0, 0.0);
+            glVertex2f(0.0, y_Fields-2-i);
+            glTexCoord2f(1.0, 0.0);
+            glVertex2f(1.0, y_Fields-2-i);
+            glTexCoord2f(1.0, 1.0);
+            glVertex2f(1.0, y_Fields-1-i);
+            glTexCoord2f(0.0, 1.0);
+            glVertex2f(0.0, y_Fields-1-i);
+          glEnd;
+          glDisable(GL_ALPHA_TEST);
+          glDisable(GL_TEXTURE_2D);
+        end;//if ColonyTex present
+        glColor3ubv(@cMenuTextColour[0]);
+        WriteText(IntToStr(col_arr[i].GetInhabitants), 1.25, y_Fields-1.75-i);
+        WriteText(col_arr[i].GetName, 2.25, y_Fields-1.75-i);
+        
+        //level of press (if present)
+        if col_arr[i].GetBuildingLevel(btPress)>0 then
+          WriteText(dat.GetLang.GetBuildingName(btPress, col_arr[i].GetBuildingLevel(btPress)),
+                    8.0, y_Fields-1.75-i);
+        
+        glEnable(GL_TEXTURE_2D);
+        glEnable(GL_ALPHA_TEST);
+        //production of liberty bells
+        // -- icon
+        if m_GoodTexNames[TGoodType(i)]<>0 then
+           glBindTexture(GL_TEXTURE_2D, m_GoodTexNames[gtLibertyBell])
+        else glBindTexture(GL_TEXTURE_2D, m_ErrorTexName);
+        glBegin(GL_QUADS);
+          glColor3f(1.0, 1.0, 1.0);
+          glTexCoord2f(0.0, 0.0);
+          glVertex2f(12.0, y_Fields-2-i);
+          glTexCoord2f(1.0, 0.0);
+          glVertex2f(13.0, y_Fields-2-i);
+          glTexCoord2f(1.0, 1.0);
+          glVertex2f(13.0, y_Fields-1-i);
+          glTexCoord2f(0.0, 1.0);
+          glVertex2f(12.0, y_Fields-1-i);
+        glEnd;
+        glDisable(GL_ALPHA_TEST);
+        glDisable(GL_TEXTURE_2D);
+        // -- number of bells produced          
+        glColor3ubv(@cMenuTextColour[0]);
+        WriteText(IntToStr(col_arr[i].GetTotalProduction(btTownHall)), 
+                  14.0, y_Fields-1.75-i);
+        // -- people in building
+        glColor3f(1.0, 1.0, 1.0);
+        glEnable(GL_TEXTURE_2D);
+        glEnable(GL_ALPHA_TEST);
+        for j:= 0 to 2 do
+        begin
+          tempUnit:= col_arr[i].GetUnitInBuilding(btTownHall, j);
+          if tempUnit<>nil then 
+          DrawUnitIcon(tempUnit, 16.0+j, y_Fields-2-i, True, false);
+        end;//for
+        glDisable(GL_ALPHA_TEST);
+        glDisable(GL_TEXTURE_2D);
+      end;//for
+    end//if
+    else begin
+      glColor3f(0.0, 0.0, 0.0);
+      i:= TextWidthTimesRoman24('You have no colonies yet.');
+      j:= (cWindowWidth-i) div 2;
+      glBegin(GL_QUADS);
+        glVertex2f(j*PixelWidth-1.0, y_Fields-4.75);
+        glVertex2f((i+j)*PixelWidth+1.0, y_Fields-4.75);
+        glVertex2f((i+j)*PixelWidth+1.0, y_Fields-3.75);
+        glVertex2f(j*PixelWidth-1.0, y_Fields-3.75);
+      glEnd;
+      glColor3ub(255, 0, 0);
+      WriteTimesRoman24('You have no colonies yet.', j*PixelWidth, y_Fields-4.5);
+    end;//else
+  end;// else (report_page<>2)
+end;//proc ColonyReport
 
 procedure TGui.DrawForeignAffairsReport;
 var i, j, count: Integer;
@@ -4378,11 +4495,26 @@ begin
                  if (not InWoodenMode) then
                  begin
                    case selected of
-                     1: report:= rtEconomy;
-                     2: report:= rtColony;
-                     3: report:= rtFleet;
-                     4: report:= rtForeign;
-                     5: report:= rtScore;
+                     1: begin
+                          report:= rtEconomy;
+                          report_pages:= 1;
+                        end;
+                     2: begin
+                          report_pages:= 2;
+                          report:= rtColony;
+                        end;
+                     3: begin
+                          report:= rtFleet;
+                          report_pages:= 1;
+                        end;
+                     4: begin
+                          report:= rtForeign;
+                          report_pages:= 1;
+                        end;
+                     5: begin
+                          report:= rtScore;
+                          report_pages:= 1;
+                        end;  
                    end;//case
                  end;//if
                end;//mcReports
