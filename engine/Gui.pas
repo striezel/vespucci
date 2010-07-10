@@ -209,7 +209,7 @@ const
     );
 
   { caption of game window }
-  cWindowCaption = 'Vespucci v0.01.r141';
+  cWindowCaption = 'Vespucci v0.01.r142';
 
   { text colour (greenish) }
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
@@ -403,6 +403,9 @@ type
 
       { draws the foreign affairs report }
       procedure DrawForeignAffairsReport;
+      
+      { draws the job report }
+      procedure DrawJobReport;
 
       { draws the menu (if active) }
       procedure DrawMenu;
@@ -3172,6 +3175,7 @@ var i, j, freight_offset: Integer;
 begin
   //only economy, fleet, colony (partially) and score (part.) implemented yet
   case Report of
+    rtJob: DrawJobReport;
     rtEconomy: begin
                  col_arr:= dat.GetColonyList(dat.PlayerNation);
 
@@ -3486,7 +3490,7 @@ begin
     WriteText(dat.GetLang.GetOthers(osName), 0.5, y_Fields-0.75);
     WriteText(dat.GetLang.GetReportString(rlsSonsOfLiberty), 6.5, y_Fields-0.75);
     col_arr:= dat.GetColonyList(dat.PlayerNation);
-    
+
     if length(col_arr)>0 then
     begin
       for i:= 0 to Min(High(col_arr), y_Fields) do
@@ -3513,12 +3517,12 @@ begin
         glColor3ubv(@cMenuTextColour[0]);
         WriteText(IntToStr(col_arr[i].GetInhabitants), 1.25, y_Fields-1.75-i);
         WriteText(col_arr[i].GetName, 2.25, y_Fields-1.75-i);
-        
+
         //level of press (if present)
         if col_arr[i].GetBuildingLevel(btPress)>0 then
           WriteText(dat.GetLang.GetBuildingName(btPress, col_arr[i].GetBuildingLevel(btPress)),
                     8.0, y_Fields-1.75-i);
-        
+
         glEnable(GL_TEXTURE_2D);
         glEnable(GL_ALPHA_TEST);
         //production of liberty bells
@@ -3539,9 +3543,9 @@ begin
         glEnd;
         glDisable(GL_ALPHA_TEST);
         glDisable(GL_TEXTURE_2D);
-        // -- number of bells produced          
+        // -- number of bells produced
         glColor3ubv(@cMenuTextColour[0]);
-        WriteText(IntToStr(col_arr[i].GetTotalProduction(btTownHall)), 
+        WriteText(IntToStr(col_arr[i].GetTotalProduction(btTownHall)),
                   14.0, y_Fields-1.75-i);
         // -- people in building
         glColor3f(1.0, 1.0, 1.0);
@@ -3550,7 +3554,7 @@ begin
         for j:= 0 to 2 do
         begin
           tempUnit:= col_arr[i].GetUnitInBuilding(btTownHall, j);
-          if tempUnit<>nil then 
+          if tempUnit<>nil then
           DrawUnitIcon(tempUnit, 16.0+j, y_Fields-2-i, True, false);
         end;//for
         glDisable(GL_ALPHA_TEST);
@@ -3646,6 +3650,46 @@ begin
               7.0, y_Fields-3.0 -(i-cMinEuropean)*3.0);
   end;//for
 end;//proc Foreign affairs report
+
+procedure TGui.DrawJobReport;
+var ut: TUnitType;
+    i: Integer;
+    w_arr: TWorkArray;
+begin
+  i:= (cWindowWidth-length(dat.GetLang.GetReportString(rlsJobReport))*8) div 2;
+  glColor3ubv(@CMenuTextColour[0]);
+  WriteText(dat.GetLang.GetReportString(rlsJobReport), i*PixelWidth, y_Fields);
+  w_arr:= dat.GetWorkArray(dat.PlayerNation);
+  i:= 0;
+  ut:= utCriminal;
+  while ut<=utDragoon do
+  begin
+    glEnable(GL_TEXTURE_2D);
+    glEnable(GL_ALPHA_TEST);
+    if (m_UnitTexNames[ut]=0) then glBindTexture(GL_TEXTURE_2D, m_ErrorTexName)
+    else glBindTexture(GL_TEXTURE_2D, m_UnitTexNames[ut]);
+    //the unit icon
+    glBegin(GL_QUADS);
+      glColor3f(1.0, 1.0, 1.0);
+      glTexCoord2f(0.0, 0.0);
+      glVertex2f(0.5+(i mod 3)*6.5 , y_Fields-2-(i div 3));
+      glTexCoord2f(1.0, 0.0);
+      glVertex2f(1.5+(i mod 3)*6.5, y_Fields-2-(i div 3));
+      glTexCoord2f(1.0, 1.0);
+      glVertex2f(1.5+(i mod 3)*6.5, y_Fields-1-(i div 3));
+      glTexCoord2f(0.0, 1.0);
+      glVertex2f(0.5+(i mod 3)*6.5, y_Fields-1-(i div 3));
+    glEnd;
+    glDisable(GL_ALPHA_TEST);
+    glDisable(GL_TEXTURE_2D);
+    //unit name and number of units
+    glColor3ubv(@cMenuTextColour[0]);
+    WriteText(dat.GetLang.GetUnitName(ut), 2.0+(i mod 3)*6.5 , y_Fields-1.5-(i div 3));
+    WriteText(IntToStr(w_arr[ut]), 3.5+(i mod 3)*6.5 , y_Fields-2.0-(i div 3));
+    i:= i+1;
+    ut:= Succ(ut);
+  end;//while
+end;//proc
 
 procedure TGui.DrawMenu;
 var count, i, max_len: Integer;
@@ -4496,25 +4540,29 @@ begin
                  begin
                    case selected of
                      1: begin
-                          report:= rtEconomy;
+                          report:= rtJob;
                           report_pages:= 1;
                         end;
                      2: begin
+                          report:= rtEconomy;
+                          report_pages:= 1;
+                        end;
+                     3: begin
                           report_pages:= 2;
                           report:= rtColony;
                         end;
-                     3: begin
+                     4: begin
                           report:= rtFleet;
                           report_pages:= 1;
                         end;
-                     4: begin
+                     5: begin
                           report:= rtForeign;
                           report_pages:= 1;
                         end;
-                     5: begin
+                     6: begin
                           report:= rtScore;
                           report_pages:= 1;
-                        end;  
+                        end;
                    end;//case
                  end;//if
                end;//mcReports

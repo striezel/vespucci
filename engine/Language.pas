@@ -17,7 +17,7 @@ type
                   osNewWorld, osMoves, osEmpty, osNothing, osNoChanges, osTax,
                   osGold, osCost, osSaving, osEarnings, osName, osUndefined);
   TEuroPortString = (epsManageHeading, epsNotOnShip, epsGoOnShip, epsArm, epsDisarm, epsGiveHorses, epsNoHorses, epsGiveTools, epsNoTools, epsTrainHeading, epsBuyHeading);
-  TReportType = (rtNone, rtEconomy, rtColony, rtFleet, rtForeign, rtScore);
+  TReportType = (rtNone, rtJob, rtEconomy, rtColony, rtFleet, rtForeign, rtScore);
   TColonyString = (csRenameQuestion, csRenameLabel, csAbandonYes, csAbandonNo, csAbandonQuestion);
   TColonyUnitString = (cusOptions, cusCancelOrders, cusOnBoard, cusFortify);
   TBuildingString = (bsUnderConstruction, bsSelectNext, bsNotify, bsMaxThree);
@@ -30,7 +30,9 @@ type
                         rlsPeace, rlsColonies, rlsAverageColony, rlsPopulation,
                         rlsMilitaryPower, rlsNavalPower, rlsMerchantMarine,
                         //colony report
-                        rlsMilitaryGarrisons, rlsSonsOfLiberty);
+                        rlsMilitaryGarrisons, rlsSonsOfLiberty,
+                        //job report
+                        rlsJobReport);
 
 
   { ********
@@ -403,11 +405,12 @@ begin
   MenuOptions[mcOrders, 6]:= 'Keine Befehle';
   MenuOptions[mcOrders, 7]:= 'Einheit auflösen';
   // -- Berichte
-  MenuOptions[mcReports, 1]:= 'Wirtschaftsbericht';
-  MenuOptions[mcReports, 2]:= 'Koloniebericht';
-  MenuOptions[mcReports, 3]:= 'Flottenbericht';
-  MenuOptions[mcReports, 4]:= 'Außenpolitikbericht';
-  MenuOptions[mcReports, 5]:= 'Kolonialisierungspunkte';
+  MenuOptions[mcReports, 1]:= 'Arbeitsbericht';
+  MenuOptions[mcReports, 2]:= 'Wirtschaftsbericht';
+  MenuOptions[mcReports, 3]:= 'Koloniebericht';
+  MenuOptions[mcReports, 4]:= 'Flottenbericht';
+  MenuOptions[mcReports, 5]:= 'Außenpolitikbericht';
+  MenuOptions[mcReports, 6]:= 'Kolonialisierungspunkte';
   // -- Handel
   MenuOptions[mcTrade, 1]:= 'Handelsroute festlegen';
   MenuOptions[mcTrade, 2]:= 'Handelsroute ändern';
@@ -641,6 +644,8 @@ begin
   // --- colony report
   ReportLabels[rlsMilitaryGarrisons]:= 'Militärgarnison';
   ReportLabels[rlsSonsOfLiberty]:= 'Söhne der Freiheit';
+  // --- job report
+  ReportLabels[rlsJobReport]:= 'Arbeitsbericht';
   //founding fathers
   InitialFoundingFathers;
 
