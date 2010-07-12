@@ -26,8 +26,8 @@ type
   { type to represent an array of (short, i.e. <255 characters) strings }
   TShortStrArr = array of ShortString;
 
-  { returns the string representation of an integer value 
-  
+  { returns the string representation of an integer value
+
     parameters:
         i - the integer value
 
@@ -39,29 +39,37 @@ type
   }
   function IntToStr(const i: Integer): string;
   
+  { returns the length that the string representation of the given integer
+    would have
+
+    parameters:
+        i - the integer value
+  }
+  function IntegerLength(const i: Integer): Byte;
+
   { returns a string array with the two specified elements
-  
+
     parameters:
         see overloaded version of function below
   }
   function ToShortStrArr(const s1, s2: ShortString): TShortStrArr; overload;
-  
+
   { returns a string array with the three specified elements
-  
+
     parameters:
         see overloaded version of function below
   }
   function ToShortStrArr(const s1, s2, s3: ShortString): TShortStrArr; overload;
-  
+
   { returns a string array with the four specified elements
-  
+
     parameters:
         see overloaded version of function below
   }
   function ToShortStrArr(const s1, s2, s3, s4: ShortString): TShortStrArr; overload;
-  
+
   { returns a string array with the five specified elements
-  
+
     parameters:
         s1 - first string in the returned array
         s2 - second string in the returned array
@@ -70,9 +78,9 @@ type
         s5 - fifth string in the returned array
   }
   function ToShortStrArr(const s1, s2, s3, s4, s5: ShortString): TShortStrArr; overload;
-  
+
   { returns a string array that is constructed by the given string and the array
-  
+
     parameters:
         s1  - first string in the returned array
         arr - array that holds the rest of the returned array's elements
@@ -85,7 +93,7 @@ type
         len - length of the string (=number of spaces)
   }
   function SpaceString(const len: Byte): string;
-  
+
   { "trims" a string, i.e. deletes all leading and trailing spaces, and returns
     the trimmed string
 
@@ -135,6 +143,25 @@ implementation
 function IntToStr(const i: Integer): string;
 begin
   Str(i, Result);
+end;//func
+
+function IntegerLength(const i: Integer): Byte;
+begin
+  if i<0 then Result:= IntegerLength(-i)+1
+  else begin
+    case i of
+      0..9: Result:= 1;
+      10..99: Result:= 2;
+      100..999: Result:= 3;
+      1000..9999: Result:= 4;
+      10000..99999: Result:= 5;
+      100000..999999: Result:= 6;
+      1000000..9999999: Result:= 7;
+      10000000..99999999: Result:= 8;
+      100000000..999999999: Result:= 9;
+    else Result:= 10;
+    end;//case
+  end;//else
 end;//func
 
 function ToShortStrArr(const s1, s2: ShortString): TShortStrArr; overload;

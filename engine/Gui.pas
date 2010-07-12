@@ -209,7 +209,7 @@ const
     );
 
   { caption of game window }
-  cWindowCaption = 'Vespucci v0.01.r142';
+  cWindowCaption = 'Vespucci v0.01.r143';
 
   { text colour (greenish) }
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
@@ -403,7 +403,7 @@ type
 
       { draws the foreign affairs report }
       procedure DrawForeignAffairsReport;
-      
+
       { draws the job report }
       procedure DrawJobReport;
 
@@ -2259,14 +2259,11 @@ begin
         tempUnit:= dat.GetFirstUnitInXY(i,j);
         if (tempUnit<>nil) then
         begin
-          if (m_UnitTexNames[tempUnit.GetType]<>0) then
-          begin
-            glEnable(GL_TEXTURE_2D);
-            glEnable(GL_ALPHA_TEST);
-            DrawUnitIcon(tempUnit, i-OffsetX, -j-1+y_Fields+OffsetY, False, True);
-            glDisable(GL_ALPHA_TEST);
-            glDisable(GL_TEXTURE_2D);
-          end;//if
+          glEnable(GL_TEXTURE_2D);
+          glEnable(GL_ALPHA_TEST);
+          DrawUnitIcon(tempUnit, i-OffsetX, -j-1+y_Fields+OffsetY, true, True);
+          glDisable(GL_ALPHA_TEST);
+          glDisable(GL_TEXTURE_2D);
         end;//if
 
         //check for colony and draw icon, if present
@@ -2362,25 +2359,24 @@ begin
     // - info about focused unit
     if focused<>nil then
     begin
+      //draw unit icon
+      glEnable(GL_TEXTURE_2D);
+      glEnable(GL_ALPHA_TEST);
       if m_UnitTexNames[focused.GetType]<>0 then
-      begin
-        //draw unit icon
-        glEnable(GL_TEXTURE_2D);
-        glEnable(GL_ALPHA_TEST);
-        glBindTexture(GL_TEXTURE_2D, m_UnitTexNames[focused.GetType]);
-        glBegin(GL_QUADS);
-          glColor3f(1.0, 1.0, 1.0);
-          glTexCoord2f(0.0, 0.0);
-          glVertex2f(x_Fields + 4*PixelWidth, 7.0);
-          glTexCoord2f(1.0, 0.0);
-          glVertex2f(x_Fields + 36*PixelWidth, 7.0);
-          glTexCoord2f(1.0, 1.0);
-          glVertex2f(x_Fields + 36*PixelWidth, 8.0);
-          glTexCoord2f(0.0, 1.0);
-          glVertex2f(x_Fields + 4*PixelWidth, 8.0);
-        glEnd;
-        glDisable(GL_TEXTURE_2D);
-      end;//if Icon present
+        glBindTexture(GL_TEXTURE_2D, m_UnitTexNames[focused.GetType])
+      else glBindTexture(GL_TEXTURE_2D, m_ErrorTexName);
+      glBegin(GL_QUADS);
+        glColor3f(1.0, 1.0, 1.0);
+        glTexCoord2f(0.0, 0.0);
+        glVertex2f(x_Fields + 4*PixelWidth, 7.0);
+        glTexCoord2f(1.0, 0.0);
+        glVertex2f(x_Fields + 36*PixelWidth, 7.0);
+        glTexCoord2f(1.0, 1.0);
+        glVertex2f(x_Fields + 36*PixelWidth, 8.0);
+        glTexCoord2f(0.0, 1.0);
+        glVertex2f(x_Fields + 4*PixelWidth, 8.0);
+      glEnd;
+      glDisable(GL_TEXTURE_2D);
       // -- moves of unit
       glColor3ubv(@cMenuTextColour[0]);
       WriteText(dat.GetLang.GetOthers(osMoves)+': '+IntToStr(focused.MovesLeft),
@@ -2398,7 +2394,6 @@ begin
       if (focused.GetToolAmount>0) then
         WriteText(IntToStr(focused.GetToolAmount)+' '+dat.GetLang.GetGoodName(gtTool),
                   x_Fields +4*PixelWidth, 5.5);
-
     end;//if Focused unit present
 
     //draw menu, if present
@@ -3227,7 +3222,13 @@ begin
                    begin
                      WriteText(col_arr[i].GetName, PixelWidth, y_Fields-2.5+4*PixelWidth-i*0.5);
                      for j:= Ord(gtFood) to Ord(gtMusket) do
-                       WriteText(IntToStr(col_arr[i].GetStore(TGoodType(j))), 4+2*PixelWidth+j-Ord(gtFood), y_Fields-2.5+4*PixelWidth-i*0.5)
+                     begin
+                       //calculate offset based on length of string
+                       freight_offset:= IntegerLength(col_arr[i].GetStore(TGoodType(j)))*4;
+                       WriteText(IntToStr(col_arr[i].GetStore(TGoodType(j))),
+                                 4+2*PixelWidth+0.5+j-Ord(gtFood)-freight_offset*PixelWidth,
+                                 y_Fields-2.5+4*PixelWidth-i*0.5);
+                     end;//for
                    end;//for
                  end//if
                  else begin

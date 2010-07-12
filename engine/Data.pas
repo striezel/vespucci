@@ -183,7 +183,8 @@ type
 
               { returns the first "lazy" unit of a nation, i.e. a unit that
                 still has some moves left. If no unit was found, nil will be
-                returned.
+                returned. Fortified units are not considered as "lazy", even if
+                they have some moves left.
 
                 parameters:
                     num_Nation - integer constant identifying the nation
@@ -618,7 +619,8 @@ begin
   for i:= 0 to Unit_max do
     if m_Units[i]<>nil then
     begin
-      if ((m_Units[i].MovesLeft>0) and (m_Units[i].GetNation=num_Nation) and (m_Units[i].GetLocation=ulAmerica)) then
+      if ((m_Units[i].MovesLeft>0) and (m_Units[i].GetNation=num_Nation) and
+          (m_Units[i].GetLocation=ulAmerica) and (m_Units[i].GetState<>usFortified)) then
       begin
         Result:= m_Units[i];
         break;
