@@ -83,7 +83,7 @@ type
     **** purpose: represents a single unit within the game, i.e. a colonist,
     ****          an Indian warrior, a ship,...
     ********
-    
+
       -TO-DO: function LoadGood() still uses a new slot for every good, even if there already is
        ****** an amount of the given good loaded (e.g. trying to load 20 food and
               then again less then 80 food will occupy two slots, even though a
@@ -116,12 +116,13 @@ type
 
       { tries to moves the unit into a given direction and returns true, if the
         unit could be moved
-      
+
         parameters:
             direction - the direction into which the unit should be moving
             AMap      - the current map
+            dat       - data structure
       }
-      function Move(const direction: TDirection; const AMap: TMap): Boolean;
+      function Move(const direction: TDirection; const AMap: TMap; const dat: Pointer): Boolean;
 
       { tries to "teleport" a unit to the given coordinates and returns true on
         success
@@ -129,7 +130,7 @@ type
         parameters:
             x, y - destination position of the unit
             AMap - the current map
-            
+
         remarks:
             This function always succeeds, except for positions which are not
             on the map. If a map is specified (i.e. not nil), the surrounding
@@ -147,7 +148,7 @@ type
       function GetNation: LongInt;
 
       { changes the nation of the unit
-      
+
         parameters:
             new_nation - the integer identifying the unit's new nation
       }
@@ -157,7 +158,7 @@ type
       function GetType: TUnitType;
 
       { changes the type of the unit
-      
+
         parameters:
             newType - the unit's new type
       }
@@ -168,7 +169,7 @@ type
         remarks:
             This is not to be confused with the "real" position, i.e. the map
             position of a unit. If you want to get that position, use
-            GetPosX() and GetPosY(). 
+            GetPosX() and GetPosY().
       }
       function GetLocation: TUnitLocation;
 
@@ -199,7 +200,7 @@ type
 
       { sets the number of rounds that the unit still is in open sea before it
         arrives in Europe or the new World
-      
+
         parameters:
             rounds_left - the amount of rounds left until arrival
       }
@@ -299,8 +300,8 @@ type
             slot - the slot (0-based, has to be less than six)
       }
       function GetPassengerBySlot(const slot: Byte): TUnit;
-      
-      
+
+
       { tries to load num units of good 'AGood', maximum is 100, and returns
         true, if the goods could be loaded onto the ship/caravan
 
@@ -318,9 +319,9 @@ type
             num   - the corresponding amount
       }
       function UnloadGood(const AGood: TGoodType; const num: Byte): Byte;
-      
+
       { tries to load a unit onto the ship and returns true on success
-      
+
         parameters:
             AUnit - the unit that will be loaded onto the ship
 
@@ -329,14 +330,14 @@ type
             or caravan itself.
       }
       function LoadUnit(AUnit: TUnit): Boolean;
-      
+
       { tries to unload a certain unit from a ship and returns true on success
 
         parameters:
             AType - the type of the unit that has to be unloaded
             x,y   - position of the unit after unloading it
             AMap  - the current map
-        
+
         remarks:
             The position (x;y) has to be adjacent to the ship's position or it
             should be the ship's position itself. Otherwise, the function will
@@ -406,7 +407,7 @@ type
             fs - the file stream the unit shall be saved to
       }
       function SaveToStream(var fs: TFileStream): Boolean;
-      
+
       { sets the good amount that the unit carries in a certain slot
 
         parameters:
@@ -492,9 +493,9 @@ type
             Derived classes have to implement their own version of that function.
       }
       function Execute: Boolean; virtual; abstract;
-      
+
       { returns the type of the task (something like a RTTI)
-      
+
         remarks:
             Derived classes have to implement their own version of that function.
       }
@@ -617,7 +618,7 @@ type
 
       { returns true, if the forest is cleared }
       function Done: Boolean; override;
-      
+
       { executes the next step of the task and returns true, if something was
         done. Usually, a return value of false indicates that the task is
         already done.
@@ -654,7 +655,7 @@ type
             SpecialY    - y-coordinate of the "special" field
       }
       constructor Create(const target_unit: TUnit; ToX, ToY: Byte; const AMap: TMap; const SpecialX: Byte=250; const SpecialY: Byte=250);
-      
+
       { destructor }
       destructor Destroy; override;
 
@@ -684,17 +685,17 @@ type
         dir - the direction
   }
   procedure ApplyDir(var x,y: Byte; const dir: TDirection);
-  
+
   { returns the direction that has to be applied to get from one square to
     another, adjacent square. If the two given squares are not directly
     adjacent, dirNone will be returned.
-  
+
     parameters:
         from_x,from_y - position of the first field
-        to_x, to_y    - position of the second/destination field  
+        to_x, to_y    - position of the second/destination field
   }
   function GetApplyingDirection(const from_x, from_y, to_x, to_y: Byte): TDirection;
-  
+
   { returns the best unit type for the production of a certain good. If no unit
     is found, utCriminal is returned.
 
@@ -702,7 +703,7 @@ type
         AGood - the type of good
   }
   function GetUnitForGood(const AGood: TGoodType): TUnitType;
-  
+
   { returns true, if the given unit type is an expert for producing the given
     good type
 
@@ -713,6 +714,8 @@ type
   function HasExpertStatus(const AGood: TGoodType; const ut: TUnitType): Boolean;
 
 implementation
+
+uses Colony, Data;
 
 //helper procedure
 procedure ApplyDir(var x,y: Byte; const dir: TDirection);
@@ -818,9 +821,11 @@ begin
   end;
 end;//proc
 
-function TUnit.Move(const direction: TDirection; const AMap: TMap): Boolean;
-var newX, newY: Integer;
+function TUnit.Move(const direction: TDirection; const AMap: TMap; const dat: Pointer): Boolean;
+var newX, newY, i: Integer;
     allow: Boolean;
+    tempCol: TColony;
+    u_arr: TUnitArr;
 begin
   if MovesLeft <= 0 then
     Result:= False
@@ -861,6 +866,25 @@ begin
         end;//if
       if direction<>dirNone then
       begin
+        //check ships
+        if IsShip and (AMap<>nil) then
+        begin
+          if (not AMap.tiles[PosX, PosY].IsWater) and (dat<>nil) then
+          begin
+            tempCol:= TData(dat).GetColonyInXY(PosX, PosY);
+            if tempCol<>nil then
+            begin
+              u_arr:= TData(dat).GetAllUnitsInColony(tempCol);
+              i:= 0;
+              while (FreeCapacity>0) and (i<=High(u_arr)) do
+              begin
+                if u_arr[i].GetState=usWaitingForShip then LoadUnit(u_arr[i]);
+                i:= i+1;
+              end;//while
+            end;
+          end;//if
+        end;//if ship and map present
+        //do the actual move
         MovesLeft:= MovesLeft -1;
         PosX:= newX;
         PosY:= newY;
@@ -1495,7 +1519,7 @@ begin
     WriteLn('-- apply dir.: ', Ord(direc));
     //end debug
 
-    target.Move(direc, m_Map);
+    target.Move(direc, m_Map, nil);
     if (target.GetPosX<>x) or (target.GetPosY<>y) then
     begin
       //check for special location
