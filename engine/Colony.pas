@@ -726,6 +726,9 @@ begin
     begin
       UnitsInFields[x_shift, y_shift].u.SetLocation(ulInColony);
       UnitsInFields[x_shift, y_shift].u.SetState(usNormal);
+      //tools are added to colony's store
+      AddToStore(gtTool, AUnit.GetToolAmount);
+      AUnit.GiveTools(0);
     end;//if
   end;//else
 end;//proc

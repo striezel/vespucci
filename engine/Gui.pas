@@ -209,7 +209,7 @@ const
     );
 
   { caption of game window }
-  cWindowCaption = 'Vespucci v0.01.r143';
+  cWindowCaption = 'Vespucci v0.01.r144';
 
   { text colour (greenish) }
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
@@ -1402,7 +1402,7 @@ begin
               focused.DropAllPassengers;
               focused.MovesLeft:= focused.MovesLeft-1;
             end
-            else focused.Move(direc, temp_Map);
+            else focused.Move(direc, temp_Map, dat);
           end//if temp_col<>nil
           else if (focused.EmbarkedPassengers>0) then
           begin
@@ -1418,11 +1418,11 @@ begin
             temp_cb.Landfall.AMap:= temp_Map;
             ShowMessageOptions(dat.GetLang.GetLandfall(0), ToShortStrArr(dat.GetLang.GetLandfall(1), dat.GetLang.GetLandfall(2)), temp_cb);
           end //if passengers>0
-          else focused.Move(direc, temp_Map);
+          else focused.Move(direc, temp_Map, dat);
         end//if not water
-        else focused.Move(direc, temp_Map);
+        else focused.Move(direc, temp_Map, dat);
       end//if IsShip
-      else focused.Move(direc, temp_Map);
+      else focused.Move(direc, temp_Map, dat);
     end;//if
     //check if unit moved out of sight, and center on it, if neccessary
     if focused<>nil then
