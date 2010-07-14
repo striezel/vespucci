@@ -209,7 +209,7 @@ const
     );
 
   { caption of game window }
-  cWindowCaption = 'Vespucci v0.01.r144';
+  cWindowCaption = 'Vespucci v0.01.r145';
 
   { text colour (greenish) }
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
@@ -2733,6 +2733,7 @@ procedure TGui.DrawColonyBuildings;
 var x, y: Single;
     i: Integer;
     level, production: Byte;
+    ENat: TEuropeanNation;
 begin
   //buildings
   for i:=Ord(Low(TBuildingType)) to Ord(High(TBuildingType)) do
@@ -2773,7 +2774,10 @@ begin
           glDisable(GL_TEXTURE_2D);
         end;//if unit present in building
       //draw production amount
-      production:= cur_colony.GetTotalProduction(TBuildingType(i));
+      ENat:= dat.GetNation(cur_colony.GetNation) as TEuropeanNation;
+      production:= cur_colony.GetTotalProduction(TBuildingType(i),
+                                                 ENat.HasFoundingFather(ffJefferson),
+                                                 ENat.HasFoundingFather(ffPenn));
       if (production>0) then
       begin
         //draw good icon
@@ -3546,8 +3550,10 @@ begin
         glDisable(GL_TEXTURE_2D);
         // -- number of bells produced
         glColor3ubv(@cMenuTextColour[0]);
-        WriteText(IntToStr(col_arr[i].GetTotalProduction(btTownHall)),
-                  14.0, y_Fields-1.75-i);
+        WriteText(IntToStr(col_arr[i].GetTotalProduction(btTownHall,
+          (dat.GetNation(col_arr[i].GetNation) as TEuropeanNation).HasFoundingFather(ffJefferson),
+           false {assume Penn is not present, because he isn't needed for town halls})),
+           14.0, y_Fields-1.75-i);
         // -- people in building
         glColor3f(1.0, 1.0, 1.0);
         glEnable(GL_TEXTURE_2D);
