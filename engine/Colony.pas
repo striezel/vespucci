@@ -145,18 +145,29 @@ type
       { returns the total amount of goods that is currently prodcued in a
          certain building
 
-        remarks:
-            bt - the type of the building
+        parameters:
+            bt           - the type of the building
+            HasJefferson - set this to true, if the nation the colony belongs to
+                           has Thomas Jefferson as one of its founding fathers
+            HasPenn      - set this to true, if the nation the colony belongs to
+                           has William Penn as one of its founding fathers
       }
-      function GetTotalProduction(const bt: TBuildingType): Integer;
+      function GetTotalProduction(const bt: TBuildingType; const HasJefferson, HasPenn: boolean): Integer;
 
       { starts a new round for that colony, i.e. adds produced goods to storage
         and so on
 
-        remarks:
-            AMap - the current map (needed to calculate production in some fields
+        parameters:
+            AMap         - the current map (needed to calculate production in
+                           some fields)
+            HasHudson    - set this to true, if the nation the colony belongs to
+                           has Henry Hudson as one of its founding fathers
+            HasJefferson - set this to true, if the nation the colony belongs to
+                           has Thomas Jefferson as one of its founding fathers
+            HasPenn      - set this to true, if the nation the colony belongs to
+                           has William Penn as one of its founding fathers
       }
-      procedure NewRound(const AMap: TMap);
+      procedure NewRound(const AMap: TMap; const HasHudson, HasJefferson, HasPenn: boolean);
 
       { returns the type of unit in a certain field, or nil if there is no unit
 
@@ -586,7 +597,7 @@ begin
   end;//case
 end;//func
 
-function TColony.GetTotalProduction(const bt: TBuildingType): Integer;
+function TColony.GetTotalProduction(const bt: TBuildingType; const HasJefferson, HasPenn: boolean): Integer;
 var i: Integer;
 begin
   if bt=btTownHall then
@@ -601,12 +612,22 @@ begin
     for i:=0 to 2 do
       if UnitsInBuilding[bt][i]<>nil then
         Result:=Result+GetProduction(bt, UnitsInBuilding[bt][i].GetType);
+        
+    //check for bonus caused by founding fathers
+    if ((bt=btTownHall) and (HasJefferson)) then
+    begin
+      Result:= (Result *3) div 2; //Jefferson adds 50% to liberty bells
+    end
+    else if ((bt=btChurch) and HasPenn) then
+    begin
+      Result:= (Result *3) div 2; //Penn adds 50% to crosses
+    end;//if
   end;//if
 end;//func
 
 //only calculates the good changes due to production in buildings;
 // and production in fields (i.e. by farmers)
-procedure TColony.NewRound(const AMap: TMap);
+procedure TColony.NewRound(const AMap: TMap; const HasHudson, HasJefferson, HasPenn: boolean);
 var i,j, prod: Integer;
     h, t: Word;
 begin
@@ -617,9 +638,17 @@ begin
       for j:= -1 to 1 do
         if (UnitsInFields[i,j].u<>nil) then
           if ((self.PosX+i>=0) and (self.PosX+i<cMap_X) and (self.PosY+j>=0) and (self.PosY+j<cMap_Y)) then
-            Store[UnitsInFields[i,j].GoesFor]:= Store[UnitsInFields[i,j].GoesFor] +
-             AMap.tiles[self.PosX+i, self.PosY+j].GetGoodProduction(UnitsInFields[i,j].GoesFor,
-                      HasExpertStatus(UnitsInFields[i,j].GoesFor, UnitsInFields[i,j].u.GetType));
+          begin
+            if (UnitsInFields[i,j].GoesFor=gtFur) and HasHudson then
+              //Hudson gives +100% to furhunters
+              Store[UnitsInFields[i,j].GoesFor]:= Store[UnitsInFields[i,j].GoesFor] +
+                2* AMap.tiles[self.PosX+i, self.PosY+j].GetGoodProduction(UnitsInFields[i,j].GoesFor,
+                        HasExpertStatus(UnitsInFields[i,j].GoesFor, UnitsInFields[i,j].u.GetType))
+            else //no fur or Hudson not present
+              Store[UnitsInFields[i,j].GoesFor]:= Store[UnitsInFields[i,j].GoesFor] +
+               AMap.tiles[self.PosX+i, self.PosY+j].GetGoodProduction(UnitsInFields[i,j].GoesFor,
+                        HasExpertStatus(UnitsInFields[i,j].GoesFor, UnitsInFields[i,j].u.GetType));
+          end;//if
     //calculate production in base (=central) field
     Store[gtFood]:= Store[gtFood]+AMap.tiles[PosX, PosY].GetColonyFood;
     Store[AMap.tiles[PosX, PosY].GetColonyGoodType]:=
@@ -627,41 +656,41 @@ begin
   end;//if
   //calculate production of all buildings
   //church first
-  Store[gtCross]:= Store[gtCross]+GetTotalProduction(btChurch);
+  Store[gtCross]:= Store[gtCross]+GetTotalProduction(btChurch, HasJefferson, HasPenn);
   //town hall second
-  Store[gtLibertyBell]:= Store[gtLibertyBell]+GetTotalProduction(btTownHall);
+  Store[gtLibertyBell]:= Store[gtLibertyBell]+GetTotalProduction(btTownHall, HasJefferson, HasPenn);
   //carpenter third
-  prod:= GetTotalProduction(btCarpenter);
+  prod:= GetTotalProduction(btCarpenter, HasJefferson, HasPenn);
   if Store[gtWood]<prod then prod:= Store[gtWood];
   Store[gtWood]:= Store[gtWood]-prod;
   Store[gtHammer]:= Store[gtHammer]+prod;
   //Blacksmith fourth
-  prod:= GetTotalProduction(btBlackSmith);
+  prod:= GetTotalProduction(btBlackSmith, HasJefferson, HasPenn);
   if Store[gtOre]<prod then prod:= Store[gtOre];
   Store[gtOre]:= Store[gtOre]-prod;
   Store[gtTool]:= Store[gtTool]+prod;
   //armory fifth
-  prod:= GetTotalProduction(btArmory);
+  prod:= GetTotalProduction(btArmory, HasJefferson, HasPenn);
   if Store[gtTool]<prod then prod:= Store[gtTool];
   Store[gtTool]:= Store[gtTool]-prod;
   Store[gtMusket]:= Store[gtMusket]+prod;
   //fur traders sixth
-  prod:= GetTotalProduction(btFurTrader);
+  prod:= GetTotalProduction(btFurTrader, HasJefferson, HasPenn);
   if Store[gtFur]<prod then prod:= Store[gtFur];
   Store[gtFur]:= Store[gtFur]-prod;
   Store[gtCoat]:= Store[gtCoat]+prod;
   //weaver seventh
-  prod:= GetTotalProduction(btWeaver);
+  prod:= GetTotalProduction(btWeaver, HasJefferson, HasPenn);
   if Store[gtCotton]<prod then prod:= Store[gtCotton];
   Store[gtCotton]:= Store[gtCotton]-prod;
   Store[gtCloth]:= Store[gtCloth]+prod;
   //tobacconist eight
-  prod:= GetTotalProduction(btTobacconist);
+  prod:= GetTotalProduction(btTobacconist, HasJefferson, HasPenn);
   if Store[gtTobacco]<prod then prod:= Store[gtTobacco];
   Store[gtTobacco]:= Store[gtTobacco]-prod;
   Store[gtCigar]:= Store[gtCigar]+prod;
   //distiller ninth
-  prod:= GetTotalProduction(btDistiller);
+  prod:= GetTotalProduction(btDistiller, HasJefferson, HasPenn);
   if Store[gtSugar]<prod then prod:= Store[gtSugar];
   Store[gtSugar]:= Store[gtSugar]-prod;
   Store[gtRum]:= Store[gtRum]+prod;

@@ -1002,6 +1002,7 @@ end;//func
 
 procedure TData.NewRound(const num_Nation: Integer);
 var i: Integer;
+    ENat: TEuropeanNation;
 begin
   //call NewRound method for every unit of that nation
   for i:= 0 to Unit_max do
@@ -1009,12 +1010,15 @@ begin
       if (m_Units[i].GetNation=num_Nation) then
         m_Units[i].NewRound;
   //call NewRound method for every colony
+  ENat:= GetNation(num_Nation) as TEuropeanNation;
   if not Autumn then //only in spring we produce, to avoid production twice a year
     for i:= 0 to Colony_max do
       if m_Colonies[i]<>nil then
         if (m_Colonies[i].GetNation=num_Nation) then
         begin
-          m_Colonies[i].NewRound(m_Map);
+          m_Colonies[i].NewRound(m_Map, ENat.HasFoundingFather(ffHudson),
+                                 ENat.HasFoundingFather(ffJefferson),
+                                 ENat.HasFoundingFather(ffPenn));
           //following should be implemented in TColony and not here
           if m_Colonies[i].GetStore(gtFood)>=200 then
           begin
