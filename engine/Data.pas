@@ -1004,7 +1004,6 @@ procedure TData.NewRound(const num_Nation: Integer);
 var i: Integer;
     ENat: TEuropeanNation;
     bells: Word;
-    tempUnit: TUnit;
 begin
   //call NewRound method for every unit of that nation
   for i:= 0 to Unit_max do

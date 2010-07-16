@@ -660,8 +660,8 @@ begin
   //church first
   Store[gtCross]:= Store[gtCross]+GetTotalProduction(btChurch, HasJefferson, HasPenn);
   //town hall second
-  Store[gtLibertyBell]:= Store[gtLibertyBell]+GetTotalProduction(btTownHall, HasJefferson, HasPenn);
   Bells:= GetTotalProduction(btTownHall, HasJefferson, HasPenn);
+  Store[gtLibertyBell]:= Store[gtLibertyBell]+Bells;
   //carpenter third
   prod:= GetTotalProduction(btCarpenter, HasJefferson, HasPenn);
   if Store[gtWood]<prod then prod:= Store[gtWood];
@@ -698,12 +698,6 @@ begin
   Store[gtSugar]:= Store[gtSugar]-prod;
   Store[gtRum]:= Store[gtRum]+prod;
 
-  //cut the amount we can't store off
-  for i:= Ord(Low(TGoodType)) to Ord(High(TGoodType)) do
-    if (not(TGoodType(i) in [gtFood, gtHammer, gtLibertyBell, gtCross])
-         and (Store[TGoodType(i)]>(1+buildings[btWarehouse])*100)) then
-      Store[TGoodType(i)]:= (1+buildings[btWarehouse])*100;
-
   //check for inhabitants and food needed
   i:= GetInhabitants*2;
   if RemoveFromStore(gtFood, i)<>i then
@@ -726,6 +720,12 @@ begin
     end;//if
   end;//if
 
+  //cut the amount we can't store off (check is after buildings, because colony
+  // might construct warehouse during that turn)
+  for i:= Ord(Low(TGoodType)) to Ord(High(TGoodType)) do
+    if (not(TGoodType(i) in [gtFood, gtHammer, gtLibertyBell, gtCross])
+         and (Store[TGoodType(i)]>(1+buildings[btWarehouse])*100)) then
+      Store[TGoodType(i)]:= (1+buildings[btWarehouse])*100;
 end;//func
 
 function TColony.GetUnitInField(const x_shift, y_shift: Integer): TUnit;

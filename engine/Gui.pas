@@ -209,7 +209,7 @@ const
     );
 
   { caption of game window }
-  cWindowCaption = 'Vespucci v0.01.r145';
+  cWindowCaption = 'Vespucci v0.01.r148';
 
   { text colour (greenish) }
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
@@ -2416,6 +2416,7 @@ var i,j: ShortInt;
     str_width: Integer;
     u_arr: TUnitArr;
     bt: TBuildingType;
+    h, t: Word;
 begin
   {$IFDEF DEBUG_CODE}
     WriteLn('Entered TGui.DrawColonyView');
@@ -2569,9 +2570,35 @@ begin
     tempStr:= dat.GetLang.GetBuildingString(bsUnderConstruction)+': '+
               dat.GetLang.GetBuildingName(bt, cur_colony.GetBuildingLevel(bt)+1);
     glColor3f(1.0, 1.0, 1.0);
-    //WriteText(tempStr , 3.25, 1.375);
     WriteText(tempStr , 7.5-length(tempStr)*PixelWidth*4, 1.375);
-
+    // ---- show progress (hammers and tools)
+    if (bt<>btNone) then
+    begin
+      glColor3ubv(@cMenuTextColour[0]);
+      WriteText(dat.GetLang.GetOthers(osProgress)+ ':',
+               cWindowWidth*PixelWidth-5.0, y_Fields-6.5);
+      GetBuildingCost(bt, cur_colony.GetBuildingLevel(bt)+1, h, t);
+      //hammers
+      WriteText(dat.GetLang.GetGoodName(gtHammer)+': ',
+                cWindowWidth*PixelWidth-4.75, y_Fields-7.0);
+      if (h>0) then
+        WriteText(IntToStr(cur_colony.GetStore(gtHammer))+'/'+IntToStr(h)+' ('
+                  +IntToStr((cur_colony.GetStore(gtHammer)*100) div h) +'%)',
+                  cWindowWidth*PixelWidth-4.5, y_Fields-7.5)
+      else
+        WriteText(IntToStr(cur_colony.GetStore(gtHammer))+'/'+IntToStr(h)
+                  +' (100%)', cWindowWidth*PixelWidth-4.5, y_Fields-7.5);
+      //tools
+      WriteText(dat.GetLang.GetGoodName(gtTool)+': ',
+                cWindowWidth*PixelWidth-4.75, y_Fields-8.0);
+      if (t>0) then
+        WriteText(IntToStr(cur_colony.GetStore(gtTool))+'/'+IntToStr(t)+' ('
+                  +IntToStr((cur_colony.GetStore(gtTool)*100) div t) +'%)',
+                  cWindowWidth*PixelWidth-4.5, y_Fields-8.5)
+      else
+        WriteText(IntToStr(cur_colony.GetStore(gtTool))+'/'+IntToStr(t)
+                  +' (100%)', cWindowWidth*PixelWidth-4.5, y_Fields-8.5);
+    end;//if bt not equal btNone
     //text, if mouse hovers over buildings
     bt:= GetBuildingAtMouse(mouse.x, mouse.y);
     if (bt<>btNone) then
