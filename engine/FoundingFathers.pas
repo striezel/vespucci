@@ -20,7 +20,20 @@ type
                          fftReligious);
   TFoundingType = TFoundingFatherType; //alias to ease coding a bit
 
+  { returns the type/ area a founding father belongs to
+
+    parameters:
+        ff - enumeration value that identifies the founding father
+  }
   function GetFoundingFatherType(const ff: TFoundingFathers): TFoundingType;
+
+  { returns the amount of liberty bells that are required for the n-th founding
+    father to join the congress
+
+    parameters:
+        n - number of the next founding father (1-based, that is)
+  }
+  function GetRequiredLibertyBells(const n: Byte): Word;
 
 implementation
 
@@ -33,6 +46,12 @@ begin
     ffBolivar..ffPocahontas: Result:= fftPolitical;
   else Result:= fftReligious;
   end;//case
+end;//func
+
+function GetRequiredLibertyBells(const n: Byte): Word;
+begin
+  if n>0 then Result:= 80*n-50 //usual formula
+  else Result:= 0; // prevents negative result in case of invalid parameter
 end;//func
 
 end.
