@@ -166,8 +166,10 @@ type
                            has Thomas Jefferson as one of its founding fathers
             HasPenn      - set this to true, if the nation the colony belongs to
                            has William Penn as one of its founding fathers
+            Bells        - a Word that is used to store the amount of liberty
+                           bells that were produced in that turn
       }
-      procedure NewRound(const AMap: TMap; const HasHudson, HasJefferson, HasPenn: boolean);
+      procedure NewRound(const AMap: TMap; const HasHudson, HasJefferson, HasPenn: Boolean; var Bells: Word);
 
       { returns the type of unit in a certain field, or nil if there is no unit
 
@@ -612,7 +614,7 @@ begin
     for i:=0 to 2 do
       if UnitsInBuilding[bt][i]<>nil then
         Result:=Result+GetProduction(bt, UnitsInBuilding[bt][i].GetType);
-        
+
     //check for bonus caused by founding fathers
     if ((bt=btTownHall) and (HasJefferson)) then
     begin
@@ -627,7 +629,7 @@ end;//func
 
 //only calculates the good changes due to production in buildings;
 // and production in fields (i.e. by farmers)
-procedure TColony.NewRound(const AMap: TMap; const HasHudson, HasJefferson, HasPenn: boolean);
+procedure TColony.NewRound(const AMap: TMap; const HasHudson, HasJefferson, HasPenn: Boolean; var Bells: Word);
 var i,j, prod: Integer;
     h, t: Word;
 begin
@@ -659,6 +661,7 @@ begin
   Store[gtCross]:= Store[gtCross]+GetTotalProduction(btChurch, HasJefferson, HasPenn);
   //town hall second
   Store[gtLibertyBell]:= Store[gtLibertyBell]+GetTotalProduction(btTownHall, HasJefferson, HasPenn);
+  Bells:= GetTotalProduction(btTownHall, HasJefferson, HasPenn);
   //carpenter third
   prod:= GetTotalProduction(btCarpenter, HasJefferson, HasPenn);
   if Store[gtWood]<prod then prod:= Store[gtWood];

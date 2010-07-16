@@ -15,6 +15,9 @@ type
                       //religious
                       ffBrebeuf, ffBrewster, ffLasCasas, ffPenn, ffSepulveda);
 
+  //array type
+  TFoundingFatherArray = array of TFoundingFathers;
+  
   { enumeration type for area of founding fathers }
   TFoundingFatherType = (fftTrade, fftExploration, fftMilitary, fftPolitical,
                          fftReligious);

@@ -187,6 +187,11 @@ type
       m_VillagesBurned: LongInt;
       //list of current founding fathers
       m_FoundingFathers: array[TFoundingFathers] of Boolean;
+      //next founding father
+      m_NextFoundingFather: TFoundingFathers;
+      m_NextFFActive: Boolean; //false, if above value was not set yet/ expired
+      //number of collected liberty bells since last founding father joined
+      m_LibertyBells: Word;
       //contains relationship to other nations
       m_Diplomatic: array [cMinEuropean..cMaxEuropean] of TDiplomaticStatus;
     public
@@ -275,6 +280,16 @@ type
             AGood - the good that will not be boycotted any more
       }
       procedure UndoBoycott(const AGood: TGoodType);
+
+      { removes boycott from all goods, i.e. all goods can be traded in European
+        harbour again
+
+        remarks:
+            This procedure is only used when Jakob Fugger joins the nation's
+            continental congress, because his effect/power is to remove all
+            boycotts.
+      }
+      procedure UndoAllBoycotts;
 
       { returns the current amount of gold that this nation has }
       function GetGold: LongInt;
@@ -376,6 +391,48 @@ type
                       otherwise
       }
       procedure SetFoundingFather(const ff: TFoundingFathers; const present: Boolean);
+      
+      { returns the number of founding fathers that are present in this nation's
+        congress
+      }
+      function GetPresentFoundingFathers: Byte;
+
+      { returns the number of liberty bells that this nation has produced yet }
+      function GetLibertyBells: Word;
+
+      { adds to the number of produced liberty bells
+
+        parameters:
+            lb - the number of new liberty bells, i.e. that amount that will be
+                 added to the number of current liberty bells
+      }
+      procedure AddLibertyBells(const lb: Word);
+
+      { sets the amount of current liberty bells to the given value
+
+        parameters:
+            total_lb - the new amount of liberty bells
+
+        remarks:
+            Should only be used after a new founding father has joined the
+            congress.
+      }
+      procedure SetLibertyBells(const total_lb: Word);
+
+      { returns the next founding father that will join this nation's congress }
+      function GetNextFoundingFather: TFoundingFathers;
+
+      { returns true, if the next ff was properly set and has not expired yet }
+      function IsNextFoundingFatherActive: Boolean;
+
+      { sets the next founding father that will join this nation's congress,
+        and the active flag
+
+        parameters:
+            ff     - enumeration value that indicates the next founding father
+            active - true, if this value hasn't expired yet
+      }
+      procedure SetNextFoundingFather(const ff: TFoundingFathers; const active: Boolean);
 
       { sets the number of Indian villages that have been destroyed by this
         European Nation
@@ -565,6 +622,12 @@ begin
     m_FoundingFathers[ff]:= false;
     ff:= Succ(ff);
   end;//while
+  m_FoundingFathers[High(TFoundingFathers)]:= false;
+  //next founding father
+  m_NextFoundingFather:= ffPenn; //set some random value...
+  m_NextFFActive:= false;        //  ...and set it to expired/inactive
+  m_LibertyBells:=0; //new nation has no liberty bells yet
+  //initialize diplomatic state as undefinded for all European nations
   for i:= cMinEuropean to cMaxEuropean do
   begin
     m_Diplomatic[i]:= dsUndefined;
@@ -626,6 +689,17 @@ end;//proc
 procedure TEuropeanNation.UndoBoycott(const AGood: TGoodType);
 begin
   m_Boycotted[AGood]:= False;
+end;//proc
+
+procedure TEuropeanNation.UndoAllBoycotts;
+var gt: TGoodType;
+begin
+  while gt<High(TGoodType) do
+  begin
+    m_Boycotted[gt]:= False;
+    gt:= Succ(gt);
+  end;
+  m_Boycotted[High(TGoodType)]:= False;
 end;//proc
 
 function TEuropeanNation.GetGold: Integer;
@@ -717,7 +791,60 @@ end;//func
 
 procedure TEuropeanNation.SetFoundingFather(const ff: TFoundingFathers; const present: Boolean);
 begin
-  m_FoundingFathers[ff]:= present;
+  //Will a new founding father join, and is this the same one as the one that is
+  // expected to be the next?
+  if (present and (ff=m_NextFoundingFather) and m_NextFFActive and
+      not m_FoundingFathers[ff]) then
+  begin
+    //Then set the new ff and adjust the amount of bells accordingly.
+    m_FoundingFathers[ff]:= true;
+    if m_LibertyBells>=GetRequiredLibertyBells(GetPresentFoundingFathers) then
+      m_LibertyBells:= m_LibertyBells-GetRequiredLibertyBells(GetPresentFoundingFathers)
+    else m_LibertyBells:= 0;
+    //...and set the next ff as inactive. (Player or AI should choose a new one.)
+    m_NextFFActive:= false;
+  end
+  //otherwise just set the value
+  else m_FoundingFathers[ff]:= present;
+end;//proc
+
+function TEuropeanNation.GetPresentFoundingFathers: Byte;
+var i: Integer;
+begin
+  Result:= 0;
+  for i:=Ord(Low(TFoundingFathers)) to Ord(High(TFoundingFathers)) do
+    if m_FoundingFathers[TFoundingFathers(i)] then Result:= Result+1;
+end;//func
+
+function TEuropeanNation.GetLibertyBells: Word;
+begin
+  Result:= m_LibertyBells;
+end;//func
+
+procedure TEuropeanNation.AddLibertyBells(const lb: Word);
+begin
+  m_LibertyBells:= m_LibertyBells+lb;
+end;//func
+
+procedure TEuropeanNation.SetLibertyBells(const total_lb: Word);
+begin
+  m_LibertyBells:= total_lb;
+end;//proc
+
+function TEuropeanNation.GetNextFoundingFather: TFoundingFathers;
+begin
+  Result:= m_NextFoundingFather;
+end;//func
+      
+function TEuropeanNation.IsNextFoundingFatherActive: Boolean;
+begin
+  Result:= m_NextFFActive;
+end;//func
+
+procedure TEuropeanNation.SetNextFoundingFather(const ff: TFoundingFathers; const active: Boolean);
+begin
+  m_NextFFActive:= active;
+  if (active and not HasFoundingFather(ff)) then m_NextFoundingFather:= ff;
 end;//proc
 
 function TEuropeanNation.GetDiplomatic(const other_nation: LongInt): TDiplomaticStatus;
@@ -762,6 +889,13 @@ begin
     Result:= Result and (fs.Write(m_FoundingFathers[TFoundingFathers(i)],
                                   sizeof(Boolean))=sizeof(Boolean));
   end;//for
+  //next founding father
+  Result:= Result and (fs.Write(m_NextFoundingFather, sizeof(TFoundingFathers))
+                                                     =sizeof(TFoundingFathers));
+  //active/expired state
+  Result:= Result and (fs.Write(m_NextFFActive, sizeof(Boolean))=sizeof(Boolean));
+  //liberty bells produced
+  Result:= Result and (fs.Write(m_LibertyBells, sizeof(Word))=sizeof(Word));
   //diplomatic status
   for i:= cMinEuropean to cMaxEuropean do
     Result:= Result and (fs.Write(m_Diplomatic[i], sizeof(TDiplomaticStatus))
@@ -859,6 +993,13 @@ begin
     Result:= Result and (fs.Read(boycott, sizeof(Boolean))=sizeof(Boolean));
     m_FoundingFathers[TFoundingFathers(i)]:= boycott;
   end;//for
+  //next founding father
+  Result:= Result and (fs.Read(m_NextFoundingFather, sizeof(TFoundingFathers))
+                                                     =sizeof(TFoundingFathers));
+  //active/expired state
+  Result:= Result and (fs.Read(m_NextFFActive, sizeof(Boolean))=sizeof(Boolean));
+  //liberty bells produced
+  Result:= Result and (fs.Read(m_LibertyBells, sizeof(Word))=sizeof(Word));
   if (not Result) then
   begin
     WriteLn('TEuropeanNation.LoadFromStream: Error while reading information '
