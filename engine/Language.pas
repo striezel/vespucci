@@ -15,7 +15,7 @@ type
   TTransferString = (tsBoycotted, tsOutOfGold, tsOutOfSpace);
   TOtherString = (osLocation, osDestination, osFreight, osShip, osHighSea,
                   osNewWorld, osMoves, osEmpty, osNothing, osNoChanges, osTax,
-                  osGold, osCost, osSaving, osEarnings, osName, osUndefined);
+                  osGold, osCost, osSaving, osEarnings, osName, osProgress, osUndefined);
   TEuroPortString = (epsManageHeading, epsNotOnShip, epsGoOnShip, epsArm, epsDisarm, epsGiveHorses, epsNoHorses, epsGiveTools, epsNoTools, epsTrainHeading, epsBuyHeading);
   TReportType = (rtNone, rtJob, rtEconomy, rtColony, rtFleet, rtForeign, rtScore);
   TColonyString = (csRenameQuestion, csRenameLabel, csAbandonYes, csAbandonNo, csAbandonQuestion);
@@ -543,6 +543,7 @@ begin
   Others[osSaving]:= 'Einsparung';
   Others[osEarnings]:= 'Gewinn';
   Others[osName]:= 'Name';
+  Others[osProgress]:= 'Fortschritt';
   Others[osUndefined]:= 'Nicht definiert';
   //save/ load messages
   SaveLoad[slsLoadChoose]:= 'Wählen Sie den zu ladenden Spielstand.';
