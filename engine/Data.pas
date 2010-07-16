@@ -1003,6 +1003,8 @@ end;//func
 procedure TData.NewRound(const num_Nation: Integer);
 var i: Integer;
     ENat: TEuropeanNation;
+    bells: Word;
+    tempUnit: TUnit;
 begin
   //call NewRound method for every unit of that nation
   for i:= 0 to Unit_max do
@@ -1012,13 +1014,16 @@ begin
   //call NewRound method for every colony
   ENat:= GetNation(num_Nation) as TEuropeanNation;
   if not Autumn then //only in spring we produce, to avoid production twice a year
+  begin
     for i:= 0 to Colony_max do
       if m_Colonies[i]<>nil then
         if (m_Colonies[i].GetNation=num_Nation) then
         begin
+          bells:= 0;
           m_Colonies[i].NewRound(m_Map, ENat.HasFoundingFather(ffHudson),
                                  ENat.HasFoundingFather(ffJefferson),
-                                 ENat.HasFoundingFather(ffPenn));
+                                 ENat.HasFoundingFather(ffPenn), bells);
+          ENat.AddLibertyBells(bells);
           //following should be implemented in TColony and not here
           if m_Colonies[i].GetStore(gtFood)>=200 then
           begin
@@ -1028,6 +1033,30 @@ begin
             NewUnit(utColonist, num_nation, m_Colonies[i].GetPosX, m_Colonies[i].GetPosY).SetLocation(ulAmerica);
           end;//if
         end;//if
+    //check if there are enough liberty bells for the next founding father
+    if ENat.IsNextFoundingFatherActive and
+       (ENat.GetLibertyBells>=GetRequiredLibertyBells(ENat.GetPresentFoundingFathers+1)) then
+    begin
+      //Sets founding father's presence to true; liberty bells and next ff will
+      //   be adjusted by this procedure, too.
+      ENat.SetFoundingFather(ENat.GetNextFoundingFather, true);
+      { Add some effects of founding fathers that take effect immediately after
+        they joind congress. }
+      case ENat.GetNextFoundingFather of
+        //Jakob Fugger clears all boycotts.
+        ffFugger: ENat.UndoAllBoycotts;
+        //John Paul Jones gives a new frigate at no cost.
+        ffJones: NewUnit(utFrigate, num_Nation, cMap_X-1, cMap_Y div 2).SetLocation(ulAmerica);
+      end;//case
+      { To Do:
+        ======
+       **  - add message for selection of next Founding father in case of player
+       **    nation or let AI choose the next founding father in case of other
+       **    nation
+       ************
+      }
+    end;//if enough liberty bells
+  end;//if
 end;//func
 
 function TData.SaveData(const n: Word; var err: string): Boolean;
