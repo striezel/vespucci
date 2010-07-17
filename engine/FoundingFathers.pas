@@ -13,10 +13,12 @@ type
                       //political
                       ffBolivar, ffFranklin, ffJefferson, ffPaine, ffPocahontas,
                       //religious
-                      ffBrebeuf, ffBrewster, ffLasCasas, ffPenn, ffSepulveda);
+                      ffBrebeuf, ffBrewster, ffLasCasas, ffPenn, ffSepulveda,
+                      //none
+                      ffNone);
 
   //array type
-  TFoundingFatherArray = array of TFoundingFathers;
+  TFoundingFatherArray = array[0..4] of TFoundingFathers;
   
   { enumeration type for area of founding fathers }
   TFoundingFatherType = (fftTrade, fftExploration, fftMilitary, fftPolitical,

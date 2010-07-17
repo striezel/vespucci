@@ -3,7 +3,7 @@ unit Callbacks;
 interface
 
 uses
-  Units, Map, Data, Colony, Goods, Nation;
+  Units, Map, Data, Colony, Goods, Nation, FoundingFathers;
 
 const
   { integer constant that identifies the type of a callback record }
@@ -22,6 +22,7 @@ const
   CBT_COLONY_UNIT = 12;
   CBT_GOTO_SHIP = 13;
   CBT_CONSTRUCTION = 14;
+  CBT_SELECT_FOUNDING_FATHER = 15;
 
 type
   TExitCallback = procedure (const option: Integer);
@@ -81,6 +82,10 @@ type
   TConstructionData = record
                         AColony: TColony;
                       end;//rec
+  TFoundingSelectData = record
+                          ENat: TEuropeanNation;
+                          Choices: TFoundingFatherArray;
+                        end;
 
   { record that holds all information that is neccessary to handle a callback }
   TCallbackRec = record
@@ -103,6 +108,7 @@ type
                      12: (ColonyUnit: TColonyUnitData);
                      13: (GotoShip: TGotoShipData);
                      14: (Construction: TConstructionData);
+                     15: (FoundingSelect: TFoundingSelectData);
                  end;//rec
 
 const
@@ -424,6 +430,18 @@ begin
   end;//else-branch
 end;//func
 
+function CBF_FoundingSelect(const option: Integer; ENat: TEuropeanNation; const Choices: TFoundingFatherArray): Boolean;
+begin
+  Result:= False;
+  if ((ENat=nil) or (option<0) or (option>High(Choices))) then Exit;
+  //check if Founding father is already present (should never happen)
+  if ENat.HasFoundingFather(Choices[option]) then Exit;
+  //none is no acceptable selection
+  if Choices[option]=ffNone then Exit;
+  ENat.SetNextFoundingFather(Choices[option]);
+  Result:= True;
+end;//func
+
 function HandleCallback(const cbRec: TCallbackRec): Boolean;
 begin
   case cbRec._type of
@@ -449,6 +467,8 @@ begin
     CBT_COLONY_UNIT: Result:= CBF_ColonyUnit(cbRec.option, cbRec.ColonyUnit.AUnit);
     CBT_GOTO_SHIP: Result:= CBF_GoToShip(cbRec.option, cbRec.GotoShip.Ship, cbRec.GotoShip.AData);
     CBT_CONSTRUCTION: Result:= CBF_Construction(cbRec.option, cbRec.Construction.AColony);
+    CBT_SELECT_FOUNDING_FATHER: Result:= CBF_FoundingSelect(cbRec.option,
+                                         cbRec.FoundingSelect.ENat, cbRec.FoundingSelect.Choices);
   else
     Result:= False; //unknown callback type or type not supported/ implemented
   end;//case

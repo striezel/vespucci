@@ -1004,6 +1004,7 @@ procedure TData.NewRound(const num_Nation: Integer);
 var i: Integer;
     ENat: TEuropeanNation;
     bells: Word;
+    temp_ff: TFoundingFathers;
 begin
   //call NewRound method for every unit of that nation
   for i:= 0 to Unit_max do
@@ -1033,15 +1034,17 @@ begin
           end;//if
         end;//if
     //check if there are enough liberty bells for the next founding father
-    if ENat.IsNextFoundingFatherActive and
+    if (ENat.GetNextFoundingFather<>ffNone) and
        (ENat.GetLibertyBells>=GetRequiredLibertyBells(ENat.GetPresentFoundingFathers+1)) then
     begin
+      //save the founding father for later use
+      temp_ff:= ENat.GetNextFoundingFather;
       //Sets founding father's presence to true; liberty bells and next ff will
       //   be adjusted by this procedure, too.
       ENat.SetFoundingFather(ENat.GetNextFoundingFather, true);
       { Add some effects of founding fathers that take effect immediately after
         they joind congress. }
-      case ENat.GetNextFoundingFather of
+      case temp_ff of
         //Jakob Fugger clears all boycotts.
         ffFugger: ENat.UndoAllBoycotts;
         //John Paul Jones gives a new frigate at no cost.
