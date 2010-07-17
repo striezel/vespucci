@@ -209,7 +209,7 @@ const
     );
 
   { caption of game window }
-  cWindowCaption = 'Vespucci v0.01.r148';
+  cWindowCaption = 'Vespucci v0.01.r150';
 
   { text colour (greenish) }
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
@@ -696,6 +696,9 @@ type
 
       { clears all GLUT callbacks, i.e. sets them to nil }
       procedure GLUTCallbacksToNil;
+
+      { shows a new message that let's the player choose a new founding father, if applicable }
+      procedure CheckFoundingFatherMessage;
     public
       { constructor }
       constructor Create;
@@ -1349,6 +1352,7 @@ begin
                      dat.AdvanceYear;
                      dat.NewRound(dat.PlayerNation);
                      focused:= dat.GetFirstLazyUnit(dat.PlayerNation);
+                     CheckFoundingFatherMessage;
                    end;//else
                  end;//case SPACE
     end;//case
@@ -1378,6 +1382,7 @@ begin
                      dat.AdvanceYear;
                      dat.NewRound(dat.PlayerNation);
                      focused:= dat.GetFirstLazyUnit(dat.PlayerNation);
+                     CheckFoundingFatherMessage;
                    end;//else
                  end;//KEY_SPACE
     end;//case
@@ -3427,26 +3432,26 @@ begin
                //gold
                WriteText(dat.GetLang.GetOthers(osGold)+' ('+IntToStr(
                          (dat.GetNation(dat.PlayerNation) as TEuropeanNation).GetGold)
-                         +'°): +'+IntToStr(score.Gold), 0.5, y_Fields-7.0);
+                         +'°): +'+IntToStr(score.Gold), 0.5, y_Fields-8.0);
                //villages burned
                WriteText(IntToStr((dat.GetNation(dat.PlayerNation) as TEuropeanNation).GetVillagesBurned)
                          +' '+dat.GetLang.GetReportString(rlsVillagesBurned)
-                         +': '+IntToStr(score.Villages), 0.5, y_Fields-7.5);
+                         +': '+IntToStr(score.Villages), 0.5, y_Fields-8.5);
                //total score
                WriteText(dat.GetLang.GetReportString(rlsTotalScore)+': '
-                         +IntToStr(score.Total), 0.5, y_Fields-8.0);
+                         +IntToStr(score.Total), 0.5, y_Fields-9.0);
                //"progress bar" - assume that 5000 is the maximum
                glBegin(GL_QUADS);
                  glColor3f(0.0, 0.0, 0.0);
-                 glVertex2f(2.0-2*PixelWidth, y_Fields-10.0-2*PixelWidth);
-                 glVertex2f(18.0+2*PixelWidth, y_Fields-10.0-2*PixelWidth);
-                 glVertex2f(18.0+2*PixelWidth, y_Fields-9.0+2*PixelWidth);
-                 glVertex2f(2.0-2*PixelWidth, y_Fields-9.0+2*PixelWidth);
+                 glVertex2f(2.0-2*PixelWidth, y_Fields-11.0-2*PixelWidth);
+                 glVertex2f(18.0+2*PixelWidth, y_Fields-11.0-2*PixelWidth);
+                 glVertex2f(18.0+2*PixelWidth, y_Fields-10.0+2*PixelWidth);
+                 glVertex2f(2.0-2*PixelWidth, y_Fields-10.0+2*PixelWidth);
                  glColor3ubv(@cMenuTextColour[0]);
-                 glVertex2f(2.0, y_Fields-10.0);
+                 glVertex2f(2.0, y_Fields-11.0);
+                 glVertex2f(2.0+16.0/5000.0*score.Total, y_Fields-11.0);
                  glVertex2f(2.0+16.0/5000.0*score.Total, y_Fields-10.0);
-                 glVertex2f(2.0+16.0/5000.0*score.Total, y_Fields-9.0);
-                 glVertex2f(2.0, y_Fields-9.0);
+                 glVertex2f(2.0, y_Fields-10.0);
                glEnd;
              end;//rtScore
   end;//case
@@ -4564,6 +4569,7 @@ begin
                            dat.AdvanceYear;
                            dat.NewRound(dat.PlayerNation);
                            focused:= dat.GetFirstLazyUnit(dat.PlayerNation);
+                           CheckFoundingFatherMessage;
                          end;//else
                        end; //6 of mcOrders
                   end;//case
@@ -4962,5 +4968,38 @@ begin
     end;//if
   end;//if
 end;//func
+
+procedure TGui.CheckFoundingFatherMessage;
+var temp_cb: TCallbackRec;
+    EuroNat: TEuropeanNation;
+    str_arr: TShortStrArr;
+    i: Integer;
+begin
+  EuroNat:= (dat.GetNation(dat.PlayerNation) as TEuropeanNation);
+  if EuroNat=nil then Exit;
+  if (EuroNat.GetNextFoundingFather=ffNone) and (EuroNat.GetPresentFoundingFathers<25) then
+  begin
+    if length(dat.GetColonyList(dat.PlayerNation))>0 then
+    begin
+      temp_cb._type:= CBT_SELECT_FOUNDING_FATHER;
+      temp_cb.option:= 0;
+      temp_cb.FoundingSelect.ENat:= EuroNat;
+      temp_cb.FoundingSelect.Choices:= EuroNat.GetFoundingFatherSelection;
+      //strings und so
+      SetLength(str_arr, 0);
+      for i:= 0 to 4 do
+      begin
+        if temp_cb.FoundingSelect.Choices[i]<>ffNone then
+        begin
+          SetLength(str_arr, length(str_arr)+1);
+          str_arr[High(str_arr)]:= dat.GetLang.GetFoundingFatherName(temp_cb.FoundingSelect.Choices[i])
+              +' ('+dat.GetLang.GetFoundingFatherTypeName(GetFoundingFatherType(temp_cb.FoundingSelect.Choices[i]))+')';
+        end;//if
+      end;//for
+      ShowMessageOptions('Which founding father shall join the continental congress   next?',
+                          str_arr, temp_cb);
+    end;//if has colonies
+  end;//if
+end;//proc
 
 end.

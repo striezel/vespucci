@@ -844,6 +844,8 @@ begin
   FoundingFathers[ffLasCasas]:= 'Bartolome de las Casas';
   FoundingFathers[ffPenn]:= 'William Penn';
   FoundingFathers[ffSepulveda]:= 'Juan de Sepulveda';
+  //none
+  FoundingFathers[ffNone]:= Others[osNothing];
 
   //types of founding fathers
   FoundingFatherTypes[fftTrade]:= 'Handel';

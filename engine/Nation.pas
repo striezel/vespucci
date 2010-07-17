@@ -189,7 +189,6 @@ type
       m_FoundingFathers: array[TFoundingFathers] of Boolean;
       //next founding father
       m_NextFoundingFather: TFoundingFathers;
-      m_NextFFActive: Boolean; //false, if above value was not set yet/ expired
       //number of collected liberty bells since last founding father joined
       m_LibertyBells: Word;
       //contains relationship to other nations
@@ -408,31 +407,18 @@ type
       }
       procedure AddLibertyBells(const lb: Word);
 
-      { sets the amount of current liberty bells to the given value
-
-        parameters:
-            total_lb - the new amount of liberty bells
-
-        remarks:
-            Should only be used after a new founding father has joined the
-            congress.
-      }
-      procedure SetLibertyBells(const total_lb: Word);
-
       { returns the next founding father that will join this nation's congress }
       function GetNextFoundingFather: TFoundingFathers;
 
-      { returns true, if the next ff was properly set and has not expired yet }
-      function IsNextFoundingFatherActive: Boolean;
-
-      { sets the next founding father that will join this nation's congress,
-        and the active flag
+      { sets the next founding father that will join this nation's congress
 
         parameters:
             ff     - enumeration value that indicates the next founding father
-            active - true, if this value hasn't expired yet
       }
-      procedure SetNextFoundingFather(const ff: TFoundingFathers; const active: Boolean);
+      procedure SetNextFoundingFather(const ff: TFoundingFathers);
+
+      { returns an array of founding fathers the player can choose from }
+      function GetFoundingFatherSelection: TFoundingFatherArray;
 
       { sets the number of Indian villages that have been destroyed by this
         European Nation
@@ -624,8 +610,7 @@ begin
   end;//while
   m_FoundingFathers[High(TFoundingFathers)]:= false;
   //next founding father
-  m_NextFoundingFather:= ffPenn; //set some random value...
-  m_NextFFActive:= false;        //  ...and set it to expired/inactive
+  m_NextFoundingFather:= ffNone; //none selected yet
   m_LibertyBells:=0; //new nation has no liberty bells yet
   //initialize diplomatic state as undefinded for all European nations
   for i:= cMinEuropean to cMaxEuropean do
@@ -694,6 +679,7 @@ end;//proc
 procedure TEuropeanNation.UndoAllBoycotts;
 var gt: TGoodType;
 begin
+  gt:= Low(TGoodType);
   while gt<High(TGoodType) do
   begin
     m_Boycotted[gt]:= False;
@@ -791,9 +777,15 @@ end;//func
 
 procedure TEuropeanNation.SetFoundingFather(const ff: TFoundingFathers; const present: Boolean);
 begin
+  //none is not an acceptable value and will always be false
+  if ff=ffNone then
+  begin
+    m_FoundingFathers[ffNone]:= false;
+    Exit;
+  end;//if none
   //Will a new founding father join, and is this the same one as the one that is
   // expected to be the next?
-  if (present and (ff=m_NextFoundingFather) and m_NextFFActive and
+  if (present and (ff=m_NextFoundingFather) and (m_NextFoundingFather<>ffNone) and
       not m_FoundingFathers[ff]) then
   begin
     //Then set the new ff and adjust the amount of bells accordingly.
@@ -801,8 +793,8 @@ begin
     if m_LibertyBells>=GetRequiredLibertyBells(GetPresentFoundingFathers) then
       m_LibertyBells:= m_LibertyBells-GetRequiredLibertyBells(GetPresentFoundingFathers)
     else m_LibertyBells:= 0;
-    //...and set the next ff as inactive. (Player or AI should choose a new one.)
-    m_NextFFActive:= false;
+    //...and set the next ff to none. (Player or AI should choose a new one.)
+    m_NextFoundingFather:= ffNone;
   end
   //otherwise just set the value
   else m_FoundingFathers[ff]:= present;
@@ -826,26 +818,112 @@ begin
   m_LibertyBells:= m_LibertyBells+lb;
 end;//func
 
-procedure TEuropeanNation.SetLibertyBells(const total_lb: Word);
+{procedure TEuropeanNation.SetLibertyBells(const total_lb: Word);
 begin
   m_LibertyBells:= total_lb;
-end;//proc
+end;//proc }
 
 function TEuropeanNation.GetNextFoundingFather: TFoundingFathers;
 begin
   Result:= m_NextFoundingFather;
 end;//func
-      
-function TEuropeanNation.IsNextFoundingFatherActive: Boolean;
-begin
-  Result:= m_NextFFActive;
-end;//func
 
-procedure TEuropeanNation.SetNextFoundingFather(const ff: TFoundingFathers; const active: Boolean);
+procedure TEuropeanNation.SetNextFoundingFather(const ff: TFoundingFathers);
 begin
-  m_NextFFActive:= active;
-  if (active and not HasFoundingFather(ff)) then m_NextFoundingFather:= ff;
+  if ff<>ffNone then
+  begin
+    if not HasFoundingFather(ff) then m_NextFoundingFather:= ff;
+  end
+  else m_NextFoundingFather:= ffNone;
 end;//proc
+
+function TEuropeanNation.GetFoundingFatherSelection: TFoundingFatherArray;
+var i, next_index: Integer;
+begin
+  for i:= 0 to 4 do Result[i]:= ffNone;
+  Randomize;
+  next_index:= 0;
+  //trade
+  i:= Ord(ffSmith)+Random(5);
+  if not HasFoundingFather(TFoundingFathers(i)) then
+  begin
+    Result[0]:= TFoundingFathers(i);
+    next_index:= 1;
+  end
+  else begin
+    for i:= Ord(ffSmith) to Ord(ffDeWitt) do
+      if not HasFoundingFather(TFoundingFathers(i)) then
+      begin
+        Result[0]:= TFoundingFathers(i);
+        next_index:= 1;
+        break;
+      end;//if
+  end;//else
+  //exploration
+  i:= Ord(ffCoronado)+Random(5);
+  if not HasFoundingFather(TFoundingFathers(i)) then
+  begin
+    Result[next_index]:= TFoundingFathers(i);
+    next_index:= next_index+1;
+  end
+  else begin
+    for i:= Ord(ffCoronado) to Ord(ffDeSoto) do
+      if not HasFoundingFather(TFoundingFathers(i)) then
+      begin
+        Result[next_index]:= TFoundingFathers(i);
+        next_index:= next_index+1;
+        break;
+      end;//if
+  end;//else
+  //military
+  i:= Ord(ffCortes)+Random(5);
+  if not HasFoundingFather(TFoundingFathers(i)) then
+  begin
+    Result[next_index]:= TFoundingFathers(i);
+    next_index:= next_index+1;
+  end
+  else begin
+    for i:= Ord(ffCortes) to Ord(ffWashington) do
+      if not HasFoundingFather(TFoundingFathers(i)) then
+      begin
+        Result[next_index]:= TFoundingFathers(i);
+        next_index:= next_index+1;
+        break;
+      end;//if
+  end;//else
+  //political
+  i:= Ord(ffBolivar)+Random(5);
+  if not HasFoundingFather(TFoundingFathers(i)) then
+  begin
+    Result[next_index]:= TFoundingFathers(i);
+    next_index:= next_index+1;
+  end
+  else begin
+    for i:= Ord(ffBolivar) to Ord(ffPocahontas) do
+      if not HasFoundingFather(TFoundingFathers(i)) then
+      begin
+        Result[next_index]:= TFoundingFathers(i);
+        next_index:= next_index+1;
+        break;
+      end;//if
+  end;//else
+  //religious
+  i:= Ord(ffBrebeuf)+Random(5);
+  if not HasFoundingFather(TFoundingFathers(i)) then
+  begin
+    Result[next_index]:= TFoundingFathers(i);
+    next_index:= next_index+1;
+  end
+  else begin
+    for i:= Ord(ffBrebeuf) to Ord(ffSepulveda) do
+      if not HasFoundingFather(TFoundingFathers(i)) then
+      begin
+        Result[next_index]:= TFoundingFathers(i);
+        next_index:= next_index+1;
+        break;
+      end;//if
+  end;//else
+end;//func
 
 function TEuropeanNation.GetDiplomatic(const other_nation: LongInt): TDiplomaticStatus;
 begin
@@ -892,8 +970,6 @@ begin
   //next founding father
   Result:= Result and (fs.Write(m_NextFoundingFather, sizeof(TFoundingFathers))
                                                      =sizeof(TFoundingFathers));
-  //active/expired state
-  Result:= Result and (fs.Write(m_NextFFActive, sizeof(Boolean))=sizeof(Boolean));
   //liberty bells produced
   Result:= Result and (fs.Write(m_LibertyBells, sizeof(Word))=sizeof(Word));
   //diplomatic status
@@ -993,11 +1069,10 @@ begin
     Result:= Result and (fs.Read(boycott, sizeof(Boolean))=sizeof(Boolean));
     m_FoundingFathers[TFoundingFathers(i)]:= boycott;
   end;//for
+  m_FoundingFathers[ffNone]:= false;
   //next founding father
   Result:= Result and (fs.Read(m_NextFoundingFather, sizeof(TFoundingFathers))
                                                      =sizeof(TFoundingFathers));
-  //active/expired state
-  Result:= Result and (fs.Read(m_NextFFActive, sizeof(Boolean))=sizeof(Boolean));
   //liberty bells produced
   Result:= Result and (fs.Read(m_LibertyBells, sizeof(Word))=sizeof(Word));
   if (not Result) then
