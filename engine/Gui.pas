@@ -209,7 +209,7 @@ const
     );
 
   { caption of game window }
-  cWindowCaption = 'Vespucci v0.01.r150';
+  cWindowCaption = 'Vespucci v0.01.r153';
 
   { text colour (greenish) }
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
@@ -397,6 +397,9 @@ type
 
       { draws the current report (if any) }
       procedure DrawReport;
+
+      {draws the report about continental congress }
+      procedure DrawCongressReport;
 
       { draws the colony report }
       procedure DrawColonyReport;
@@ -3207,6 +3210,7 @@ var i, j, freight_offset: Integer;
 begin
   //only economy, fleet, colony (partially), foreign affairs and score (part.) implemented yet
   case Report of
+    rtCongress: DrawCongressReport;
     rtJob: DrawJobReport;
     rtEconomy: begin
                  col_arr:= dat.GetColonyList(dat.PlayerNation);
@@ -3393,6 +3397,71 @@ begin
   end;//case
 end;//proc
 
+procedure TGui.DrawCongressReport;
+var str1: string;
+    i, max_bells: Integer;
+    EuroNat: TEuropeanNation;
+    offset: Single;
+begin
+  //headline
+  glColor3ubv(@cMenuTextColour[0]);
+  i:= (cWindowWidth-length(dat.GetLang.GetReportString(rlsCongress))*8) div 2;
+  WriteText(dat.GetLang.GetReportString(rlsCongress), i*PixelWidth,  y_Fields-0.25);
+  //next meeting
+  EuroNat:= dat.GetNation(dat.PlayerNation) as TEuropeanNation;
+  WriteText(dat.GetLang.GetReportString(rlsNextCongress)+': '
+            +dat.GetLang.GetFoundingFatherName(EuroNat.GetNextFoundingFather),
+            0.5, y_Fields-1.0);
+  //bells
+  glEnable(GL_ALPHA_TEST);
+  glEnable(GL_TEXTURE_2D);
+  if m_GoodTexNames[gtLibertyBell]<>0 then
+    glBindTexture(GL_TEXTURE_2D, m_GoodTexNames[gtLibertyBell])
+  else glBindTexture(GL_TEXTURE_2D, m_ErrorTexName);
+  glBegin(GL_QUADS);
+    glColor3f(1.0, 1.0, 1.0);
+    max_bells:= GetRequiredLibertyBells(EuroNat.GetPresentFoundingFathers+1);
+    for i:= 0 to EuroNat.GetLibertyBells-1 do
+    begin
+      offset:= 2.0+ (i/(max_bells-1))*15.0;
+      glTexCoord2f(0.0, 0.0);
+      glVertex2f(offset, y_Fields-2.5);
+      glTexCoord2f(1.0, 0.0);
+      glVertex2f(offset+1.0, y_Fields-2.5);
+      glTexCoord2f(1.0, 1.0);
+      glVertex2f(offset+1.0, y_Fields-1.5);
+      glTexCoord2f(0.0, 1.0);
+      glVertex2f(offset, y_Fields-1.5);          
+    end;//for
+  glEnd;
+  glDisable(GL_TEXTURE_2D);
+  glDisable(GL_ALPHA_TEST);
+  glColor3ubv(@cMenuTextColour[0]);
+  // --- number of bells
+  WriteText(IntToStr(EuroNat.GetLibertyBells), 1.0, y_Fields-2.0);
+  //attitudes
+  { attitide not implemented yet, so display static values }
+  WriteText(dat.GetLang.GetReportString(rlsRebelAttitude)+': 0%    '
+            +dat.GetLang.GetReportString(rlsLoyalAttitude)+': 100%',
+            0.5, y_Fields-3.5);
+  //king's forces
+  WriteText(dat.GetLang.GetReportString(rlsExpeditionForces)+':',
+            0.5, y_Fields-4.5);
+  WriteText('not implemented yet', 1.5, y_Fields-5.0);
+  //founding fathers
+  WriteText(dat.GetLang.GetReportString(rlsFoundingFathers)+':',
+            0.5, y_Fields-6.0);
+  max_bells:= 0; //works as sort of counter/ offset
+  for i:= Ord(Low(TFoundingFathers)) to Ord(High(TFoundingFathers)) do
+    if EuroNat.HasFoundingFather(TFoundingFathers(i)) then
+    begin
+      WriteText(dat.GetLang.GetFoundingFatherName(TFoundingFathers(i)),
+                1.0+(max_bells mod 4)*4.5,
+                y_Fields-6.5-(max_bells div 4)*0.5);
+      max_bells:= max_bells+1;
+    end;//if
+end;//proc
+
 procedure TGui.DrawColonyReport;
 var col_arr: TColonyArr;
     u_arr:   TUnitArr;
@@ -3402,7 +3471,7 @@ begin
   if (report_pages=2) then
   begin
     glColor3ubv(@cMenuTextColour[0]);
-    WriteText(dat.GetLang.GetMenuOption(mcReports, 2), 3.0, y_Fields-0.25);
+    WriteText(dat.GetLang.GetMenuOption(mcReports, 4), 3.0, y_Fields-0.25);
     WriteText(dat.GetLang.GetOthers(osName), 0.5, y_Fields-0.75);
     WriteText(dat.GetLang.GetReportString(rlsMilitaryGarrisons), 6.5, y_Fields-0.75);
     col_arr:= dat.GetColonyList(dat.PlayerNation);
@@ -3459,7 +3528,7 @@ begin
   end //report_pages=2
   else begin //report_page <> 2
     glColor3ubv(@cMenuTextColour[0]);
-    WriteText(dat.GetLang.GetMenuOption(mcReports, 2), 3.0, y_Fields-0.25);
+    WriteText(dat.GetLang.GetMenuOption(mcReports, 4), 3.0, y_Fields-0.25);
     WriteText(dat.GetLang.GetOthers(osName), 0.5, y_Fields-0.75);
     WriteText(dat.GetLang.GetReportString(rlsSonsOfLiberty), 6.5, y_Fields-0.75);
     col_arr:= dat.GetColonyList(dat.PlayerNation);
@@ -4588,26 +4657,30 @@ begin
                  begin
                    case selected of
                      1: begin
-                          report:= rtJob;
+                          report:= rtCongress;
                           report_pages:= 1;
                         end;
                      2: begin
-                          report:= rtEconomy;
+                          report:= rtJob;
                           report_pages:= 1;
                         end;
                      3: begin
+                          report:= rtEconomy;
+                          report_pages:= 1;
+                        end;
+                     4: begin
                           report_pages:= 2;
                           report:= rtColony;
                         end;
-                     4: begin
+                     5: begin
                           report:= rtFleet;
                           report_pages:= 1;
                         end;
-                     5: begin
+                     6: begin
                           report:= rtForeign;
                           report_pages:= 1;
                         end;
-                     6: begin
+                     7: begin
                           report:= rtScore;
                           report_pages:= 1;
                         end;
