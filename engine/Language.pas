@@ -17,7 +17,7 @@ type
                   osNewWorld, osMoves, osEmpty, osNothing, osNoChanges, osTax,
                   osGold, osCost, osSaving, osEarnings, osName, osProgress, osUndefined);
   TEuroPortString = (epsManageHeading, epsNotOnShip, epsGoOnShip, epsArm, epsDisarm, epsGiveHorses, epsNoHorses, epsGiveTools, epsNoTools, epsTrainHeading, epsBuyHeading);
-  TReportType = (rtNone, rtJob, rtEconomy, rtColony, rtFleet, rtForeign, rtScore);
+  TReportType = (rtNone, rtCongress, rtJob, rtEconomy, rtColony, rtFleet, rtForeign, rtScore);
   TColonyString = (csRenameQuestion, csRenameLabel, csAbandonYes, csAbandonNo, csAbandonQuestion);
   TColonyUnitString = (cusOptions, cusCancelOrders, cusOnBoard, cusFortify);
   TBuildingString = (bsUnderConstruction, bsSelectNext, bsNotify, bsMaxThree);
@@ -32,7 +32,11 @@ type
                         //colony report
                         rlsMilitaryGarrisons, rlsSonsOfLiberty,
                         //job report
-                        rlsJobReport);
+                        rlsJobReport,
+                        //continental congress
+                        rlsCongress, rlsNextCongress, rlsRebelAttitude,
+                        rlsLoyalAttitude, rlsExpeditionForces, rlsFoundingFathers);
+  TNotifyString = (nsJoinedCongress);
 
 
   { ********
@@ -90,6 +94,8 @@ type
       Pioneers: array[TPioneerString] of string;
       //for labels in reports
       ReportLabels: array[TReportLabelString] of string;
+      //notification strings
+      Notifications: array[TNotifyString] of string;
 
       //names of founding fathers
       FoundingFathers: array[TFoundingFathers] of string;
@@ -338,6 +344,13 @@ type
       }
       function GetReportString(const which: TReportLabelString): string;
 
+      { returns a notification message
+
+        parameters:
+            which - indicates the requested message
+      }
+      function GetNotification(const which: TNotifyString): string;
+
       { tries to save the language data to the given file and returns true in
         case of success
 
@@ -405,12 +418,13 @@ begin
   MenuOptions[mcOrders, 6]:= 'Keine Befehle';
   MenuOptions[mcOrders, 7]:= 'Einheit auflösen';
   // -- Berichte
-  MenuOptions[mcReports, 1]:= 'Arbeitsbericht';
-  MenuOptions[mcReports, 2]:= 'Wirtschaftsbericht';
-  MenuOptions[mcReports, 3]:= 'Koloniebericht';
-  MenuOptions[mcReports, 4]:= 'Flottenbericht';
-  MenuOptions[mcReports, 5]:= 'Außenpolitikbericht';
-  MenuOptions[mcReports, 6]:= 'Kolonialisierungspunkte';
+  MenuOptions[mcReports, 1]:= 'Kontinentalkongress';
+  MenuOptions[mcReports, 2]:= 'Arbeitsbericht';
+  MenuOptions[mcReports, 3]:= 'Wirtschaftsbericht';
+  MenuOptions[mcReports, 4]:= 'Koloniebericht';
+  MenuOptions[mcReports, 5]:= 'Flottenbericht';
+  MenuOptions[mcReports, 6]:= 'Außenpolitikbericht';
+  MenuOptions[mcReports, 7]:= 'Kolonialisierungspunkte';
   // -- Handel
   MenuOptions[mcTrade, 1]:= 'Handelsroute festlegen';
   MenuOptions[mcTrade, 2]:= 'Handelsroute ändern';
@@ -647,6 +661,16 @@ begin
   ReportLabels[rlsSonsOfLiberty]:= 'Söhne der Freiheit';
   // --- job report
   ReportLabels[rlsJobReport]:= 'Arbeitsbericht';
+  //continental congress
+  ReportLabels[rlsCongress]:= 'Kontinentalkongress';
+  ReportLabels[rlsNextCongress]:= 'Nächste Sitzung des Kontinentalkongresses';
+  ReportLabels[rlsRebelAttitude]:= 'Rebellische Gesinnung';
+  ReportLabels[rlsLoyalAttitude]:= 'Loyalistische Gesinnung';
+  ReportLabels[rlsExpeditionForces]:= 'Expeditionsstreitkräfte';
+  ReportLabels[rlsFoundingFathers]:= 'Gründerväter';
+  //notifications
+  Notifications[nsJoinedCongress]:= 'Gründerväter geben bekannt, dass %s dem '
+                                   +'Kontinentalkongress beigetreten ist.';
   //founding fathers
   InitialFoundingFathers;
 
@@ -1025,6 +1049,11 @@ begin
   Result:= ReportLabels[which];
 end;//func
 
+function TLanguage.GetNotification(const which: TNotifyString): string;
+begin
+  Result:= Notifications[which];
+end;//func
+
 function TLanguage.SaveToFile(const FileName: string): Boolean;
 var dat: TextFile;
     i, j: Integer;
@@ -1108,6 +1137,10 @@ begin
   WriteLn(dat, '[ReportLabels]');
   for i:= Ord(Low(TReportLabelString)) to Ord(High(TReportLabelString)) do
     WriteLn(dat, ReportLabels[TReportLabelString(i)]);
+  WriteLn(dat);
+  WriteLn(dat, '[Notifications]');
+  for i:= Ord(Low(TNotifyString)) to Ord(High(TNotifyString)) do
+    WriteLn(dat, Notifications[TNotifyString(i)]);
   WriteLn(dat);
   WriteLn(dat, '[Buildings]');
   for i:= Ord(Succ(btNone)) to Ord(High(TBuildingType)) do
@@ -1337,6 +1370,17 @@ begin
           ReadLn(dat, str1);
           str1:= Trim(str1);
           if str1<>'' then ReportLabels[TReportLabelString(i)]:= str1;
+          i:= i+1;
+        end;//while
+      end//if
+      else if str1='[Notifications]' then
+      begin
+        i:= Ord(Low(TNotifyString));
+        while (i<=Ord(High(TNotifyString))) and not Eof(dat) do
+        begin
+          ReadLn(dat, str1);
+          str1:= Trim(str1);
+          if str1<>'' then Notifications[TNotifyString(i)]:= str1;
           i:= i+1;
         end;//while
       end//if
