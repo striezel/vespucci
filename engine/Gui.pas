@@ -407,6 +407,9 @@ type
       { draws the job report }
       procedure DrawJobReport;
 
+      { draws the score report }
+      procedure DrawScoreReport;
+
       { draws the menu (if active) }
       procedure DrawMenu;
 
@@ -3201,10 +3204,8 @@ procedure TGui.DrawReport;
 var i, j, freight_offset: Integer;
     col_arr: TColonyArr;
     u_arr: TUnitArr;
-    str1: string;
-    score: TScoreRecord;
 begin
-  //only economy, fleet, colony (partially) and score (part.) implemented yet
+  //only economy, fleet, colony (partially), foreign affairs and score (part.) implemented yet
   case Report of
     rtJob: DrawJobReport;
     rtEconomy: begin
@@ -3388,72 +3389,7 @@ begin
              end;//rtFleet
     rtColony: DrawColonyReport;
     rtForeign: DrawForeignAffairsReport;
-    rtScore: begin
-               u_arr:= dat.GetAllNonCargoUnits(dat.PlayerNation);
-               i:= (cWindowWidth-length(dat.GetLang.GetReportString(rlsColonizationScore))*8) div 2;
-               glColor3ubv(@cMenuTextColour[0]);
-               WriteText(dat.GetLang.GetReportString(rlsColonizationScore), i*PixelWidth, y_Fields-0.25);
-               //compose string of leader name, nation, season, year
-               str1:= (dat.GetNation(dat.PlayerNation) as TEuropeanNation).GetLeaderName
-                      +' ('+dat.GetLang.GetNationName(dat.PlayerNation)+'), '
-                      +dat.GetLang.GetSeason(dat.IsAutumn)+' '+IntToStr(dat.GetYear);
-               i:= (cWindowWidth-length(str1)*8) div 2;
-               WriteText(str1, i*PixelWidth, y_Fields-0.75);
-               score:= dat.GetScore(dat.PlayerNation, u_arr);
-               WriteText(dat.GetLang.GetReportString(rlsCitizens)+': +'
-                         +IntToStr(score.Citizens), 0.5, y_Fields-1.5);
-               //draw citizens
-               j:= High(u_arr);
-               if (j>x_Fields*2) then j:= x_Fields*2;
-               glColor3f(1.0, 1.0, 1.0);
-               glEnable(GL_TEXTURE_2D);
-               glEnable(GL_ALPHA_TEST);
-               for i:=0 to j do
-                 DrawUnitIcon(u_arr[i], 0.5+i*0.5, y_Fields-3.0, true);
-               glDisable(GL_ALPHA_TEST);
-               glDisable(GL_TEXTURE_2D);
-               //continental congress
-               glColor3ubv(@CMenuTextColour[0]);
-               WriteText(dat.GetLang.GetReportString(rlsContinentalCongress)
-                         +': +'+IntToStr(score.Congress), 0.5, y_Fields-4.0);
-               //show list of congress members
-               j:= 0; //counts how many of them we already have been written
-               for i:= Ord(Low(TFoundingFathers)) to Ord(High(TFoundingFathers)) do
-               begin
-                 if ((dat.GetNation(dat.PlayerNation) as TEuropeanNation).HasFoundingFather(TFoundingFathers(i))) then
-                 begin
-                   WriteText(dat.GetLang.GetFoundingFatherName(TFoundingFathers(i)),
-                             1.0+(j mod 3)*7.0,
-                             y_Fields-4.5-(j div 3)*0.5);
-                   j:= j+1;
-                 end;//if
-               end;//for
-
-               //gold
-               WriteText(dat.GetLang.GetOthers(osGold)+' ('+IntToStr(
-                         (dat.GetNation(dat.PlayerNation) as TEuropeanNation).GetGold)
-                         +'°): +'+IntToStr(score.Gold), 0.5, y_Fields-8.0);
-               //villages burned
-               WriteText(IntToStr((dat.GetNation(dat.PlayerNation) as TEuropeanNation).GetVillagesBurned)
-                         +' '+dat.GetLang.GetReportString(rlsVillagesBurned)
-                         +': '+IntToStr(score.Villages), 0.5, y_Fields-8.5);
-               //total score
-               WriteText(dat.GetLang.GetReportString(rlsTotalScore)+': '
-                         +IntToStr(score.Total), 0.5, y_Fields-9.0);
-               //"progress bar" - assume that 5000 is the maximum
-               glBegin(GL_QUADS);
-                 glColor3f(0.0, 0.0, 0.0);
-                 glVertex2f(2.0-2*PixelWidth, y_Fields-11.0-2*PixelWidth);
-                 glVertex2f(18.0+2*PixelWidth, y_Fields-11.0-2*PixelWidth);
-                 glVertex2f(18.0+2*PixelWidth, y_Fields-10.0+2*PixelWidth);
-                 glVertex2f(2.0-2*PixelWidth, y_Fields-10.0+2*PixelWidth);
-                 glColor3ubv(@cMenuTextColour[0]);
-                 glVertex2f(2.0, y_Fields-11.0);
-                 glVertex2f(2.0+16.0/5000.0*score.Total, y_Fields-11.0);
-                 glVertex2f(2.0+16.0/5000.0*score.Total, y_Fields-10.0);
-                 glVertex2f(2.0, y_Fields-10.0);
-               glEnd;
-             end;//rtScore
+    rtScore: DrawScoreReport;
   end;//case
 end;//proc
 
@@ -3728,6 +3664,78 @@ begin
     i:= i+1;
     ut:= Succ(ut);
   end;//while
+end;//proc
+
+procedure TGui.DrawScoreReport;
+var u_arr: TUnitArr;
+    i, j: Integer;
+    str1: string;
+    score: TScoreRecord;
+begin
+  u_arr:= dat.GetAllNonCargoUnits(dat.PlayerNation);
+  i:= (cWindowWidth-length(dat.GetLang.GetReportString(rlsColonizationScore))*8) div 2;
+  glColor3ubv(@cMenuTextColour[0]);
+  WriteText(dat.GetLang.GetReportString(rlsColonizationScore), i*PixelWidth, y_Fields-0.25);
+  //compose string of leader name, nation, season, year
+  str1:= (dat.GetNation(dat.PlayerNation) as TEuropeanNation).GetLeaderName
+         +' ('+dat.GetLang.GetNationName(dat.PlayerNation)+'), '
+         +dat.GetLang.GetSeason(dat.IsAutumn)+' '+IntToStr(dat.GetYear);
+  i:= (cWindowWidth-length(str1)*8) div 2;
+  WriteText(str1, i*PixelWidth, y_Fields-0.75);
+  score:= dat.GetScore(dat.PlayerNation, u_arr);
+  WriteText(dat.GetLang.GetReportString(rlsCitizens)+': +'+IntToStr(score.Citizens),
+            0.5, y_Fields-1.5);
+  //draw citizens
+  j:= High(u_arr);
+  if (j>x_Fields*2) then j:= x_Fields*2;
+  glColor3f(1.0, 1.0, 1.0);
+  glEnable(GL_TEXTURE_2D);
+  glEnable(GL_ALPHA_TEST);
+  for i:=0 to j do
+    DrawUnitIcon(u_arr[i], 0.5+i*0.5, y_Fields-3.0, true);
+  glDisable(GL_ALPHA_TEST);
+  glDisable(GL_TEXTURE_2D);
+  //continental congress
+  glColor3ubv(@CMenuTextColour[0]);
+  WriteText(dat.GetLang.GetReportString(rlsContinentalCongress)
+            +': +'+IntToStr(score.Congress), 0.5, y_Fields-4.0);
+  //show list of congress members
+  j:= 0; //counts how many of them we already have been written
+  for i:= Ord(Low(TFoundingFathers)) to Ord(High(TFoundingFathers)) do
+  begin
+    if ((dat.GetNation(dat.PlayerNation) as TEuropeanNation).HasFoundingFather(TFoundingFathers(i))) then
+    begin
+      WriteText(dat.GetLang.GetFoundingFatherName(TFoundingFathers(i)),
+                1.0+(j mod 3)*7.0,
+                y_Fields-4.5-(j div 3)*0.5);
+      j:= j+1;
+    end;//if
+  end;//for
+
+  //gold
+  WriteText(dat.GetLang.GetOthers(osGold)+' ('+IntToStr(
+            (dat.GetNation(dat.PlayerNation) as TEuropeanNation).GetGold)
+            +'°): +'+IntToStr(score.Gold), 0.5, y_Fields-8.0);
+  //villages burned
+  WriteText(IntToStr((dat.GetNation(dat.PlayerNation) as TEuropeanNation).GetVillagesBurned)
+            +' '+dat.GetLang.GetReportString(rlsVillagesBurned)+': '
+            +IntToStr(score.Villages), 0.5, y_Fields-8.5);
+  //total score
+  WriteText(dat.GetLang.GetReportString(rlsTotalScore)+': '+IntToStr(score.Total),
+            0.5, y_Fields-9.0);
+   //"progress bar" - assume that 5000 is the maximum
+   glBegin(GL_QUADS);
+     glColor3f(0.0, 0.0, 0.0);
+     glVertex2f(2.0-2*PixelWidth, y_Fields-11.0-2*PixelWidth);
+     glVertex2f(18.0+2*PixelWidth, y_Fields-11.0-2*PixelWidth);
+     glVertex2f(18.0+2*PixelWidth, y_Fields-10.0+2*PixelWidth);
+     glVertex2f(2.0-2*PixelWidth, y_Fields-10.0+2*PixelWidth);
+     glColor3ubv(@cMenuTextColour[0]);
+     glVertex2f(2.0, y_Fields-11.0);
+     glVertex2f(2.0+16.0/5000.0*score.Total, y_Fields-11.0);
+     glVertex2f(2.0+16.0/5000.0*score.Total, y_Fields-10.0);
+     glVertex2f(2.0, y_Fields-10.0);
+  glEnd;
 end;//proc
 
 procedure TGui.DrawMenu;
