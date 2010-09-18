@@ -41,15 +41,29 @@ const
                   or cMapRiverWest;
 
 type
+  { function type for landscape height generation
+  
+    parameters:
+        mx, my - location of peak in map coordinates
+        r      - radius of hill, distance to zero
+        h      - height of peak
+        x, y   - current field coordinates
+  
+  }
+  THillFunction = function(const mx, my, r: Byte; const h: Single; const x, y: Byte): Single;
+
   { ********
     **** TMap class
     ****
     **** purpose: holds the map data for the current game.
     *******
-    
+
     To Do:
     ======
        - write a better function for generation of maps
+       - two-parameter version of TMap.Generate():
+           - generate rivers
+           - generate broader variety of terrain types
   }
   TMap = class
     private
@@ -65,14 +79,14 @@ type
       { clears the "river cache", i.e. sets all fields to cMapRiverNone }
       procedure ClearRiverCache;
       { determines the river cache entry for a single square on the map
-      
+
         parameters:
             x, y - coordinates of that square
       }
       procedure SetRiverType(const x,y: Byte);
     public
       { holds information about all squares/fields on the map
-      
+
         remarks:
             This array should be private and only accessible via public
             functions. However, I decided to make it public for faster access,
@@ -88,12 +102,12 @@ type
       destructor Destroy; override;
 
       { generates a map with the given parameters
-      
+
         parameters:
             Landmass - the amount of land on the map - 1.0 means all is land,
                        while 0.0 means no land and just water. Usually this
                        value should be between 0.5 and 0.8, I guess.
-      
+
         remarks:
             Although this function already generates a map, it does not do it
             too well. It just generates a row of arctic terrain at the top and
@@ -107,7 +121,26 @@ type
             to make the generated map look more like a continent (or a group of
             islands) and not just like randomly thrown squares of land.
       }
-      procedure Generate(const Landmass: Single);
+      procedure Generate(const Landmass: Single); overload;
+      
+      { generates a map with the given parameters
+
+        parameters:
+            Landmass - the amount of land on the map - 1.0 means all is land,
+                       while 0.0 means no land and just water. Usually this
+                       value should be between 0.5 and 0.8, I guess.
+            f        - the function that is used to generate hills/ mountains
+
+        remarks:
+            Although this function already generates a map, it does not do it
+            too well. It just generates a row of arctic terrain at the top and
+            bottom of the map, a column of open sea at the left and right side,
+            and all other land is either grassland or sea. Function f is used
+            to generate the height map.
+            This is a try to implement a slightly better version of the map
+            generation function.
+      }
+      procedure Generate(const LandMass: Single; const f: THillFunction); overload;
 
       { generates the special ressources for the map
 
@@ -115,7 +148,7 @@ type
             LandOnly - boolean that indicates whether special ressources should
                        only be generated for land squares (true) or also for
                        watery squares (false)
-        
+
         remarks:
             Only call this once for a genarates map. For maps loaded from a
             file, never ever call that function, because loaded maps already
@@ -124,21 +157,21 @@ type
       procedure GenerateSpecials(const LandOnly: Boolean=True);
 
       { tries to save the map to the given file and returns true on success
-      
+
         parameters:
             FileName - name of the destionation file
       }
       function SaveToFile(const FileName: string): Boolean;
 
       { tries to load a map from the given file and returns true on success
-      
+
         parameters:
             FileName - name of the source file
       }
       function LoadFromFile(const FileName: string): Boolean;
 
       { returns the river type of a certain square
-      
+
         parameters:
             x, y - coordinates of the square
       }
@@ -153,7 +186,7 @@ type
       function IsTouchingLand(const x, y: Byte): Boolean;
       { this procedure reaveals surrounding tiles around a unit (or that is what
         it's made for)
-        
+
         parameters:
             x, y       - coordinates of unit's position on the map
             cNation    - integer constant identifying the unit's nation
@@ -169,9 +202,9 @@ type
 
       { This procedure reaveals the complete map for the given nation. Yes,
         it's a cheat.
-        
+
         parameters:
-            num_Nation - integer constant identifying the nation in question      
+            num_Nation - integer constant identifying the nation in question
       }
       procedure RevealAll(const num_Nation: Integer);
 
@@ -183,9 +216,38 @@ type
             numNation - integer constant identifying the nation in question
       }
       function IsDiscovered(const x,y: Byte; const num_Nation: Integer): Boolean;
+      
+      { returns true, if the passed position is a valid position on the map
+      
+        parameters:
+            x, y - coordinates of the field's position
+      }
+      function IsValidMapPosition(const x,y: Integer): Boolean;
   end;//class
+  
+  //functions for height map generation
+  { h2 generates a hill at (mx,my) with radius r and not so heavy slope }
+  function h2(const mx, my, r: Byte; const h: Single; const x, y: Byte): Single;
+
+  { h4 generates a hill at (mx,my) with radius r and faster slope (i.e. less
+    hills and mountains, more grassland than h2) }
+  function h4(const mx, my, r: Byte; const h: Single; const x, y: Byte): Single;
 
 implementation
+
+function h2(const mx, my, r: Byte; const h: Single; const x, y: Byte): Single;
+var dist: Single;
+begin
+  dist:= sqrt(sqr(mx-x)+sqr(my-y))/r;
+  Result:= h*(1- sqrt(dist));
+end;//func
+
+function h4(const mx, my, r: Byte; const h: Single; const x, y: Byte): Single;
+var dist: Single;
+begin
+  dist:= sqrt(sqr(mx-x)+sqr(my-y))/r;
+  Result:= h*(1- sqrt(sqrt(dist)));
+end;//func
 
 constructor TMap.Create;
 var i,j, k: Integer;
@@ -252,6 +314,118 @@ begin
   //set the flag to indicate that we have data for all tiles
   filled:= True;
 end;//proc
+
+procedure TMap.Generate(const LandMass: Single; const f: THillFunction);
+var i,j: Integer;
+    heightmap: array [0..cMap_X-1, 0..cMap_Y-1] of Single;
+    h_x, h_y, radius: Byte;
+    currentLandmass: Cardinal;
+    count: Cardinal;
+begin
+  if (LandMass>0.85) then
+  begin
+    WriteLn('Invalid parameter value for LandMass in TMap.Generate!');
+    WriteLn('Using simplified generation function instead.');
+    Generate(0.8);
+    Exit;
+  end;
+
+  //highest and lowest row are arctic
+  for i:=1 to cMap_X-2 do
+  begin
+    tiles[i,0]:= TTerrain.Create(ttArctic);
+    tiles[i,cMap_Y-1]:= TTerrain.Create(ttArctic);
+  end;//for
+  //first and last column are open sea (as in: goes to Europe)
+  for i:=0 to cMap_Y-1 do
+  begin
+    tiles[0,i]:= TTerrain.Create(ttOpenSea);
+    tiles[cMap_X-1, i]:= TTerrain.Create(ttOpenSea);
+  end;//for
+
+  // ---- generation of height map goes here ----
+  //first fill it with default value
+  for i:=0 to cMap_X-1 do
+    for j:=0 to cMap_Y-1 do
+      heightmap[i,j]:= -2.0; //randomly chosen
+
+  Randomize;
+  currentLandMass:= 0;
+  count:= 0;
+
+  while (currentLandMass/((cMap_X-1)*(cMap_Y-1))<LandMass) do
+  begin
+    count:= count +1;
+    WriteLn('Info: Generation cycle count: ', count, 'Land: ', currentLandMass);
+    //now set the hill's radius
+    radius:= 3+Random(7);    
+    //...and its location
+    { Check for x-position is neccessary, because we don't want half an island
+      popping in at the eastern or western end of the map.}
+    repeat
+      h_x:= Random(cMap_X);
+    until (h_x>radius) and (h_x<cMap_X-radius);
+ 
+    { For the y-position: Too much checks will lead to isolated artic lines
+      at the bottom and top of the map. Too few checks will lead to no
+      (northern or southern) east-west passage to the "Pacific Ocean", because
+      it will be blocked by land.
+    
+      To get out of this dilemma (sort of, at least we try to get out), we only
+      check randomly.
+    }
+    h_y:= Random(cMap_Y);
+    if ((h_y<=radius) and (h_y>=cMap_Y-radius) and (Random<0.33)) then
+    begin
+      repeat
+        h_y:= Random(cMap_Y);
+      until (h_y>radius) and (h_y<cMap_Y-radius);
+    end;//if
+
+    WriteLn('    x: ', h_x, ', y: ', h_y, ', r: ',radius);
+    for i:= h_x-radius to h_x+radius do
+      for j:= h_y-radius to h_y+radius do
+      begin
+        if (IsValidMapPosition(i,j)) then
+          if (heightmap[i,j]<0.0) then
+          begin
+            heightmap[i,j]:= f(h_x, h_y, radius, 2.5, i, j);
+            if (heightmap[i,j]>0.0) then currentLandMass:= currentLandMass +1;
+          end;//if
+      end;//for
+  end;//while
+  
+  //now set the real tiles
+  for i:= 1 to cMap_X-2 do
+    for j:= 1 to cMap_Y-2 do
+    begin
+      if tiles[i,j]<>nil then
+      begin
+        tiles[i,j].Destroy;
+        tiles[i,j]:= nil;
+      end;
+      if heightmap[i,j]<=0.0 then
+        tiles[i,j]:= TTerrain.Create(ttSea)
+      else if heightmap[i,j]<=1.0 then
+        tiles[i,j]:= TTerrain.Create(ttGrassland)
+      else if heightmap[i,j]<=2.0 then
+        tiles[i,j]:= TTerrain.Create(ttHills)
+      else tiles[i,j]:= TTerrain.Create(ttMountains);
+    end;//for
+
+  {//smoothen landmass
+  for i:=2 to cMap_X-3 do
+    for j:=2 to cMap_Y-3 do
+    begin
+      if ((tiles[i-1,j].m_Type=ttGrassland) and (tiles[i,j-1].m_Type=ttGrassland) and
+          (tiles[i+1,j].m_Type=ttGrassland) and (tiles[i,j+1].m_Type=ttGrassland)) then
+          tiles[i,j].m_Type:= ttGrassland;
+    end;//for}
+  //no rivers yet
+  ClearRiverCache;
+  //set the flag to indicate that we have data for all tiles
+  filled:= True;
+end;//proc Generate (with f)
 
 procedure TMap.GenerateSpecials(const LandOnly: Boolean=True);
 var i, j: Integer;
@@ -452,6 +626,11 @@ begin
       or (num_Nation<cMin_Nations)) then
     Result:= True
   else Result:= discovered[x,y, num_Nation];
+end;//func
+
+function TMap.IsValidMapPosition(const x,y: Integer): Boolean;
+begin
+  Result:=  (x>=0) and (y>=0) and (x<cMap_X) and (y<cMap_Y);
 end;//func
 
 end.

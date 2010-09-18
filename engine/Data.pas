@@ -508,12 +508,12 @@ begin
     end//if
     else begin
       WriteLn('Couldn''t load map file "'+GetPathBase+america_map_path+'" properly. Using generation routine instead.');
-      m_Map.Generate(0.7);
+      m_Map.Generate(0.7, @Map.h4);
     end;
   end
   else begin
     WriteLn('Couldn''t find map file "'+GetPathBase+america_map_path+'". Using generation routine instead.');
-    m_Map.Generate(0.7);
+    m_Map.Generate(0.7, @Map.h4);
   end;
   m_Map.GenerateSpecials;
 end;//proc

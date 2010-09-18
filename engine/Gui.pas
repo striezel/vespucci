@@ -209,7 +209,7 @@ const
     );
 
   { caption of game window }
-  cWindowCaption = 'Vespucci v0.01.r153';
+  cWindowCaption = 'Vespucci v0.01.r154';
 
   { text colour (greenish) }
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
@@ -890,10 +890,12 @@ begin
   dat:= TData.Create(cNationEngland);
   Ship:= dat.NewUnit(utCaravel, dat.PlayerNation, 36, 13);
   WriteLn('First caravel created.');
-  passenger:= dat.NewUnit(utColonist, dat.PlayerNation, 36, 13);
+  if not dat.GetMap.tiles[Ship.GetPosX, Ship.GetPosY].IsWater then
+    Ship.WarpToXY(cMap_X-1, Ship.GetPosY, dat.GetMap);
+  passenger:= dat.NewUnit(utColonist, dat.PlayerNation, Ship.GetPosX, Ship.GetPosY);
   passenger.GiveTools(100);
   Ship.LoadUnit(passenger);
-  passenger:= dat.NewUnit(utRegular, dat.PlayerNation, 36, 13);
+  passenger:= dat.NewUnit(utRegular, dat.PlayerNation, Ship.GetPosX, Ship.GetPosY);
   Ship.LoadUnit(passenger);
 
   menu_cat:= mcNone;
@@ -3431,7 +3433,7 @@ begin
       glTexCoord2f(1.0, 1.0);
       glVertex2f(offset+1.0, y_Fields-1.5);
       glTexCoord2f(0.0, 1.0);
-      glVertex2f(offset, y_Fields-1.5);          
+      glVertex2f(offset, y_Fields-1.5);
     end;//for
   glEnd;
   glDisable(GL_TEXTURE_2D);
