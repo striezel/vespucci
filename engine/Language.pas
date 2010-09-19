@@ -538,7 +538,7 @@ begin
                           +'den Boykott aufhebt.';
   Transfer[tsOutOfGold]:= 'Wir haben nicht genug Gold, um uns 100 Einheiten der gewün- '
                           +'schten Ware zu leisten, Eure Exzellenz.';
-  Transfer[tsOutOfSpace]:= 'Unser Schiff hat nicht genug freien Laderaum, um noch diese '
+  Transfer[tsOutOfSpace]:= 'Unser Schiff hat nicht genug freien Laderaum, um auch diese '
                            +'Ware noch laden zu können.';
   //others
   Others[osLocation]:= 'Ort';
