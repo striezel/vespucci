@@ -3402,8 +3402,7 @@ begin
 end;//proc
 
 procedure TGui.DrawCongressReport;
-var str1: string;
-    i, max_bells: Integer;
+var i, max_bells: Integer;
     EuroNat: TEuropeanNation;
     offset: Single;
 begin
