@@ -42,13 +42,13 @@ const
 
 type
   { function type for landscape height generation
-  
+
     parameters:
         mx, my - location of peak in map coordinates
         r      - radius of hill, distance to zero
         h      - height of peak
         x, y   - current field coordinates
-  
+
   }
   THillFunction = function(const mx, my, r: Byte; const h: Single; const x, y: Byte): Single;
 
@@ -122,7 +122,7 @@ type
             islands) and not just like randomly thrown squares of land.
       }
       procedure Generate(const Landmass: Single); overload;
-      
+
       { generates a map with the given parameters
 
         parameters:
@@ -216,15 +216,15 @@ type
             numNation - integer constant identifying the nation in question
       }
       function IsDiscovered(const x,y: Byte; const num_Nation: Integer): Boolean;
-      
+
       { returns true, if the passed position is a valid position on the map
-      
+
         parameters:
             x, y - coordinates of the field's position
       }
       function IsValidMapPosition(const x,y: Integer): Boolean;
   end;//class
-  
+
   //functions for height map generation
   { h2 generates a hill at (mx,my) with radius r and not so heavy slope }
   function h2(const mx, my, r: Byte; const h: Single; const x, y: Byte): Single;
@@ -318,7 +318,8 @@ end;//proc
 procedure TMap.Generate(const LandMass: Single; const f: THillFunction);
 var i,j: Integer;
     heightmap: array [0..cMap_X-1, 0..cMap_Y-1] of Single;
-    h_x, h_y, radius: Byte;
+    rivermap: array [0..cMap_X-1, 0..cMap_Y-1] of Boolean;
+    h_x, h_y, radius, new_x, new_y: Byte;
     currentLandmass: Cardinal;
     count: Cardinal;
 begin
@@ -343,7 +344,7 @@ begin
     tiles[cMap_X-1, i]:= TTerrain.Create(ttOpenSea);
   end;//for
 
-  // ---- generation of height map goes here ----
+  // ---- generation of height map ----
   //first fill it with default value
   for i:=0 to cMap_X-1 do
     for j:=0 to cMap_Y-1 do
@@ -358,19 +359,19 @@ begin
     count:= count +1;
     WriteLn('Info: Generation cycle count: ', count, 'Land: ', currentLandMass);
     //now set the hill's radius
-    radius:= 3+Random(7);    
+    radius:= 3+Random(7);
     //...and its location
     { Check for x-position is neccessary, because we don't want half an island
       popping in at the eastern or western end of the map.}
     repeat
       h_x:= Random(cMap_X);
     until (h_x>radius) and (h_x<cMap_X-radius);
- 
+
     { For the y-position: Too much checks will lead to isolated artic lines
       at the bottom and top of the map. Too few checks will lead to no
       (northern or southern) east-west passage to the "Pacific Ocean", because
       it will be blocked by land.
-    
+
       To get out of this dilemma (sort of, at least we try to get out), we only
       check randomly.
     }
@@ -395,6 +396,67 @@ begin
       end;//for
   end;//while
   
+  // ---- generation of rivers ----
+  //fill with false (i.e. no river)
+  for i:=0 to cMap_X-1 do
+    for j:=0 to cMap_Y-1 do
+      rivermap[i,j]:= false;
+      
+  //generate one river for every 4% of landmass, but still seems quite dry there
+  for i:= 1 to Trunc(25*LandMass) do
+  begin
+    //get a location that is land and has no river yet
+    repeat
+      h_x:= 3+Random(cMap_X-6);
+      h_y:= 3+Random(cMap_Y-6);
+    until (heightmap[h_x, h_y]>0.0) and  not rivermap[h_x, h_y];
+  
+    repeat
+      rivermap[h_x, h_y]:= True;
+      new_x:= h_x;
+      new_y:= h_y;
+      //search for lowest adjacent tile (only horizontal or vertical)
+      if (IsValidMapPosition(h_x-1, h_y)) then
+        if heightmap[h_x-1, h_y]<heightmap[h_x, h_y] then
+        begin
+          new_x:= h_x-1;
+          new_y:= h_y;
+        end;
+      if (IsValidMapPosition(h_x+1, h_y)) then
+        if heightmap[h_x+1, h_y]<heightmap[new_x, new_y] then
+        begin
+          new_x:= h_x+1;
+          new_y:= h_y;
+        end;
+      if (IsValidMapPosition(h_x, h_y-1)) then
+        if heightmap[h_x, h_y-1]<heightmap[new_x, new_y] then
+        begin
+          new_x:= h_x;
+          new_y:= h_y-1;
+        end;
+      if (IsValidMapPosition(h_x, h_y+1)) then
+        if heightmap[h_x, h_y+1]<heightmap[new_x, new_y] then
+        begin
+          new_x:= h_x;
+          new_y:= h_y+1;
+        end;
+      //Now (new_x,new_y) should be coordinates of lowest adjecent tile. If
+      // (new_x,new_y) equals (h_x,h_y), then we are already at the lowest.
+      //In that case, just create a lake there by making that tile below zero.
+      if (new_x=h_x) and (new_y=h_y) then
+      begin
+        heightmap[h_x,h_y]:= -0.5;
+        rivermap[h_x,h_y]:= True;
+      end
+      else begin
+        rivermap[new_x,new_y]:= True;
+        h_x:= new_x;
+        h_y:= new_y;
+      end;//else
+    until (heightmap[h_x, h_y]<0.0);
+  end;//for
+  
+
   //now set the real tiles
   for i:= 1 to cMap_X-2 do
     for j:= 1 to cMap_Y-2 do
@@ -405,12 +467,12 @@ begin
         tiles[i,j]:= nil;
       end;
       if heightmap[i,j]<=0.0 then
-        tiles[i,j]:= TTerrain.Create(ttSea)
+        tiles[i,j]:= TTerrain.Create(ttSea, rivermap[i,j])
       else if heightmap[i,j]<=1.0 then
-        tiles[i,j]:= TTerrain.Create(ttGrassland)
+        tiles[i,j]:= TTerrain.Create(ttGrassland, rivermap[i,j])
       else if heightmap[i,j]<=2.0 then
-        tiles[i,j]:= TTerrain.Create(ttHills)
-      else tiles[i,j]:= TTerrain.Create(ttMountains);
+        tiles[i,j]:= TTerrain.Create(ttHills, rivermap[i,j])
+      else tiles[i,j]:= TTerrain.Create(ttMountains, rivermap[i,j]);
     end;//for
 
   {//smoothen landmass
@@ -425,6 +487,7 @@ begin
   ClearRiverCache;
   //set the flag to indicate that we have data for all tiles
   filled:= True;
+  GenerateRiverCache;
 end;//proc Generate (with f)
 
 procedure TMap.GenerateSpecials(const LandOnly: Boolean=True);
