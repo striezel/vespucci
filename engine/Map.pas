@@ -395,13 +395,13 @@ begin
           end;//if
       end;//for
   end;//while
-  
+
   // ---- generation of rivers ----
   //fill with false (i.e. no river)
   for i:=0 to cMap_X-1 do
     for j:=0 to cMap_Y-1 do
       rivermap[i,j]:= false;
-      
+
   //generate one river for every 4% of landmass, but still seems quite dry there
   for i:= 1 to Trunc(25*LandMass) do
   begin
@@ -410,7 +410,7 @@ begin
       h_x:= 3+Random(cMap_X-6);
       h_y:= 3+Random(cMap_Y-6);
     until (heightmap[h_x, h_y]>0.0) and  not rivermap[h_x, h_y];
-  
+
     repeat
       rivermap[h_x, h_y]:= True;
       new_x:= h_x;
@@ -455,7 +455,7 @@ begin
       end;//else
     until (heightmap[h_x, h_y]<0.0);
   end;//for
-  
+
 
   //now set the real tiles
   for i:= 1 to cMap_X-2 do
