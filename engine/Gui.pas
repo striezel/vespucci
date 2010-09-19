@@ -8,7 +8,7 @@ uses
   FoundingFathers;
 
 type
-  TRiverType = (rtOne, rtTwo_Bend, rtTwo_Straight, rtThree);
+  TRiverType = (rtOne, rtTwo_Bend, rtTwo_Straight, rtThree, rtFour);
 
 const
   x_Fields = 15; // fields on new world map - horizontal direction
@@ -90,7 +90,8 @@ const
        'river_n.bmp', //one (spring)
        'river_ne.bmp', //2, bend
        'river_ns.bmp', //2, straight
-       'river_nes.bmp' //3
+       'river_nes.bmp', //3
+       'river_all.bmp'
      );
 
   { texture names (as in path) for goods (icons) }
@@ -209,7 +210,7 @@ const
     );
 
   { caption of game window }
-  cWindowCaption = 'Vespucci v0.01.r154';
+  cWindowCaption = 'Vespucci v0.01.r157';
 
   { text colour (greenish) }
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
@@ -2207,6 +2208,7 @@ begin
                      tex:= m_RiverTexNames[rtTwo_Bend];
             cMapRiverNotN, cMapRiverNotE, cMapRiverNotS, cMapRiverNotW:
                      tex:= m_RiverTexNames[rtThree];
+            cMapRiverAll: tex:= m_RiverTexNames[rtFour];         
           else tex:= 0;
           end;//case
           if (tex<>0) then
