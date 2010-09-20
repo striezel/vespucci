@@ -60,6 +60,8 @@ type
 
     To Do:
     ======
+       - save discovery status info (array discovered) during SaveToFile() and
+         load it during LoadFromFile() function
        - write a better function for generation of maps
        - two-parameter version of TMap.Generate():
            - generate rivers
@@ -70,7 +72,7 @@ type
       filled: Boolean; //internal value to determine whether map is not only nil
       { holds information about which fields of the map have already been
         discovered by the four European nations. }
-      discovered: array [0..cMap_X-1, 0..cMap_Y-1] of array [cMin_Nations..cMax_Nations] of Boolean;
+      discovered: array [0..cMap_X-1, 0..cMap_Y-1] of array [cMinEuropean..cMaxEuropean] of Boolean;
       { "River Cache": holds information about rivers in adjacent fields of all
          fields on the map }
       river: array [0..cMap_X-1, 0..cMap_Y-1] of Byte;
@@ -258,7 +260,7 @@ begin
   for i:= 0 to cMap_X-1 do
     for j:= 0 to cMap_Y-1 do
     begin
-      for k:= cMin_Nations to cMax_Nations do
+      for k:= cMinEuropean to cMaxEuropean do
         discovered[i,j,k] := False;
       tiles[i,j]:= nil;
       river[i,j]:= cMapRiverNone;
@@ -663,7 +665,7 @@ end;//func
 procedure TMap.DiscoverSurroundingTiles(const x,y: Byte; const cNation: Byte; const two_squares: Boolean);
 var i, j: Integer;
 begin
-  if ((cNation>=cMin_Nations) and (cNation<=cMax_Nations)) then
+  if ((cNation>=cMinEuropean) and (cNation<=cMaxEuropean)) then
   begin
     for i:= x-1-Ord(two_squares) to x+1+Ord(two_squares) do
       for j:= y-1-Ord(two_squares) to y+1+Ord(two_squares) do
@@ -675,7 +677,7 @@ end;//proc
 procedure TMap.RevealAll(const num_Nation: Integer);
 var i, j: Integer;
 begin
-  if ((num_Nation<=cMax_Nations) and (num_Nation>=cMin_Nations)) then
+  if ((num_Nation<=cMaxEuropean) and (num_Nation>=cMinEuropean)) then
   begin
     for i:= 0 to cMap_X-1 do
       for j:= 0 to cMap_Y-1 do
@@ -685,8 +687,8 @@ end;//proc
 
 function TMap.IsDiscovered(const x,y: Byte; const num_Nation: Integer): Boolean;
 begin
-  if ((x>=cMap_X) or (y>=cMap_Y) or (num_Nation>cMax_Nations)
-      or (num_Nation<cMin_Nations)) then
+  if ((x>=cMap_X) or (y>=cMap_Y) or (num_Nation>cMaxEuropean)
+      or (num_Nation<cMinEuropean)) then
     Result:= True
   else Result:= discovered[x,y, num_Nation];
 end;//func
