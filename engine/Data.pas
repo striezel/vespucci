@@ -40,6 +40,17 @@ const
   cUnitFileHeader = 'VUD';
   cNationFileHeader = 'VND';
 
+  { initial spawnpoints for European nations }
+  cSpawnpointsAmerica: array [0..3] of record
+                         x, y: Byte;
+                       end
+                       =(
+                         (x: 36; y: 13),
+                         (x: 46; y: 27),
+                         (x: 55; y: 41),
+                         (x: 50; y: 55)
+                       );
+
 type
   { record type which holds different parts of (player's) score }
   TScoreRecord = record
@@ -81,7 +92,7 @@ type
               { integer constant that defines the player's nation }
               player_nation: LongInt;
               //array that holds all nations
-              Nations: array [cMin_Nations..cMaxIndian] of TNation;
+              Nations: array [cMinNations..cMaxIndian] of TNation;
               //the units
               m_Units: array of TUnit;
               Unit_max: Integer;
@@ -427,6 +438,14 @@ type
                     ACol     - the colony where the unit works/ will work
               }
               function GetJobList(const x_shift, y_shift: ShortInt; const UnitType: TUnitType; ACol: TColony): TShortStrArr;
+
+              { creates the initial units for an European nation, i.e. the ship and two passengers
+              
+                parameters:
+                    num_nation - integer constant identifying the nation
+                    x,y        - coordinates where to spawn the units
+              }
+              procedure SpawnEuropeanNation(const num_nation: LongInt; const x, y: Byte);
           end;//class TData
 
 implementation
@@ -442,7 +461,7 @@ begin
   Autumn:= False;
   lang:= TLanguage.Create;
   //nations
-  for i:= cMin_Nations to cMaxIndian do
+  for i:= cMinNations to cMaxIndian do
     Nations[i]:= nil;
   InitializeNations;
   //units
@@ -460,7 +479,7 @@ end;//construc
 destructor TData.Destroy;
 var i: Integer;
 begin
-  for i:= cMin_Nations to cMaxIndian do
+  for i:= cMinNations to cMaxIndian do
     if Nations[i]<>nil then Nations[i].Destroy;
   DeInitColonies;
   DeInitTribes;
@@ -576,7 +595,7 @@ end;//func
 
 function TData.GetNation(const count: Integer): TNation;
 begin
-  if ((count>cMaxIndian) or (count<cMin_Nations)) then
+  if ((count>cMaxIndian) or (count<cMinNations)) then
     Result:= nil
   else
     Result:= Nations[count];
@@ -1011,54 +1030,58 @@ begin
     if m_Units[i]<>nil then
       if (m_Units[i].GetNation=num_Nation) then
         m_Units[i].NewRound;
-  //call NewRound method for every colony
-  ENat:= GetNation(num_Nation) as TEuropeanNation;
-  if not Autumn then //only in spring we produce, to avoid production twice a year
+  if GetNation(num_nation)=nil then Exit;
+  if (GetNation(num_nation).IsEuropean) then
   begin
-    for i:= 0 to Colony_max do
-      if m_Colonies[i]<>nil then
-        if (m_Colonies[i].GetNation=num_Nation) then
-        begin
-          bells:= 0;
-          m_Colonies[i].NewRound(m_Map, ENat.HasFoundingFather(ffHudson),
-                                 ENat.HasFoundingFather(ffJefferson),
-                                 ENat.HasFoundingFather(ffPenn), bells);
-          ENat.AddLibertyBells(bells);
-          //following should be implemented in TColony and not here
-          if m_Colonies[i].GetStore(gtFood)>=200 then
-          begin
-            //time for new inhabitant
-            m_Colonies[i].RemoveFromStore(gtFood, 200);
-            //creates new unit and sets its location to America
-            NewUnit(utColonist, num_nation, m_Colonies[i].GetPosX, m_Colonies[i].GetPosY).SetLocation(ulAmerica);
-          end;//if
-        end;//if
-    //check if there are enough liberty bells for the next founding father
-    if (ENat.GetNextFoundingFather<>ffNone) and
-       (ENat.GetLibertyBells>=GetRequiredLibertyBells(ENat.GetPresentFoundingFathers+1)) then
+    //call NewRound method for every colony
+    ENat:= GetNation(num_Nation) as TEuropeanNation;
+    if not Autumn then //only in spring we produce, to avoid production twice a year
     begin
-      //save the founding father for later use
-      temp_ff:= ENat.GetNextFoundingFather;
-      //Sets founding father's presence to true; liberty bells and next ff will
-      //   be adjusted by this procedure, too.
-      ENat.SetFoundingFather(ENat.GetNextFoundingFather, true);
-      { Add some effects of founding fathers that take effect immediately after
-        they joind congress. }
-      case temp_ff of
-        //Jakob Fugger clears all boycotts.
-        ffFugger: ENat.UndoAllBoycotts;
-        //John Paul Jones gives a new frigate at no cost.
-        ffJones: NewUnit(utFrigate, num_Nation, cMap_X-1, cMap_Y div 2).SetLocation(ulAmerica);
-      end;//case
-      { To Do:
-        ======
-       **  - add message for selection of next Founding father in case of player
-       **    nation or let AI choose the next founding father in case of other
-       **    nation
-       ************
-      }
-    end;//if enough liberty bells
-  end;//if
+      for i:= 0 to Colony_max do
+        if m_Colonies[i]<>nil then
+          if (m_Colonies[i].GetNation=num_Nation) then
+          begin
+            bells:= 0;
+            m_Colonies[i].NewRound(m_Map, ENat.HasFoundingFather(ffHudson),
+                                   ENat.HasFoundingFather(ffJefferson),
+                                   ENat.HasFoundingFather(ffPenn), bells);
+            ENat.AddLibertyBells(bells);
+            //following should be implemented in TColony and not here
+            if m_Colonies[i].GetStore(gtFood)>=200 then
+            begin
+              //time for new inhabitant
+              m_Colonies[i].RemoveFromStore(gtFood, 200);
+              //creates new unit and sets its location to America
+              NewUnit(utColonist, num_nation, m_Colonies[i].GetPosX, m_Colonies[i].GetPosY).SetLocation(ulAmerica);
+            end;//if
+          end;//if
+      //check if there are enough liberty bells for the next founding father
+      if (ENat.GetNextFoundingFather<>ffNone) and
+         (ENat.GetLibertyBells>=GetRequiredLibertyBells(ENat.GetPresentFoundingFathers+1)) then
+      begin
+        //save the founding father for later use
+        temp_ff:= ENat.GetNextFoundingFather;
+        //Sets founding father's presence to true; liberty bells and next ff will
+        //   be adjusted by this procedure, too.
+        ENat.SetFoundingFather(ENat.GetNextFoundingFather, true);
+        { Add some effects of founding fathers that take effect immediately after
+          they joind congress. }
+        case temp_ff of
+          //Jakob Fugger clears all boycotts.
+          ffFugger: ENat.UndoAllBoycotts;
+          //John Paul Jones gives a new frigate at no cost.
+          ffJones: NewUnit(utFrigate, num_Nation, cMap_X-1, cMap_Y div 2).SetLocation(ulAmerica);
+        end;//case
+        { To Do:
+          ======
+         **  - add message for selection of next Founding father in case of player
+         **    nation or let AI choose the next founding father in case of other
+         **    nation
+         ************
+        }
+      end;//if enough liberty bells
+    end;//if
+  end; //if European
 end;//func
 
 function TData.SaveData(const n: Word; var err: string): Boolean;
@@ -1280,7 +1303,7 @@ begin
     err:= 'TData.LoadData: Error while reading data file "'+GetPathBase+save_path +'data'+IntToStr(n)+'.vdd';
     Exit;
   end;//if
-  for i:= cMin_Nations to cMaxIndian do
+  for i:= cMinNations to cMaxIndian do
     if Nations[i]<>nil then
     begin
       Nations[i].Destroy;
@@ -1399,7 +1422,7 @@ begin
   end;//if
 
   //nations
-  for i:= cMin_Nations to cMaxIndian do
+  for i:= cMinNations to cMaxIndian do
     if Nations[i]<>nil then
     begin
       Nations[i].Destroy;
@@ -1681,5 +1704,21 @@ begin
                +' '+lang.GetGoodName(TGoodType(i));
   end;//for
 end;//func
+
+procedure TData.SpawnEuropeanNation(const num_nation: LongInt; const x, y: Byte);
+var Ship: TUnit;
+    passenger: TUnit;
+begin
+  if num_nation<>cNationHolland then
+    Ship:= NewUnit(utCaravel, num_nation, x, y)
+  else Ship:= NewUnit(utTradingShip, num_nation, x, y);
+  if not GetMap.tiles[Ship.GetPosX, Ship.GetPosY].IsWater then
+    Ship.WarpToXY(cMap_X-1, Ship.GetPosY, GetMap);
+  passenger:= NewUnit(utColonist, num_nation, Ship.GetPosX, Ship.GetPosY);
+  passenger.GiveTools(100);
+  Ship.LoadUnit(passenger);
+  passenger:= NewUnit(utRegular, num_nation, Ship.GetPosX, Ship.GetPosY);
+  Ship.LoadUnit(passenger);
+end; //proc
 
 end.

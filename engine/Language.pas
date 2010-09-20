@@ -60,7 +60,7 @@ type
       //names of goods
       GoodNames: array[TGoodType] of string;
       //names of all nations, including Indians
-      NationNames: array[cMin_Nations..cMaxIndian] of string;
+      NationNames: array[cMinNations..cMaxIndian] of string;
       //names of ports in Europe
       PortNames: array[cMinEuropean..cMaxEuropean] of string;
       //names of terrain types
@@ -934,7 +934,7 @@ end;//func
 
 function TLanguage.GetNationName(const NationNum: Integer): string;
 begin
-  if (NationNum<cMin_Nations) or (NationNum>cMaxIndian) then Result:= '(no nation)'
+  if (NationNum<cMinNations) or (NationNum>cMaxIndian) then Result:= '(no nation)'
   else Result:= NationNames[NationNum];
 end;//func
 
@@ -1071,7 +1071,7 @@ begin
     WriteLn(dat, GoodNames[TGoodType(i)]);
   WriteLn(dat);
   WriteLn(dat, '[Nations]');
-  for i:= cMin_Nations to cMaxIndian do
+  for i:= cMinNations to cMaxIndian do
     WriteLn(dat, NationNames[i]);
   WriteLn(dat);
   WriteLn(dat, '[Ports]');
@@ -1188,7 +1188,7 @@ begin
       end//if
       else if str1='[Nations]' then
       begin
-        i:= cMin_Nations;
+        i:= cMinNations;
         while (i<=cMaxIndian) and not Eof(dat) do
         begin
           ReadLn(dat, str1);

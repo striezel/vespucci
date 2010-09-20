@@ -8,9 +8,9 @@ uses
 const
   { Constant array that holds the lociations of indian tribes that are present
     in America at the start of a new game.
-  
+
     remarks/ to do:
-        still needs to be extended  
+        still needs to be extended
   }
   cTribeLocationsAmerica: array [0..12] of record
                      Nation: LongInt;
@@ -56,10 +56,10 @@ type
       constructor Create(const X, Y: Integer; const ANation: LongInt; const KnownFor: TUnitType);
 
       { teaches the given unit the special skill of that tribe
-      
+
         parameters:
             AUnit - the unit that shall learn the skill
-            
+
         remarks:
             Only unskilled units, i.e. servants or colonists, can learn a skill
             from a tribe. Every European nation can only learn once from the
@@ -68,7 +68,7 @@ type
       procedure Teach(var AUnit: TUnit);
     private
       m_KnownFor: TUnitType;
-      m_HasTought: array[cMin_Nations..cMaxEuropean] of Boolean;
+      m_HasTought: array[cMinEuropean..cMaxEuropean] of Boolean;
   end;//class
 
 implementation
@@ -80,7 +80,7 @@ var i: LongInt;
 begin
   //sets Nation and position
   inherited Create(X, Y, ANation);
-  for i:= cMin_Nations to cMaxEuropean do
+  for i:= cMinEuropean to cMaxEuropean do
     m_HasTought[i]:= False;
   //set the unit type the tribe is known for
   m_KnownFor:= KnownFor;
@@ -102,7 +102,7 @@ begin
     end;//else
   end
   //only European Units can learn from Indians
-  else if (AUnit.GetNation in [cMin_Nations..cMaxEuropean]) then
+  else if (AUnit.GetNation in [cMinEuropean..cMaxEuropean]) then
   begin
     //check, if Indians already did teach that nation's units a new skill
     if m_HasTought[AUnit.GetNation] then

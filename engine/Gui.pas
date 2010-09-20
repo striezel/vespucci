@@ -210,7 +210,7 @@ const
     );
 
   { caption of game window }
-  cWindowCaption = 'Vespucci v0.01.r157';
+  cWindowCaption = 'Vespucci v0.01.r160';
 
   { text colour (greenish) }
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
@@ -257,6 +257,15 @@ type
     ****
     **** purpose: implements the graphical user interface of the game, i.e.
     ****          handles user input and graphical output
+    ****
+    **** TODO:
+    **** =====
+    ****
+    **** - Player should only be able to select units and colonie of his/her
+    ****   own nation and not those of others, too.
+    **** - When new round is started, units of other nations should be updated,
+    ****   too, and not only the player's units.
+    **** - A lot more.
     *******
   }
   TGui = class
@@ -867,6 +876,7 @@ end; //func
 
 constructor TGui.Create;
 var i, j: Integer;
+    bits: Byte;
     //general texture format
     tempTex: TArraySq32RGB;
     AlphaTex: TArraySq32RGBA;
@@ -874,7 +884,7 @@ var i, j: Integer;
     BuildTex: TArray128x64RGB;
     AlphaBuildTex: TArray128x64RGBA;
     err_str: string;
-    Ship, passenger: TUnit;
+    Ship: TUnit;
 begin
   {$IFDEF DEBUG_CODE}
     WriteLn('Entered TGui.Create');
@@ -889,15 +899,18 @@ begin
   Wooden_Mode:= True;
   MiniMapOffset_Y:= 0;
   dat:= TData.Create(cNationEngland);
-  Ship:= dat.NewUnit(utCaravel, dat.PlayerNation, 36, 13);
-  WriteLn('First caravel created.');
-  if not dat.GetMap.tiles[Ship.GetPosX, Ship.GetPosY].IsWater then
-    Ship.WarpToXY(cMap_X-1, Ship.GetPosY, dat.GetMap);
-  passenger:= dat.NewUnit(utColonist, dat.PlayerNation, Ship.GetPosX, Ship.GetPosY);
-  passenger.GiveTools(100);
-  Ship.LoadUnit(passenger);
-  passenger:= dat.NewUnit(utRegular, dat.PlayerNation, Ship.GetPosX, Ship.GetPosY);
-  Ship.LoadUnit(passenger);
+  
+  Randomize;
+  bits:= 0;
+  for j:= cMinEuropean to cMaxEuropean do
+  begin
+    repeat
+      i:= Random(4);
+    until ((1 shl i) and bits)=0;
+    dat.SpawnEuropeanNation(j, cSpawnpointsAmerica[i].x, cSpawnpointsAmerica[i].y);
+    bits:= bits or (1 shl i);
+  end;//for
+  WriteLn('First ships created.');
 
   menu_cat:= mcNone;
   selected_menu_option:= 1;
@@ -2208,7 +2221,7 @@ begin
                      tex:= m_RiverTexNames[rtTwo_Bend];
             cMapRiverNotN, cMapRiverNotE, cMapRiverNotS, cMapRiverNotW:
                      tex:= m_RiverTexNames[rtThree];
-            cMapRiverAll: tex:= m_RiverTexNames[rtFour];         
+            cMapRiverAll: tex:= m_RiverTexNames[rtFour];
           else tex:= 0;
           end;//case
           if (tex<>0) then
@@ -3874,7 +3887,7 @@ begin
       //the state icon
       glBindTexture(GL_TEXTURE_2D, m_StateTexNames[the_Unit.GetState]);
       glBegin(GL_QUADS);
-        if (the_Unit.GetNation in [cMin_Nations..cMaxIndian]) then
+        if (the_Unit.GetNation in [cMinNations..cMaxIndian]) then
           glColor3ubv(@cNationColours[the_Unit.GetNation,0]);
         glTexCoord2f(0.0, 0.0);
         glVertex2f(left, bottom);

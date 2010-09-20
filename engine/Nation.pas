@@ -6,7 +6,7 @@ uses
   Goods, FoundingFathers, Helper, Classes;
 
 const
-  cMin_Nations = 1;
+  cMinNations = 1;
   cMinEuropean = 1;
   cMax_Nations = 4;
   cMaxEuropean = 4;
@@ -30,7 +30,7 @@ const
   cNationApache = 12;
 
   //the colours of the nations as RGB values
-  cNationColours: array[cMin_Nations..cMaxIndian] of array[0..2] of Byte
+  cNationColours: array[cMinNations..cMaxIndian] of array[0..2] of Byte
                 =( //europeans
                    (255, 0, 0), //England
                    (50, 50, 255), //France
@@ -390,7 +390,7 @@ type
                       otherwise
       }
       procedure SetFoundingFather(const ff: TFoundingFathers; const present: Boolean);
-      
+
       { returns the number of founding fathers that are present in this nation's
         congress
       }
@@ -587,7 +587,7 @@ var gt: TGoodType;
 begin
   inherited Create(num, NameStr);
   //check number and pick some default value to make sure it's European
-  if ((num<cMin_Nations) or (num>cMaxEuropean)) then m_Count:= cNationEngland;
+  if ((num<cMinEuropean) or (num>cMaxEuropean)) then m_Count:= cNationEngland;
   m_Leader:= NameOfLeader;
   m_Gold:= 1000;
   m_TaxRate:= 0;
