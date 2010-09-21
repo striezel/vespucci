@@ -39,7 +39,7 @@ type
   TBuildColonyData = record
                         x,y: Byte;
                         //ColName: ShortString; //delivered through input text
-                        num_nation: Byte;
+                        //num_nation: Byte; //given by founder.GetNation
                         founder: TUnit;
                         AData: TData;
                       end;//rec
@@ -121,7 +121,7 @@ const
   { handles the given callback record, i.e. calls another function to handle it,
     and returns true on succes. What exactly "success" means, depends on the
     type of the callback.
-    
+
     parameters:
         cbRec - the TCallbackRec structure which holds the data needed to handle
                 the callback
@@ -141,14 +141,14 @@ begin
   else Result:= False;
 end;//func
 
-function CBF_BuildColony(const x,y: Byte; const num_nation: Byte; ColName: ShortString; founder: TUnit; AData: TData): Boolean;
+function CBF_BuildColony(const x,y: Byte; {const num_nation: Byte;} ColName: ShortString; founder: TUnit; AData: TData): Boolean;
 begin
   Result:= False;
   if ((ColName='') or (founder=nil) or (AData=nil) or (x>=cMap_X-1)
       or (y>=cMap_Y-1) or (x=0) or (y=0)) then Exit;
   if founder.WarpToXY(x,y, AData.GetMap) then
   begin
-    (AData.NewColony(x,y, num_nation, ColName)).SetUnitInField(-1, -1, founder);
+    (AData.NewColony(x,y, founder.GetNation, ColName)).SetUnitInField(-1, -1, founder);
     //founder.SetLocation(ulInColony);
     AData.GetMap.tiles[x,y].CreateRoad;
     Result:= True;
@@ -454,8 +454,7 @@ begin
                     cbRec.Landfall.UType, cbRec.Landfall.x, cbRec.Landfall.y,
                     cbRec.Landfall.AMap);
     CBT_BUILD_COLONY: Result:= CBF_BuildColony(cbRec.BuildColony.x, cbRec.BuildColony.y,
-                        cbRec.BuildColony.num_nation, cbRec.inputText,
-                        cbRec.BuildColony.founder, cbRec.BuildColony.AData);
+                        cbRec.inputText, cbRec.BuildColony.founder, cbRec.BuildColony.AData);
     CBT_SAVE_GAME: Result:= CBF_SaveGame(cbRec.option, cbRec.SaveGame.AData);
     CBT_LOAD_GAME: Result:= CBF_LoadGame(cbRec.option, cbRec.LoadGame.AData);
     CBT_JOB_CHANGE: Result:= CBF_JobChange(cbRec.option, cbRec);
