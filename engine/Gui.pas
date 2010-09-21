@@ -210,7 +210,7 @@ const
     );
 
   { caption of game window }
-  cWindowCaption = 'Vespucci v0.01.r160';
+  cWindowCaption = 'Vespucci v0.01.r161';
 
   { text colour (greenish) }
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
@@ -899,7 +899,7 @@ begin
   Wooden_Mode:= True;
   MiniMapOffset_Y:= 0;
   dat:= TData.Create(cNationEngland);
-  
+
   Randomize;
   bits:= 0;
   for j:= cMinEuropean to cMaxEuropean do
@@ -1322,7 +1322,6 @@ begin
                    temp_cb._type:= CBT_BUILD_COLONY;
                    temp_cb.BuildColony.x:= focused.GetPosX;
                    temp_cb.BuildColony.y:= focused.GetPosY;
-                   temp_cb.BuildColony.num_nation:= dat.PlayerNation;
                    temp_cb.BuildColony.founder:= focused;
                    temp_cb.BuildColony.AData:= dat;
                    ShowMessageInput(dat.GetLang.GetBuildColony(0), dat.GetLang.GetBuildColony(1),
