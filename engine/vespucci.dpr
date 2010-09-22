@@ -16,13 +16,13 @@ end;
 procedure KeyWrapper(Key: Byte; x, y: LongInt); cdecl;
 begin
   if ShowKey then WriteLn('Key: ', Key);
-  TheGUI.KeyFunc(Key, x,y, False);
+  TheGUI.KeyFunc(Key, {x,y,} False);
 end;
 
 procedure SpecialWrapper(Key: Longint; x, y: LongInt); cdecl;
 begin
   if ShowKey then WriteLn('Special key: ', Key);
-  TheGUI.KeyFunc(Key, x, y, True);
+  TheGUI.KeyFunc(Key, {x, y,} True);
 end;
 
 procedure MouseWrapper(button, state, x, y: LongInt); cdecl;

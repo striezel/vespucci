@@ -733,7 +733,7 @@ type
             The first three parameters are equal to those from the corresponding
             key callback of GLUT.
       }
-      procedure KeyFunc(Key: Byte; x, y: LongInt; Special: Boolean = False);
+      procedure KeyFunc(Key: Byte; {x, y: LongInt;} Special: Boolean = False);
 
       { procedure to inject mouse click events to the GUI
 
@@ -1185,7 +1185,7 @@ begin
   glutIdleFunc(nil);
 end;//proc
 
-procedure TGui.KeyFunc(Key: Byte; x, y: LongInt; Special: Boolean = False);
+procedure TGui.KeyFunc(Key: Byte; {x, y: LongInt;} Special: Boolean = False);
 var tempUnit: TUnit;
     temp_cb: TCallbackRec;
     temp_x, temp_y: Byte;
@@ -1370,7 +1370,8 @@ begin
                    if focused<>nil then CenterOn(focused.GetPosX, focused.GetPosY)
                    else begin
                      //no units left, start new round
-                     dat.AdvanceYear;
+                     dat.ProcessNationsAfterPlayer;
+                     dat.ProcessNationsBeforePlayer;
                      dat.NewRound(dat.PlayerNation);
                      focused:= dat.GetFirstLazyUnit(dat.PlayerNation);
                      CheckFoundingFatherMessage;
@@ -1400,7 +1401,8 @@ begin
                    end//if
                    else begin
                      //no units left, start new round
-                     dat.AdvanceYear;
+                     dat.ProcessNationsAfterPlayer;
+                     dat.ProcessNationsBeforePlayer;
                      dat.NewRound(dat.PlayerNation);
                      focused:= dat.GetFirstLazyUnit(dat.PlayerNation);
                      CheckFoundingFatherMessage;
@@ -4658,7 +4660,8 @@ begin
                          end//if
                          else begin
                            //no units left, start new round
-                           dat.AdvanceYear;
+                           dat.ProcessNationsAfterPlayer;
+                           dat.ProcessNationsBeforePlayer;
                            dat.NewRound(dat.PlayerNation);
                            focused:= dat.GetFirstLazyUnit(dat.PlayerNation);
                            CheckFoundingFatherMessage;
