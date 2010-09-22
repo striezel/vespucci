@@ -383,6 +383,18 @@ type
               }
               procedure NewRound(const num_Nation: Integer);
 
+              { calls NewRound for all AI-controlled nations whose nation number
+                is less than player's numer, i.e. all nations that move before
+                the player
+              }
+              procedure ProcessNationsBeforePlayer;
+
+              { calls NewRound for all AI-controlled nations whose nation number
+                is greater than player's numer, i.e. all nations that move after
+                the player, and advances the year
+              }
+              procedure ProcessNationsAfterPlayer;
+
               { tries to save the game to the n-th slot. Returns true in case of
                 success.
 
@@ -1082,7 +1094,22 @@ begin
       end;//if enough liberty bells
     end;//if
   end; //if European
-end;//func
+end;//proc
+
+procedure TData.ProcessNationsBeforePlayer;
+var i: LongInt;
+begin
+  for i:= cMinNations to PlayerNation-1 do
+    NewRound(i);
+end;//proc
+
+procedure TData.ProcessNationsAfterPlayer;
+var i: LongInt;
+begin
+  for i:= PlayerNation+1 to cMaxNations do
+    NewRound(i);
+  AdvanceYear;
+end;//proc
 
 function TData.SaveData(const n: Word; var err: string): Boolean;
 var fs: TFileStream;

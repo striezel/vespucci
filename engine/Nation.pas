@@ -8,10 +8,10 @@ uses
 const
   cMinNations = 1;
   cMinEuropean = 1;
-  cMax_Nations = 4;
   cMaxEuropean = 4;
   cMinIndian = 5;
   cMaxIndian = 12;
+  cMaxNations = 12;
 
   { integer constant representing a nation }
   //Europeans
@@ -1082,6 +1082,7 @@ begin
     Exit;
   end;//if
   //diplomatic status
+  diplomatic:= dsUndefined;
   for i:= cMinEuropean to cMaxEuropean do
   begin
     Result:= Result and (fs.Read(diplomatic, sizeof(TDiplomaticStatus))
