@@ -464,7 +464,7 @@ type
 
   // ---- the AI stuff ----
   { enumeration type to indicate the type of an AI task }
-  TTaskType = (ttGeneric, ttPlough, ttRoad, ttClear, ttGoTo);
+  TTaskType = (ttGeneric, ttPlough, ttRoad, ttClear, ttGoTo, ttFindLand);
 
   { ********
     **** TTask abstract class
@@ -659,7 +659,7 @@ type
       { destructor }
       destructor Destroy; override;
 
-      { returns true, if the unit has arrived at its destination of if there is
+      { returns true, if the unit has arrived at its destination or if there is
         no path to the desired destination }
       function Done: Boolean; override;
 
@@ -675,6 +675,43 @@ type
       { returns the y-ccordinate of the destination field }
       function DestinationY: Byte;
   end;//class
+
+  { ********
+    **** TFindLandForColonyTask class
+    ****
+    **** purpose: represents a task where a unit tries to find a land square for
+    ****          building a colony there. Might not always succeed yet.
+    ****          Derived from TTask.
+    *******
+  }
+  TFindLandForColonyTask = class(TTask)
+    protected
+      m_Map: TMap;
+      m_Data: Pointer;
+    public
+      { constructor
+        parameters:
+            target_unit - the unit that will travel to the given destination
+            AMap        - the current map (must not be nil)
+            dat         - Pointer to TData object (must not be nil)
+      }
+      constructor Create(const target_unit: TUnit; const AMap: TMap; const dat: Pointer);
+
+      { destructor }
+      destructor Destroy; override;
+
+      { returns true, if the unit has finished its task, i.e. it has found a
+        land square and dropped a colonist to build a colony
+      }
+      function Done: Boolean; override;
+
+      { executes the next step of the task and returns true, if something was
+        done. Usually, a return value of false indicates that the task is
+        already done (see Done()).
+      }
+      function Execute: Boolean; override;
+  end;//class TFindLandTask
+
 
   { applies a given direction to the position, i.e. returns (in x and y) the
     position that (x;y) would be, if it moved into the given direction
@@ -1559,6 +1596,78 @@ begin
   target.SetState(usNormal);
   inherited Destroy;
 end;//destruc
+
+// **** TFindLandForColonyTask methods ****
+
+constructor TFindLandForColonyTask.Create(const target_unit: TUnit; const AMap: TMap; const dat: Pointer);
+begin
+  inherited Create(target_unit);
+  m_Map:= AMap;
+  m_Data:= dat;
+end;//construc
+
+destructor TFindLandForColonyTask.Destroy;
+begin
+  m_Map:= nil;
+  inherited Destroy;
+end;
+
+function TFindLandForColonyTask.Done: Boolean;
+begin
+  if ((not target.IsShip) or (target.EmbarkedPassengers=0)) then Result:= true
+  else begin
+    if (m_Map.IsTouchingLand(target.GetPosX,target.GetPosY)) then
+      Result:= true
+    else Result:= false;
+  end;//else
+end;//func
+
+function TFindLandForColonyTask.Execute: Boolean;
+var MovesBefore, j, i: LongInt;
+    founder: TUnit;
+begin
+  if (target.EmbarkedPassengers=0) then
+  begin
+    Result:= false;
+    exit;
+  end;//if
+  while (target.MovesLeft>=1) and
+        (not m_Map.IsTouchingLand(target.GetPosX,target.GetPosY)) do
+  begin
+    MovesBefore:= target.MovesLeft;
+    target.Move(dirW, m_Map, m_Data);
+    if (MovesBefore=target.MovesLeft) then target.Move(dirSW, m_Map, m_Data);
+    if (MovesBefore=target.MovesLeft) then target.Move(dirNW, m_Map, m_Data);
+    if (MovesBefore=target.MovesLeft) then target.Move(dirS, m_Map, m_Data);
+    if (MovesBefore=target.MovesLeft) then target.Move(dirN, m_Map, m_Data);
+  end;//while
+  //unit ran out of moves or is near land -> check and disembark, if neccessary
+  if (m_Map.IsTouchingLand(target.GetPosX,target.GetPosY)) then
+  begin
+    for i:=target.GetPosX-1 to target.GetPosX+1 do
+      for j:= target.GetPosY-1 to target.GetPosY+1 do
+      begin
+        if (m_Map.IsValidMapPosition(i, j)) then
+        begin
+          if (not m_Map.tiles[i,j].IsWater) then
+          begin
+            founder:= target.GetFirstEmbarkedPassenger;
+            if (target.UnloadUnit(founder.GetType, i, j, m_Map)) then
+            begin
+              (TData(m_Data).NewColony(i,j, founder.GetNation,
+                 TData(m_Data).GetLang.GetColonyNames(founder.GetNation,
+                       length(TData(m_Data).GetColonyList(founder.GetNation))))).SetUnitInField(-1, -1, founder);
+              m_Map.tiles[i,j].CreateRoad;
+              Result:= true;
+              exit;
+            end;//if
+          end;//if
+        end;//if valid position
+      end;
+  end;//if near land
+  Result:= true;
+end;//func
+
 
 //general
 function GetUnitForGood(const AGood: TGoodType): TUnitType;
