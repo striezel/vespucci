@@ -186,6 +186,7 @@ type
             x, y - coordinates of the square
       }
       function IsTouchingLand(const x, y: Byte): Boolean;
+
       { this procedure reaveals surrounding tiles around a unit (or that is what
         it's made for)
 
@@ -651,7 +652,7 @@ begin
   for i:= x-1 to x+1 do
     for j:= y-1 to y+1 do
     begin
-      if ((i>=0) and (j>=0) and (i<cMap_X) and (j<cMap_Y)) then
+      if (IsValidMapPosition(i,j)) then
         if (not tiles[i,j].IsWater) then
         begin
           Result:= True;

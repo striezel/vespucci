@@ -383,6 +383,13 @@ type
               }
               procedure NewRound(const num_Nation: Integer);
 
+              { sets some AI tasks for computer-controlled nations
+
+                parameters:
+                    num_nation - integer identifying the nation
+              }
+              procedure UpdateAITasks(const num_Nation: Integer);
+
               { calls NewRound for all AI-controlled nations whose nation number
                 is less than player's numer, i.e. all nations that move before
                 the player
@@ -1096,18 +1103,65 @@ begin
   end; //if European
 end;//proc
 
+procedure TData.UpdateAITasks(const num_Nation: Integer);
+var u_arr: TUnitArr;
+    done: Boolean;
+    i: Integer;
+    new_task: TTask;
+begin
+  { To Do:
+    ======
+   **  - add A LOT more tasks for computer-controlled nations
+   ****************
+  }
+
+
+  //Does this nation have any units?
+  // It usually should have, but maybe it lost them during war with another
+  // nation. In this case we will give the usual start units for this nation.
+  if (length(GetAllShips(num_Nation))=0) then
+  begin
+    SpawnEuropeanNation(num_nation,cSpawnpointsAmerica[0].x, cSpawnpointsAmerica[0].y);
+  end;//if
+
+  //Does this nation have any colonies yet?
+  // If not, let a ship find a place to build a colony.
+  if (length(GetColonyList(num_Nation))<1) then
+  begin
+    u_arr:= GetAllShips(num_Nation);
+    done:= false;
+    for i:=0 to high(u_arr) do
+    begin
+      if ((not done) and (u_arr[i].GetTask=nil)
+         and (u_arr[i].EmbarkedPassengers>0)) then
+      begin
+        new_task:= TFindLandForColonyTask.Create(u_arr[i], GetMap, self);
+        u_arr[i].SetTask(new_task);
+        done:= true;
+      end;
+    end;//for
+  end;//if
+
+end;//proc
+
 procedure TData.ProcessNationsBeforePlayer;
 var i: LongInt;
 begin
   for i:= cMinNations to PlayerNation-1 do
+  begin
+    UpdateAITasks(i); 
     NewRound(i);
+  end;//for
 end;//proc
 
 procedure TData.ProcessNationsAfterPlayer;
 var i: LongInt;
 begin
   for i:= PlayerNation+1 to cMaxNations do
+  begin
+    UpdateAITasks(i);
     NewRound(i);
+  end;//for
   AdvanceYear;
 end;//proc
 
