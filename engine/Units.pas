@@ -710,6 +710,9 @@ type
         already done (see Done()).
       }
       function Execute: Boolean; override;
+
+      { returns the type of the task (something like a RTTI) }
+      function GetType: TTaskType; override;
   end;//class TFindLandTask
 
 
@@ -1666,6 +1669,11 @@ begin
       end;
   end;//if near land
   Result:= true;
+end;//func
+
+function TFindLandForColonyTask.GetType: TTaskType;
+begin
+  Result:= ttFindLand;
 end;//func
 
 
