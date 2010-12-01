@@ -5,7 +5,7 @@ interface
 uses
   Map, Data, GL, GLUT, Terrain, Language, Colony, Tribe, Nation, Goods,
   Units, SysUtils, BitmapReader, Callbacks, Helper, ErrorTexture,
-  FoundingFathers;
+  FoundingFathers, EuropeanNation;
 
 type
   TRiverType = (rtOne, rtTwo_Bend, rtTwo_Straight, rtThree, rtFour);

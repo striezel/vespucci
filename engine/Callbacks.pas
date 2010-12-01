@@ -3,7 +3,7 @@ unit Callbacks;
 interface
 
 uses
-  Units, Map, Data, Colony, Goods, Nation, FoundingFathers;
+  Units, Map, Data, Colony, Goods, Nation, EuropeanNation, FoundingFathers;
 
 const
   { integer constant that identifies the type of a callback record }
