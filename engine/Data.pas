@@ -3,8 +3,8 @@ unit Data;
 interface
 
 uses
-  Nation, Language, Units, Colony, Tribe, Map, Goods, FoundingFathers, Classes,
-  SysUtils, Helper;
+  Nation, EuropeanNation, IndianNation, Language, Units, Colony, Tribe, Map,
+  Goods, FoundingFathers, Classes, SysUtils, Helper;
 
 const
 {$IFDEF Win32}
