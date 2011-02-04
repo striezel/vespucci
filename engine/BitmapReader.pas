@@ -1,3 +1,24 @@
+{ ***************************************************************************
+
+    This file is part of Vespucci.
+    Copyright (C) 2008, 2009, 2010  Thoronador
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+  ***************************************************************************
+}
+
 unit BitmapReader;
 
 interface
@@ -61,7 +82,7 @@ type
                      var err: string): Boolean;}
 
   { tries to read a 32x32 px RGB bitmap from a file and returns true on success
-  
+
     parameters:
         FileName - location of the bitmap
         Data     - record that will hold the image data in case of success
@@ -72,7 +93,7 @@ type
                      var err: string): Boolean;
 
   { tries to read a 128x64 px RGB bitmap from a file and returns true on success
-  
+
     parameters:
         FileName - location of the bitmap
         Data     - record that will hold the image data in case of success
@@ -83,35 +104,35 @@ type
                      var err: string): Boolean;
 
   { swaps the red and blue colour components of the given 32x32 px RGB image
-  
+
     parameters:
         pic - the array containing the image data that has to be altered
   }
   procedure SwapRGB_To_BGR(var pic: TArraySq32RGB); overload;
 
   { swaps the red and blue colour components of the given 128x64 px RGB image
-  
+
     parameters:
         pic - the array containing the image data that has to be altered
   }
   procedure SwapRGB_To_BGR(var pic: TArray128x64RGB); overload;
 
   { swaps the green and blue colour components of the given 32x32 px RGB image
-  
+
     parameters:
         pic - the array containing the image data that has to be altered
   }
   procedure SwapRGB_To_RBG(var pic: TArraySq32RGB);
 
   { swaps the red and green colour components of the given 32x32 px RGB image
-  
+
     parameters:
         pic - the array containing the image data that has to be altered
   }
   procedure SwapRGB_To_GRB(var pic: TArraySq32RGB);
 
   { adds alpha channel data to a 32x32 px RGB image
-  
+
     parameters:
         src  - the array containing the source image
         dest - the returned image with alpha channel
@@ -119,7 +140,7 @@ type
   procedure GetAlphaByColor(const src: TArraySq32RGB; var dest: TArraySq32RGBA); overload;
 
   { adds alpha channel data to a 128x64 px RGB image
-  
+
     parameters:
         src  - the array containing the source image
         dest - the returned image with alpha channel
