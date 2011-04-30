@@ -1,7 +1,7 @@
 { ***************************************************************************
 
     This file is part of Vespucci.
-    Copyright (C) 2008, 2009, 2010  Thoronador
+    Copyright (C) 2008, 2009, 2010, 2011 Thoronador
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -163,16 +163,35 @@ begin
 end;//func
 
 function CBF_BuildColony(const x,y: Byte; {const num_nation: Byte;} ColName: ShortString; founder: TUnit; AData: TData): Boolean;
+var i,j: Integer;
 begin
   Result:= False;
   if ((ColName='') or (founder=nil) or (AData=nil) or (x>=cMap_X-1)
       or (y>=cMap_Y-1) or (x=0) or (y=0)) then Exit;
   if founder.WarpToXY(x,y, AData.GetMap) then
   begin
-    (AData.NewColony(x,y, founder.GetNation, ColName)).SetUnitInField(-1, -1, founder);
-    //founder.SetLocation(ulInColony);
-    AData.GetMap.tiles[x,y].CreateRoad;
-    Result:= True;
+    //set founder into first square that is not water
+    i:= -1;
+    while ((i<=1) and (not Result)) do
+    begin
+      j:= -1;
+      while ((j<=1) and (not Result)) do
+      begin
+        if (AData.GetMap.IsValidMapPosition(x+i, y+j)) then
+        begin
+          //check if tile has no water and whether it's not the colony square
+          if ((not AData.GetMap.tiles[x+i, y+j].IsWater) and ((i<>0) or (j<>0))) then
+          begin
+            //first non-watery tile is reached, place the unit
+            (AData.NewColony(x,y, founder.GetNation, ColName)).SetUnitInField(i, j, founder);
+            AData.GetMap.tiles[x,y].CreateRoad;
+            Result:= True;
+          end;//if
+        end;//if
+        j:= j+1;
+      end; //while j
+      i:= i+1;
+    end;//while i
   end;//if
 end;//func
 
