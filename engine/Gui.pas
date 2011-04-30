@@ -1,7 +1,7 @@
 { ***************************************************************************
 
     This file is part of Vespucci.
-    Copyright (C) 2008, 2009, 2010  Dirk Stolle
+    Copyright (C) 2008, 2009, 2010, 2001  Dirk Stolle
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -231,7 +231,7 @@ const
     );
 
   { caption of game window }
-  cWindowCaption = 'Vespucci v0.01.r164';
+  cWindowCaption = 'Vespucci v0.01.r167';
 
   { text colour (greenish) }
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
@@ -889,6 +889,7 @@ implementation
 
 function MouseYToGLCoord(const my: Longint): Single;
 begin
+
   // vertical mouse position translated to OpenGL coordinates
   Result:= -13.0/cWindowHeight*my+12.5;
 end; //func
@@ -3039,6 +3040,7 @@ begin
     //draw list of ships in port
     for i:= 0 to High(ShipArr) do
     begin
+
       if m_UnitTexNames[ShipArr[i].GetType]<>0 then glBindTexture(GL_TEXTURE_2D, m_UnitTexNames[ShipArr[i].GetType])
       else glBindTexture(GL_TEXTURE_2D, m_ErrorTexName);
       glBegin(GL_QUADS);
