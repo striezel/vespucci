@@ -231,7 +231,7 @@ const
     );
 
   { caption of game window }
-  cWindowCaption = 'Vespucci v0.01.r167';
+  cWindowCaption = 'Vespucci v0.01.r169';
 
   { text colour (greenish) }
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
@@ -1966,11 +1966,17 @@ begin
       //check for button "Buy Ship"
       case GetButtonAtMouse(mouse.x, mouse.y) of
         1: begin
-             SetLength(str_arr, Ord(utFrigate)-Ord(utCaravel)+2);
+             SetLength(str_arr, Ord(utFrigate)-Ord(utCaravel)+3);
+             //first option is always "nothing"
              str_arr[0]:= dat.GetLang.GetOthers(osNothing);
+             //second option is artillery
+             with dat.GetLang do
+               str_arr[1]:= StretchTo59(GetUnitName(utArtillery),GetOthers(osCost)
+                           +'  500 '+GetOthers(osGold));
+             //set option lines to ship names
              for pos_x:= Ord(utCaravel) to Ord(utFrigate) do
                with dat.GetLang do
-                 str_arr[1+pos_x-Ord(utCaravel)]:= StretchTo59(GetUnitName(TUnitType(pos_x))+':',GetOthers(osCost)
+                 str_arr[2+pos_x-Ord(utCaravel)]:= StretchTo59(GetUnitName(TUnitType(pos_x)),GetOthers(osCost)
                       +' '+IntToStr(cShipPrices[TUnitType(pos_x)])+' '+GetOthers(osGold));
              temp_cbr.option:=0;
              temp_cbr._type:= CBT_EURO_PORT_BUY;

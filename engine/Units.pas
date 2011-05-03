@@ -1,7 +1,7 @@
 { ***************************************************************************
 
     This file is part of Vespucci.
-    Copyright (C) 2008, 2009, 2010  Thoronador
+    Copyright (C) 2008, 2009, 2010, 2011  Thoronador
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -63,8 +63,10 @@ type
 
 const
   { constant array that holds the prices for ships in Europe }
-  cShipPrices: array [utCaravel..utFrigate] of Integer
-                =( 1000, 2000, 3000, 2000, 5000);
+  cShipPrices: array [utArtillery..utFrigate] of Integer
+                =(500{artillery}, 16000000{Convoy, can't be bought},
+                  1000{caravel}, 2000{trading ship}, 3000{galleon},
+                  2000{privateer}, 5000{frigate});
 
   { constant array that holds the prices for recruitung units in Europe. A value
     of -1 indicates that this type of unit cannot be recruited.
