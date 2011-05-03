@@ -192,6 +192,14 @@ begin
       end; //while j
       i:= i+1;
     end;//while i
+    //Did we find a non-water field?
+    if (not Result) then
+    begin
+      //try to set founder into townhall
+      (AData.NewColony(x,y, founder.GetNation, ColName)).SetUnitInBuilding(btTownHall, 0, founder);
+      AData.GetMap.tiles[x,y].CreateRoad;
+      Result:= True;
+    end;//if
   end;//if
 end;//func
 
@@ -318,24 +326,28 @@ begin
   Result:= (option=0);
   if (EuroNat=nil) or (AData=nil) or (option=0) then Exit;
   case option of
-    1: buy_unit:= utCaravel;
-    2: buy_unit:= utTradingShip;
-    3: buy_unit:= utGalleon;
-    4: buy_unit:= utPrivateer;
-    5: buy_unit:= utFrigate;
+    1: buy_unit:= utArtillery;
+    2: buy_unit:= utCaravel;
+    3: buy_unit:= utTradingShip;
+    4: buy_unit:= utGalleon;
+    5: buy_unit:= utPrivateer;
+    6: buy_unit:= utFrigate;
   else buy_unit:= utCriminal;//should not happen
   end;//case
   if buy_unit=utCriminal then Exit;
   //buy it
-  If EuroNat.GetGold>=cShipPrices[buy_unit] then
+  //Is there enough gold to by it?
+  if EuroNat.GetGold>=cShipPrices[buy_unit] then
   begin
     if length(AData.GetAllShipsInEurope(EuroNat.GetCount))>0 then
     begin
+      //set start position to position of first ship
       new_unit:= AData.GetAllShipsInEurope(EuroNat.GetCount)[0];
       start_x:= new_unit.GetPosX;
       start_y:= new_unit.GetPosY;
     end//if
     else begin
+      //set start position to center at the eastern end of map
       start_x:= cMap_X-1;
       start_y:= cMap_Y div 2;
     end;//else
