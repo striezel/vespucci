@@ -634,6 +634,7 @@ begin
 end;//func
 
 function TData.GetNation(const count: Integer): TNation;
+
 begin
   if ((count>cMaxIndian) or (count<cMinNations)) then
     Result:= nil
@@ -1140,14 +1141,14 @@ begin
   //Does this nation have any units?
   // It usually should have, but maybe it lost them during war with another
   // nation. In this case we will give the usual start units for this nation.
-  if (length(GetAllShips(num_Nation))=0) then
+  if (num_Nation>=cMinEuropean) and (num_Nation<=cMaxEuropean) and (length(GetAllShips(num_Nation))=0) then
   begin
     SpawnEuropeanNation(num_nation,cSpawnpointsAmerica[0].x, cSpawnpointsAmerica[0].y);
   end;//if
 
   //Does this nation have any colonies yet?
   // If not, let a ship find a place to build a colony.
-  if (length(GetColonyList(num_Nation))<1) then
+  if (num_Nation>=cMinEuropean) and (num_Nation<=cMaxEuropean) and (length(GetColonyList(num_Nation))<1) then
   begin
     u_arr:= GetAllShips(num_Nation);
     done:= false;
@@ -1163,6 +1164,66 @@ begin
     end;//for
   end;//if
 
+  //Set next founding father to join national congress - computer-controlled, European players only.
+  if ((num_Nation<>PlayerNation) and (GetNation(num_Nation).IsEuropean)) then
+  begin
+    if (GetNation(num_Nation) as TEuropeanNation).GetNextFoundingFather=ffNone then
+    begin
+      done := false;
+      if num_Nation = cNationEngland then
+      begin
+        //select religious first
+        for i:= Ord(ffBrebeuf) to Ord(ffSepulveda) do
+          if not (GetNation(num_Nation) as TEuropeanNation).HasFoundingFather(TFoundingFathers(i)) then
+          begin
+            (GetNation(num_Nation) as TEuropeanNation).SetNextFoundingFather(TFoundingFathers(i));
+            done:= true;
+          end;//if
+      end;//if nation = England
+      if num_Nation = cNationFrance then
+      begin
+        //select political first
+        for i:= Ord(ffPocahontas) downto Ord(ffBolivar) do
+          if not (GetNation(num_Nation) as TEuropeanNation).HasFoundingFather(TFoundingFathers(i)) then
+          begin
+            (GetNation(num_Nation) as TEuropeanNation).SetNextFoundingFather(TFoundingFathers(i));
+            done:= true;
+          end;//if
+      end;//if nation = France
+      if num_Nation = cNationSpain then
+      begin
+        //select military first
+        for i:= Ord(ffCortes) to Ord(ffWashington) do
+          if not (GetNation(num_Nation) as TEuropeanNation).HasFoundingFather(TFoundingFathers(i)) then
+          begin
+            (GetNation(num_Nation) as TEuropeanNation).SetNextFoundingFather(TFoundingFathers(i));
+            done:= true;
+          end;//if
+      end;//if nation = Spain
+      if num_Nation = cNationHolland then
+      begin
+        //select trade first
+        for i:= Ord(ffDeWitt) downto Ord(ffSmith) do
+          if not (GetNation(num_Nation) as TEuropeanNation).HasFoundingFather(TFoundingFathers(i)) then
+          begin
+            (GetNation(num_Nation) as TEuropeanNation).SetNextFoundingFather(TFoundingFathers(i));
+            done:= true;
+          end;//if
+      end;//if nation = Holland
+
+      //Has a new founding father been set yet?
+      if not done then
+      begin
+        //still need to set one, so go through all of them
+        for i:= Ord(Low(TFoundingFathers)) to Ord(High(TFoundingFathers)) do
+          if (not (GetNation(num_Nation) as TEuropeanNation).HasFoundingFather(TFoundingFathers(i))
+              and (ffNone<>TFoundingFathers(i))) then
+          begin
+            (GetNation(num_Nation) as TEuropeanNation).SetNextFoundingFather(TFoundingFathers(i));
+          end;//if
+      end;//if not done
+    end;//if no next founding father
+  end;//if European
 end;//proc
 
 procedure TData.ProcessNationsBeforePlayer;
