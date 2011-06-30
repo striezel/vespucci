@@ -231,7 +231,7 @@ const
     );
 
   { caption of game window }
-  cWindowCaption = 'Vespucci v0.01.r172';
+  cWindowCaption = 'Vespucci v0.01.r173';
 
   { text colour (greenish) }
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
@@ -929,6 +929,7 @@ begin
     repeat
       i:= Random(4);
     until ((1 shl i) and bits)=0;
+    (dat.GetNation(j) as TEuropeanNation).SetSpawnpoint(cSpawnpointsAmerica[i].x, cSpawnpointsAmerica[i].y);
     dat.SpawnEuropeanNation(j, cSpawnpointsAmerica[i].x, cSpawnpointsAmerica[i].y);
     bits:= bits or (1 shl i);
   end;//for

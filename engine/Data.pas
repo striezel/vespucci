@@ -1,7 +1,7 @@
 { ***************************************************************************
 
     This file is part of Vespucci.
-    Copyright (C) 2008, 2009, 2010  Dirk Stolle
+    Copyright (C) 2008, 2009, 2010, 2011  Dirk Stolle
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -409,7 +409,21 @@ type
                 parameters:
                     num_nation - integer identifying the nation
               }
-              procedure UpdateAITasks(const num_Nation: Integer);
+              procedure UpdateAITasks(const num_Nation: LongInt);
+
+              { sets some AI tasks for European computer-controlled nations
+
+                parameters:
+                    num_nation - integer identifying the nation
+              }
+              procedure UpdateAITasksEuropean(const num_Nation: LongInt);
+
+              { sets some AI tasks for Indian computer-controlled nations
+
+                parameters:
+                    num_nation - integer identifying the nation
+              }
+              procedure UpdateAITasksIndian(const num_Nation: LongInt);
 
               { calls NewRound for all AI-controlled nations whose nation number
                 is less than player's numer, i.e. all nations that move before
@@ -1111,7 +1125,15 @@ begin
           //Jakob Fugger clears all boycotts.
           ffFugger: ENat.UndoAllBoycotts;
           //John Paul Jones gives a new frigate at no cost.
-          ffJones: NewUnit(utFrigate, num_Nation, cMap_X-1, cMap_Y div 2).SetLocation(ulAmerica);
+          ffJones: begin
+                     //Does this nation have a valid spawnpoint?
+                     if ENat.HasValidSpawnpoint then
+                       //Yes, so spawn frigate at that point.
+                       NewUnit(utFrigate, num_Nation, ENat.GetSpawnpointX, ENat.GetSpawnpointY).SetLocation(ulAmerica)
+                     else
+                       //Spawn frigate at the rightmost field in the middle of the map, it's the best guess here.
+                       NewUnit(utFrigate, num_Nation, cMap_X-1, cMap_Y div 2).SetLocation(ulAmerica);
+                   end;//case ffJones
         end;//case
         { To Do:
           ======
@@ -1125,11 +1147,7 @@ begin
   end; //if European
 end;//proc
 
-procedure TData.UpdateAITasks(const num_Nation: Integer);
-var u_arr: TUnitArr;
-    done: Boolean;
-    i: Integer;
-    new_task: TTask;
+procedure TData.UpdateAITasks(const num_Nation: LongInt);
 begin
   { To Do:
     ======
@@ -1137,7 +1155,21 @@ begin
    ****************
   }
 
+  //handle tasks/AI for European nations
+  if (cMinEuropean<=num_nation) and (num_Nation<=cMaxEuropean) then
+    UpdateAITasksEuropean(num_Nation);
 
+  //handle tasks/AI for Indians
+  if (cMinIndian<=num_nation) and (num_Nation<=cMaxIndian) then
+    UpdateAITasksIndian(num_Nation);
+end;//proc
+
+procedure  TData.UpdateAITasksEuropean(const num_Nation: LongInt);
+var u_arr: TUnitArr;
+    done: Boolean;
+    i: Integer;
+    new_task: TTask;
+begin
   //Does this nation have any units?
   // It usually should have, but maybe it lost them during war with another
   // nation. In this case we will give the usual start units for this nation.
@@ -1224,6 +1256,13 @@ begin
       end;//if not done
     end;//if no next founding father
   end;//if European
+end;//proc
+
+procedure  TData.UpdateAITasksIndian(const num_Nation: LongInt);
+begin
+  { * **TODO:********************* *
+    * still empty, more work to do *
+    * **************************** * }
 end;//proc
 
 procedure TData.ProcessNationsBeforePlayer;
@@ -1872,6 +1911,11 @@ procedure TData.SpawnEuropeanNation(const num_nation: LongInt; const x, y: Byte)
 var Ship: TUnit;
     passenger: TUnit;
 begin
+  if (GetNation(num_nation)<>nil) then
+  begin
+    if not (GetNation(num_nation) as TEuropeanNation).HasValidSpawnpoint then
+      (GetNation(num_nation) as TEuropeanNation).SetSpawnpoint(x, y);
+  end;//if
   if num_nation<>cNationHolland then
     Ship:= NewUnit(utCaravel, num_nation, x, y)
   else Ship:= NewUnit(utTradingShip, num_nation, x, y);

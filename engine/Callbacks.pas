@@ -347,9 +347,18 @@ begin
       start_y:= new_unit.GetPosY;
     end//if
     else begin
-      //set start position to center at the eastern end of map
-      start_x:= cMap_X-1;
-      start_y:= cMap_Y div 2;
+      //check for spawnpoint
+      if EuroNat.HasValidSpawnpoint then
+      begin
+        //set start position to spawnpoint position
+        start_x:= EuroNat.GetSpawnpointX;
+        start_y:= EuroNat.GetSpawnpointY;
+      end
+      else begin
+        //set start position to center at the eastern end of map
+        start_x:= cMap_X-1;
+        start_y:= cMap_Y div 2;
+      end;//else  
     end;//else
     new_unit:= AData.NewUnit(buy_unit, EuroNat.GetCount, start_x, start_y);
     new_unit.SetLocation(ulEurope);
@@ -387,7 +396,10 @@ begin
   if train_unit=utCriminal then Exit;
   if EuroNat.GetGold>=cUnitPrices[train_unit] then
   begin
-    new_unit:= AData.NewUnit(train_unit, EuroNat.GetCount, cMap_X-1, cMap_Y div 2);
+    if EuroNat.HasValidSpawnpoint then
+      new_unit:= AData.NewUnit(train_unit, EuroNat.GetCount, EuroNat.GetSpawnpointX, EuroNat.GetSpawnpointY)
+    else
+      new_unit:= AData.NewUnit(train_unit, EuroNat.GetCount, cMap_X-1, cMap_Y div 2);
     new_unit.SetLocation(ulEurope);
     new_unit.SetState(usWaitingForShip);
     EuroNat.DecreaseGold(cUnitPrices[train_unit]);
