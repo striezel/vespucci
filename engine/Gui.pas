@@ -231,7 +231,7 @@ const
     );
 
   { caption of game window }
-  cWindowCaption = 'Vespucci v0.01.r169';
+  cWindowCaption = 'Vespucci v0.01.r172';
 
   { text colour (greenish) }
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
@@ -4490,7 +4490,7 @@ begin
     WriteLn('Entered TGui.GetNextMessage');
   {$ENDIF}
   //save last selection before anything else
-  if ((length(msg.options)>1) or (msg.inputCaption<>'')) then
+  if ((length(msg.options)>=1) or (msg.inputCaption<>'')) then
   begin
     //set last selected option
     msg.cbRec.option:= msg.selected_option;
