@@ -1,7 +1,7 @@
 { ***************************************************************************
 
     This file is part of Vespucci.
-    Copyright (C) 2010  Thoronador
+    Copyright (C) 2010, 2011  Thoronador
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -58,6 +58,8 @@ type
       m_LibertyBells: Word;
       //contains relationship to other nations
       m_Diplomatic: array [cMinEuropean..cMaxEuropean] of TDiplomaticStatus;
+      //location of spawnpoint for units on map
+      m_SpawnX, m_SpawnY: LongInt;
     public
       { constructor
 
@@ -100,6 +102,23 @@ type
             is only used during loading process.
       }
       procedure ChangeLeaderName(const NameOfLeader: string);
+
+      { sets the map square where new units (ships) of that nation will spawn
+        after creation
+
+        parameters:
+            x, y - coordinates of the map square
+      }
+      procedure SetSpawnpoint(const x, y: LongInt);
+
+      { returns x-coordinate of the spawnpoint }
+      function GetSpawnpointX: LongInt;
+
+      { returns y-coordinate of the spawnpoint }
+      function GetSpawnpointY: LongInt;
+
+      { returns true, if this nation has valid spawnpoint coordinates }
+      function HasValidSpawnpoint: Boolean;
 
       //returns the tax rate for this nation in percent
       function GetTaxRate: Byte;
@@ -385,6 +404,9 @@ begin
   begin
     m_Diplomatic[i]:= dsUndefined;
   end;//for
+  //set spawnpoint to (-1;-1) to indicate that it is not set yet
+  m_SpawnX:= -1;
+  m_SpawnY:= -1;
 end;//construc
 
 destructor TEuropeanNation.Destroy;
@@ -411,6 +433,36 @@ procedure TEuropeanNation.ChangeLeaderName(const NameOfLeader: string);
 begin
   if NameOfLeader<>'' then m_Leader:= NameOfLeader;
 end;//proc
+
+procedure TEuropeanNation.SetSpawnpoint(const x, y: LongInt);
+begin
+  if (x>=0) and (y>=0) then
+  begin
+    //location seems to be valid, set it
+    m_SpawnX:= x;
+    m_SpawnY:= y;
+  end
+  else begin
+    //invalid location given, set to (-1; -1)
+    m_SpawnX:= -1;
+    m_SpawnY:= -1;
+  end;
+end;//proc
+      
+function TEuropeanNation.GetSpawnpointX: LongInt;
+begin
+  Result:= m_SpawnX;
+end;//func
+
+function TEuropeanNation.GetSpawnpointY: LongInt;
+begin
+  Result:= m_SpawnY;
+end;//func
+
+function TEuropeanNation.HasValidSpawnpoint: Boolean;
+begin
+  Result:= ((m_SpawnX>=0) and (m_SpawnY>=0));
+end;//func
 
 function TEuropeanNation.GetTaxRate: Byte;
 begin
@@ -744,10 +796,13 @@ begin
   for i:= cMinEuropean to cMaxEuropean do
     Result:= Result and (fs.Write(m_Diplomatic[i], sizeof(TDiplomaticStatus))
                          =sizeof(TDiplomaticStatus));
+  //spawnpoint's coordinates
+  Result:= Result and (fs.Write(m_SpawnX, sizeof(LongInt))=sizeof(LongInt));
+  Result:= Result and (fs.Write(m_SpawnY, sizeof(LongInt))=sizeof(LongInt));
 end;//func
 
 function TEuropeanNation.LoadFromStream(var fs: TFileStream): Boolean;
-var i: LongInt;
+var i, j: LongInt;
     temp_str: string;
     tr: Byte;
     boycott: Boolean;
@@ -861,6 +916,18 @@ begin
   begin
     WriteLn('TEuropeanNation.LoadFromStream: Error while reading diplomatic '
             +'status.');
+    Exit;
+  end;//if
+  //spawnpoint's coordinates
+  i:= -1;
+  j:= -1;
+  Result:= Result and (fs.Read(i, sizeof(LongInt))=sizeof(LongInt));
+  Result:= Result and (fs.Read(j, sizeof(LongInt))=sizeof(LongInt));
+  SetSpawnpoint(i, j);
+  if (not Result) then
+  begin
+    WriteLn('TEuropeanNation.LoadFromStream: Error while reading spawnpoint.');
+    SetSpawnpoint(-1, -1); //reset spawnpoint
   end;//if
 end;//func
 
