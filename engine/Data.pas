@@ -1165,22 +1165,38 @@ begin
 end;//proc
 
 procedure  TData.UpdateAITasksEuropean(const num_Nation: LongInt);
+const construction_list: array [0..2] of record
+                           bt: TBuildingType;
+                           level: Byte;
+                         end //record
+                         =(
+                            (bt: btCarpenter; level: 2), //Sägewerk
+                            (bt: btWarehouse; level: 1), //Lagerhaus
+                            (bt: btChurch;    level: 1) //Kirche
+                          );
 var u_arr: TUnitArr;
     done: Boolean;
-    i: Integer;
+    i, j: Integer;
     new_task: TTask;
+    preferredType: TFoundingFatherType;
+    ff_arr: TFoundingFatherArray;
+    EuroNat: TEuropeanNation;
+    col_arr: TColonyArr;
 begin
+  //Is this really a European nation?
+  if (num_Nation<cMinEuropean) or (num_Nation>cMaxEuropean) then Exit;
+
   //Does this nation have any units?
   // It usually should have, but maybe it lost them during war with another
   // nation. In this case we will give the usual start units for this nation.
-  if (num_Nation>=cMinEuropean) and (num_Nation<=cMaxEuropean) and (length(GetAllShips(num_Nation))=0) then
+  if (length(GetAllShips(num_Nation))=0) then
   begin
     SpawnEuropeanNation(num_nation,cSpawnpointsAmerica[0].x, cSpawnpointsAmerica[0].y);
   end;//if
 
   //Does this nation have any colonies yet?
   // If not, let a ship find a place to build a colony.
-  if (num_Nation>=cMinEuropean) and (num_Nation<=cMaxEuropean) and (length(GetColonyList(num_Nation))<1) then
+  if (length(GetColonyList(num_Nation))<1) then
   begin
     u_arr:= GetAllShips(num_Nation);
     done:= false;
@@ -1196,66 +1212,80 @@ begin
     end;//for
   end;//if
 
+  EuroNat:= (GetNation(num_Nation) as TEuropeanNation);
+
   //Set next founding father to join national congress - computer-controlled, European players only.
   if ((num_Nation<>PlayerNation) and (GetNation(num_Nation).IsEuropean)) then
   begin
-    if (GetNation(num_Nation) as TEuropeanNation).GetNextFoundingFather=ffNone then
+    if EuroNat.GetNextFoundingFather=ffNone then
     begin
       done := false;
-      if num_Nation = cNationEngland then
+      ff_arr:= EuroNat.GetFoundingFatherSelection;
+      case num_Nation of
+        cNationEngland: preferredType:= fftReligious;
+        cNationFrance:  preferredType:= fftExploration;
+        cNationSpain:   preferredType:= fftMilitary;
+        cNationHolland: preferredType:= fftTrade;
+      else preferredType:= fftPolitical; //should never occur
+      end;//case
+
+      i:= Low(ff_arr);
+      while (i<=High(ff_arr)) and not done do
       begin
-        //select religious first
-        for i:= Ord(ffBrebeuf) to Ord(ffSepulveda) do
-          if not (GetNation(num_Nation) as TEuropeanNation).HasFoundingFather(TFoundingFathers(i)) then
-          begin
-            (GetNation(num_Nation) as TEuropeanNation).SetNextFoundingFather(TFoundingFathers(i));
-            done:= true;
-          end;//if
-      end;//if nation = England
-      if num_Nation = cNationFrance then
-      begin
-        //select political first
-        for i:= Ord(ffPocahontas) downto Ord(ffBolivar) do
-          if not (GetNation(num_Nation) as TEuropeanNation).HasFoundingFather(TFoundingFathers(i)) then
-          begin
-            (GetNation(num_Nation) as TEuropeanNation).SetNextFoundingFather(TFoundingFathers(i));
-            done:= true;
-          end;//if
-      end;//if nation = France
-      if num_Nation = cNationSpain then
-      begin
-        //select military first
-        for i:= Ord(ffCortes) to Ord(ffWashington) do
-          if not (GetNation(num_Nation) as TEuropeanNation).HasFoundingFather(TFoundingFathers(i)) then
-          begin
-            (GetNation(num_Nation) as TEuropeanNation).SetNextFoundingFather(TFoundingFathers(i));
-            done:= true;
-          end;//if
-      end;//if nation = Spain
-      if num_Nation = cNationHolland then
-      begin
-        //select trade first
-        for i:= Ord(ffDeWitt) downto Ord(ffSmith) do
-          if not (GetNation(num_Nation) as TEuropeanNation).HasFoundingFather(TFoundingFathers(i)) then
-          begin
-            (GetNation(num_Nation) as TEuropeanNation).SetNextFoundingFather(TFoundingFathers(i));
-            done:= true;
-          end;//if
-      end;//if nation = Holland
+        if (ff_arr[i]<>ffNone) and (GetFoundingFatherType(ff_arr[i])=preferredType) then
+        begin
+          EuroNat.SetNextFoundingFather(ff_arr[i]);
+          done := true;
+        end;//if
+        i:= i+1;
+      end;//while
 
       //Has a new founding father been set yet?
       if not done then
       begin
         //still need to set one, so go through all of them
         for i:= Ord(Low(TFoundingFathers)) to Ord(High(TFoundingFathers)) do
-          if (not (GetNation(num_Nation) as TEuropeanNation).HasFoundingFather(TFoundingFathers(i))
+          if (not EuroNat.HasFoundingFather(TFoundingFathers(i))
               and (ffNone<>TFoundingFathers(i))) then
           begin
-            (GetNation(num_Nation) as TEuropeanNation).SetNextFoundingFather(TFoundingFathers(i));
+            EuroNat.SetNextFoundingFather(TFoundingFathers(i));
           end;//if
       end;//if not done
     end;//if no next founding father
   end;//if European
+
+  //now to the colonies
+  col_arr:= GetColonyList(num_Nation);
+  for i:=0 to High(col_arr) do
+  begin
+    //Is there any construction stuff going on?
+    if (col_arr[i].GetCurrentConstruction=btNone) then
+    begin
+      //No, so let's select a new one.
+      done:= false;
+      //Check for dock, we build that first for all colonies at the coast.
+      if (col_arr[i].GetBuildingLevel(btDock)=0) and (col_arr[i].AdjacentWater(GetMap)) then
+      begin
+        col_arr[i].SetCurrentConstruction(btDock);
+        done:= true;
+      end;//if
+      //check the list of things to construct, if we have nothing else yet
+      j:=0;
+      while (not done) and (j<=High(construction_list)) do
+      begin
+        if (col_arr[i].GetBuildingLevel(construction_list[j].bt)<construction_list[j].level) then
+        begin
+          //building has not the level within the list yet, so construct it
+          col_arr[i].SetCurrentConstruction(construction_list[j].bt);
+          done := true;
+        end;//if
+        j:= j+1;
+      end;//while
+    end;//if no construction going on
+    
+    //TODO: make sure there's enough wood in the colony's stores and someone
+    //      doing the carpenter's job, if neccessary
+  end;//for i (col_arr)
 end;//proc
 
 procedure  TData.UpdateAITasksIndian(const num_Nation: LongInt);
