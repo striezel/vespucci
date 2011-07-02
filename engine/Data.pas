@@ -1176,12 +1176,15 @@ const construction_list: array [0..2] of record
                           );
 var u_arr: TUnitArr;
     done: Boolean;
-    i, j: Integer;
+    i, j, k: Integer;
     new_task: TTask;
     preferredType: TFoundingFatherType;
     ff_arr: TFoundingFatherArray;
     EuroNat: TEuropeanNation;
     col_arr: TColonyArr;
+    work_unit: TUnit;
+    src_x, src_y, dest_x, dest_y: Integer;
+    hammers, tools: Word;
 begin
   //Is this really a European nation?
   if (num_Nation<cMinEuropean) or (num_Nation>cMaxEuropean) then Exit;
@@ -1282,9 +1285,66 @@ begin
         j:= j+1;
       end;//while
     end;//if no construction going on
-    
-    //TODO: make sure there's enough wood in the colony's stores and someone
-    //      doing the carpenter's job, if neccessary
+
+    if (col_arr[i].GetCurrentConstruction<>btNone) then
+    begin
+      //If we have something to construct, we have to make sure that there is
+      // someone who gets the wood for the construction.
+      GetBuildingCost(col_arr[i].GetCurrentConstruction,
+                      col_arr[i].GetBuildingLevel(col_arr[i].GetCurrentConstruction)+1,
+                      hammers, tools);
+      
+      if (col_arr[i].GetFieldProduction(GetMap, gtWood, false)=0) and (hammers<>0)
+         and (col_arr[i].GetStore(gtWood)+col_arr[i].GetStore(gtHammer)<hammers) then
+      begin
+        //no wood production or not enough wood in store, set someone to chop sticks
+        done:= false;
+        for j:= -1 to 1 do
+          for k:= -1 to 1 do
+            if (not done) and (col_arr[i].GetUnitInField(j,k)<>nil) then
+            begin
+              work_unit:= col_arr[i].GetUnitInField(j,k);
+              src_x:= j;
+              src_y:= k;
+              done:= true;
+            end;//if
+        if done then
+        begin
+          //found someone, find a field where it would produce the most wood
+          dest_x:= 0;
+          dest_y:= 0;
+          for j:= -1 to 1 do
+            for k:= -1 to 1 do
+              if ((col_arr[i].GetUnitInField(j,k)=nil) or (col_arr[i].GetUnitInField(j,k)=work_unit))
+                 and ((j<>0) or (k<>0)) then
+              begin
+                if ((dest_x=0) and (dest_y=0)) then
+                begin
+                  //set this as the first possible field
+                  dest_x:= j;
+                  dest_y:= k;
+                end//if
+                else if (GetMap.tiles[col_arr[i].GetPosX+j, col_arr[i].GetPosY+k].GetGoodProduction(gtWood, false)
+                       >GetMap.tiles[col_arr[i].GetPosX+dest_x, col_arr[i].GetPosY+dest_y].GetGoodProduction(gtWood, false)) then
+                begin
+                  //found a better place to set the unit to
+                  dest_x:= j;
+                  dest_y:= k;
+                end;//else if
+              end;//if
+          //found a place?
+          if (dest_x<>0) or (dest_y<>0) then
+          begin
+            //remove unit from old field
+            col_arr[i].SetUnitInField(src_x, src_y, nil);
+            //set the unit to its new destination
+            col_arr[i].SetUnitInField(dest_x, dest_y, work_unit, gtWood);
+          end;//if destination found
+        end;//if done
+      end;//if not enough wood production
+    end;//if construction in progress
+
+    //TODO: make sure there's someone doing the carpenter's job, if neccessary
   end;//for i (col_arr)
 end;//proc
 
