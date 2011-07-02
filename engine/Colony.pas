@@ -1,7 +1,7 @@
 { ***************************************************************************
 
     This file is part of Vespucci.
-    Copyright (C) 2008, 2009, 2010  Dirk Stolle
+    Copyright (C) 2008, 2009, 2010, 2011  Dirk Stolle
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -174,6 +174,22 @@ type
                            has William Penn as one of its founding fathers
       }
       function GetTotalProduction(const bt: TBuildingType; const HasJefferson, HasPenn: boolean): Integer;
+      
+      { returns the cumulative amount of a good that is produced within the
+        colony's fields
+
+        parameters:
+            AMap      - the current map (must not be nil, or the function will
+                        return zero)
+            gt        - the type of good we are looking for
+            HasHudson - has to be true, if the nation the colony belongs to has
+                        Henry Hudson as one of its founding fathers
+
+        remarks:
+            This function is not used during new round calculations (too
+            inefficent), but for AI stuff only.
+      }
+      function GetFieldProduction(const AMap: TMap; const gt: TGoodType; const HasHudson: Boolean): Integer;
 
       { starts a new round for that colony, i.e. adds produced goods to storage
         and so on
@@ -646,6 +662,36 @@ begin
       Result:= (Result *3) div 2; //Penn adds 50% to crosses
     end;//if
   end;//if
+end;//func
+
+//Note: This function is not used during new round calculations (too inefficent), but for AI stuff
+function TColony.GetFieldProduction(const AMap: TMap; const gt: TGoodType; const HasHudson: Boolean): Integer;
+var i, j: Integer;
+begin
+  Result:= 0;
+  //no map, no useful results
+  if (AMap=nil) then Exit;
+
+  for i:= -1 to 1 do
+    for j:= -1 to 1 do
+      if (UnitsInFields[i,j].u<>nil) and (UnitsInFields[i,j].GoesFor=gt) then
+        if AMap.IsValidMapPosition(self.PosX+i, self.PosY+j) then
+        begin
+          if (UnitsInFields[i,j].GoesFor=gtFur) and HasHudson then
+              //Hudson gives +100% to furhunters
+              Result:= Result +
+                2* AMap.tiles[self.PosX+i, self.PosY+j].GetGoodProduction(UnitsInFields[i,j].GoesFor,
+                        HasExpertStatus(UnitsInFields[i,j].GoesFor, UnitsInFields[i,j].u.GetType))
+            else //no fur or Hudson not present
+              Result:= Result +
+               AMap.tiles[self.PosX+i, self.PosY+j].GetGoodProduction(UnitsInFields[i,j].GoesFor,
+                        HasExpertStatus(UnitsInFields[i,j].GoesFor, UnitsInFields[i,j].u.GetType));
+        end;//if
+  //production in base field
+  if (gt=gtFood) then
+    Result:= Result + AMap.tiles[PosX, PosY].GetColonyFood;
+  if (gt=AMap.tiles[PosX, PosY].GetColonyGoodType) then
+    Result:= Result + AMap.tiles[PosX, PosY].GetColonyGoodAmount;
 end;//func
 
 //only calculates the good changes due to production in buildings;
