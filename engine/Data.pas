@@ -1293,7 +1293,7 @@ begin
       GetBuildingCost(col_arr[i].GetCurrentConstruction,
                       col_arr[i].GetBuildingLevel(col_arr[i].GetCurrentConstruction)+1,
                       hammers, tools);
-      
+
       if (col_arr[i].GetFieldProduction(GetMap, gtWood, false)=0) and (hammers<>0)
          and (col_arr[i].GetStore(gtWood)+col_arr[i].GetStore(gtHammer)<hammers) then
       begin
@@ -1342,9 +1342,89 @@ begin
           end;//if destination found
         end;//if done
       end;//if not enough wood production
+      
+      //check for carpenter
+      //Aren't their enough hammers?
+      if ((col_arr[i].GetStore(gtHammer)<hammers) and (hammers<>0)
+        //...and is there enough wood in store to finish the building?
+        and (col_arr[i].GetStore(gtHammer)+col_arr[i].GetStore(gtWood)>=hammers)
+        //... and is there no carpenter yet?
+        and (col_arr[i].GetTotalProduction(btCarpenter, false, false)<=0)) then
+      begin
+        //We need a carpenter, select one.
+        done:= false;
+        src_x:= 0;
+        src_y:= 0;
+        work_unit:= nil;
+        //search for a unit in the fields
+        for j:= -1 to 1 do
+          for k:= -1 to 1 do
+            //We just pick the first unit we can get - not really smart, but
+            // that will do for now.
+            if (not done) and (col_arr[i].GetUnitInField(j,k)<>nil)
+              and ((j<>0) or (k<>0)) then
+            begin
+              src_x:= j;
+              src_y:= k;
+              work_unit:= col_arr[i].GetUnitInField(j,k);
+              done:= true;
+            end;//if
+        //So let's hope we found someone.
+        if (done and (work_unit<>nil)) then
+        begin
+          //remove unit from field
+          col_arr[i].SetUnitInField(src_x, src_y, nil);
+          //...and let it do the carpenter's job
+          // --- this line should always return zero at the moment, but better
+          //     be safe than sorry
+          dest_x:= col_arr[i].GetFirstFreeBuildingSlot(btCarpenter);
+          if (dest_x<>-1) then
+            col_arr[i].SetUnitInBuilding(btCarpenter, dest_x, work_unit);
+        end;//if unit to place in carpenter's house found
+      end;//if carpenter required
+      
+      //If there is no wood left, the carpenter unit can be removed and chop
+      // wood instead.
+      if (col_arr[i].GetStore(gtWood)=0)
+        and (col_arr[i].GetTotalProduction(btCarpenter, false, false)>0) then
+      begin
+        src_x:= col_arr[i].GetLastOccupiedBuildingSlot(btCarpenter);
+        if (src_x<>-1) then
+        begin
+          done:= false;
+          dest_x:= 0;
+          dest_y:= 0;
+          for j:= -1 to 1 do
+            for k:= -1 to 1 do
+              if (col_arr[i].GetUnitInField(j,k)=nil) and ((j<>0) or (k<>0)) then
+              begin
+                if ((dest_x=0) and (dest_y=0)) then
+                begin
+                  //set this as the first possible field
+                  dest_x:= j;
+                  dest_y:= k;
+                end//if
+                else if (GetMap.tiles[col_arr[i].GetPosX+j, col_arr[i].GetPosY+k].GetGoodProduction(gtWood, false)
+                       >GetMap.tiles[col_arr[i].GetPosX+dest_x, col_arr[i].GetPosY+dest_y].GetGoodProduction(gtWood, false)) then
+                begin
+                  //found a better place to set the unit to
+                  dest_x:= j;
+                  dest_y:= k;
+                end;//else if
+              end;//if
+          //found a place?
+          if (dest_x<>0) or (dest_y<>0) then
+          begin
+            work_unit:= col_arr[i].GetUnitInBuilding(btCarpenter, src_x);
+            //remove unit from building
+            col_arr[i].SetUnitInBuilding(btCarpenter, src_x, nil);
+            //set the unit to its new destination
+            col_arr[i].SetUnitInField(dest_x, dest_y, work_unit, gtWood);
+          end;//if destination found
+        end;//if unit found
+      end;//if carpenter can be removed
     end;//if construction in progress
 
-    //TODO: make sure there's someone doing the carpenter's job, if neccessary
   end;//for i (col_arr)
 end;//proc
 

@@ -174,7 +174,7 @@ type
                            has William Penn as one of its founding fathers
       }
       function GetTotalProduction(const bt: TBuildingType; const HasJefferson, HasPenn: boolean): Integer;
-      
+
       { returns the cumulative amount of a good that is produced within the
         colony's fields
 
@@ -293,6 +293,14 @@ type
             bt - the type of building
       }
       function GetFirstFreeBuildingSlot(const bt: TBuildingType): ShortInt;
+
+      { returns the lasst occupied slot within a certain building, or -1 if
+        there is no occupied slot yet
+
+        parameters:
+            bt - the type of building
+      }
+      function GetLastOccupiedBuildingSlot(const bt: TBuildingType): ShortInt;
 
       { returns the number of inhabitants of that colony }
       function GetInhabitants: Word;
@@ -889,6 +897,24 @@ begin
       end;//if
       i:= i+1;
     end;//while
+  end;//if
+end;//func
+
+function TColony.GetLastOccupiedBuildingSlot(const bt: TBuildingType): ShortInt;
+var i: ShortInt;
+begin
+  Result:= -1;
+  if (bt in [btArmory..btBlacksmith]) then
+  begin
+    i:= 0;
+    for i:= 2 downto 0 do
+    begin
+      if (UnitsInBuilding[bt, i]<>nil) then
+      begin
+        Result:= i;
+        Exit;
+      end;//if
+    end;//for
   end;//if
 end;//func
 
