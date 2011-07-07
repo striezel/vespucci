@@ -1681,10 +1681,19 @@ begin
             founder:= target.GetFirstEmbarkedPassenger;
             if (target.UnloadUnit(founder.GetType, i, j, m_Map)) then
             begin
+              //build new colony and set the founder into the upper, left field
               (TData(m_Data).NewColony(i,j, founder.GetNation,
                  TData(m_Data).GetLang.GetColonyNames(founder.GetNation,
                        length(TData(m_Data).GetColonyList(founder.GetNation))))).SetUnitInField(-1, -1, founder);
+              //create road in colony square
               m_Map.tiles[i,j].CreateRoad;
+              //try to unload other units, too
+              MovesBefore:= 0;
+              while (target.GetFirstEmbarkedPassenger<>nil) and (MovesBefore<6) do
+              begin
+                target.UnloadUnit(target.GetFirstEmbarkedPassenger.GetType, i, j, m_Map);
+                MovesBefore:= MovesBefore +1;
+              end;//while
               Result:= true;
               exit;
             end;//if
