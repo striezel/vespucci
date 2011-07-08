@@ -1313,25 +1313,7 @@ begin
           //found someone, find a field where it would produce the most wood
           dest_x:= 0;
           dest_y:= 0;
-          for j:= -1 to 1 do
-            for k:= -1 to 1 do
-              if ((col_arr[i].GetUnitInField(j,k)=nil) or (col_arr[i].GetUnitInField(j,k)=work_unit))
-                 and ((j<>0) or (k<>0)) then
-              begin
-                if ((dest_x=0) and (dest_y=0)) then
-                begin
-                  //set this as the first possible field
-                  dest_x:= j;
-                  dest_y:= k;
-                end//if
-                else if (GetMap.tiles[col_arr[i].GetPosX+j, col_arr[i].GetPosY+k].GetGoodProduction(gtWood, false)
-                       >GetMap.tiles[col_arr[i].GetPosX+dest_x, col_arr[i].GetPosY+dest_y].GetGoodProduction(gtWood, false)) then
-                begin
-                  //found a better place to set the unit to
-                  dest_x:= j;
-                  dest_y:= k;
-                end;//else if
-              end;//if
+          col_arr[i].GetBestFieldForGood(dest_x, dest_y, GetMap, gtWood, work_unit);
           //found a place?
           if (dest_x<>0) or (dest_y<>0) then
           begin
@@ -1342,7 +1324,7 @@ begin
           end;//if destination found
         end;//if done
       end;//if not enough wood production
-      
+
       //check for carpenter
       //Aren't their enough hammers?
       if ((col_arr[i].GetStore(gtHammer)<hammers) and (hammers<>0)
@@ -1382,7 +1364,7 @@ begin
             col_arr[i].SetUnitInBuilding(btCarpenter, dest_x, work_unit);
         end;//if unit to place in carpenter's house found
       end;//if carpenter required
-      
+
       //If there is no wood left, the carpenter unit can be removed and chop
       // wood instead.
       if (col_arr[i].GetStore(gtWood)=0)
@@ -1392,26 +1374,7 @@ begin
         if (src_x<>-1) then
         begin
           done:= false;
-          dest_x:= 0;
-          dest_y:= 0;
-          for j:= -1 to 1 do
-            for k:= -1 to 1 do
-              if (col_arr[i].GetUnitInField(j,k)=nil) and ((j<>0) or (k<>0)) then
-              begin
-                if ((dest_x=0) and (dest_y=0)) then
-                begin
-                  //set this as the first possible field
-                  dest_x:= j;
-                  dest_y:= k;
-                end//if
-                else if (GetMap.tiles[col_arr[i].GetPosX+j, col_arr[i].GetPosY+k].GetGoodProduction(gtWood, false)
-                       >GetMap.tiles[col_arr[i].GetPosX+dest_x, col_arr[i].GetPosY+dest_y].GetGoodProduction(gtWood, false)) then
-                begin
-                  //found a better place to set the unit to
-                  dest_x:= j;
-                  dest_y:= k;
-                end;//else if
-              end;//if
+          col_arr[i].GetBestFieldForGood(dest_x, dest_y, GetMap, gtWood);
           //found a place?
           if (dest_x<>0) or (dest_y<>0) then
           begin
