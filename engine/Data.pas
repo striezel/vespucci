@@ -1165,14 +1165,15 @@ begin
 end;//proc
 
 procedure  TData.UpdateAITasksEuropean(const num_Nation: LongInt);
-const construction_list: array [0..2] of record
+const construction_list: array [0..3] of record
                            bt: TBuildingType;
                            level: Byte;
                          end //record
                          =(
-                            (bt: btCarpenter; level: 2), //Sägewerk
-                            (bt: btWarehouse; level: 1), //Lagerhaus
-                            (bt: btChurch;    level: 1) //Kirche
+                            (bt: btCarpenter;  level: 2), //Sägewerk
+                            (bt: btWarehouse;  level: 1), //Lagerhaus
+                            (bt: btChurch;     level: 1), //Kirche
+                            (bt: btBlacksmith; level: 2) //Schmiede
                           );
 var u_arr: TUnitArr;
     done: Boolean;
@@ -1289,11 +1290,14 @@ begin
     if (col_arr[i].GetCurrentConstruction<>btNone) then
     begin
       //If we have something to construct, we have to make sure that there is
-      // someone who gets the wood for the construction.
+      // someone who gets the wood and ore for the construction.
       GetBuildingCost(col_arr[i].GetCurrentConstruction,
                       col_arr[i].GetBuildingLevel(col_arr[i].GetCurrentConstruction)+1,
                       hammers, tools);
 
+      { ************************************
+        **** wood/hammers-related stuff ****
+        ************************************ }
       if (col_arr[i].GetFieldProduction(GetMap, gtWood, false)=0) and (hammers<>0)
          and (col_arr[i].GetStore(gtWood)+col_arr[i].GetStore(gtHammer)<hammers) then
       begin
@@ -1326,7 +1330,7 @@ begin
       end;//if not enough wood production
 
       //check for carpenter
-      //Aren't their enough hammers?
+      //Aren't there enough hammers?
       if ((col_arr[i].GetStore(gtHammer)<hammers) and (hammers<>0)
         //...and is there enough wood in store to finish the building?
         and (col_arr[i].GetStore(gtHammer)+col_arr[i].GetStore(gtWood)>=hammers)
@@ -1386,6 +1390,107 @@ begin
           end;//if destination found
         end;//if unit found
       end;//if carpenter can be removed
+    
+      { *********************************
+        **** ore/tools-related stuff ****
+        ********************************* }
+      //Do we need someone to mine ore for tools?
+      if (tools>0)
+        //Make sure we have hammers before going for tools.
+        and (col_arr[i].GetStore(gtWood)+col_arr[i].GetStore(gtHammer)>=hammers)
+        //...and we don't have enough ore yet
+        and (col_arr[i].GetStore(gtOre)+col_arr[i].GetStore(gtTool)<tools)
+        //...and we don't have any ore production yet
+        and (col_arr[i].GetFieldProduction(GetMap, gtOre, false)=0) then
+      begin
+        //no ore production and not enough ore in store, set someone to mine for ore
+        done:= false;
+        for j:= -1 to 1 do
+          for k:= -1 to 1 do
+            if (not done) and (col_arr[i].GetUnitInField(j,k)<>nil) then
+            begin
+              work_unit:= col_arr[i].GetUnitInField(j,k);
+              src_x:= j;
+              src_y:= k;
+              done:= true;
+            end;//if
+        if done then
+        begin
+          //found someone, find a field where it would produce the most ore
+          dest_x:= 0;
+          dest_y:= 0;
+          col_arr[i].GetBestFieldForGood(dest_x, dest_y, GetMap, gtOre, work_unit);
+          //found a place?
+          if (dest_x<>0) or (dest_y<>0) then
+          begin
+            //remove unit from old field
+            col_arr[i].SetUnitInField(src_x, src_y, nil);
+            //set the unit to its new destination and mine ore
+            col_arr[i].SetUnitInField(dest_x, dest_y, work_unit, gtOre);
+          end;//if destination found
+        end;//if done
+      end;//if ore miner needed
+      
+      //Are there enough tools?
+      if ((col_arr[i].GetStore(gtTool)<tools) and (tools<>0)
+        //...and is there enough ore in store to finish the building?
+        and (col_arr[i].GetStore(gtTool)+col_arr[i].GetStore(gtOre)>=tools)
+        //... and is there no smith yet?
+        and (col_arr[i].GetTotalProduction(btBlacksmith, false, false)<=0)) then
+      begin
+        //We need a smith, select one.
+        done:= false;
+        src_x:= 0;
+        src_y:= 0;
+        work_unit:= nil;
+        //search for a unit in the fields
+        for j:= -1 to 1 do
+          for k:= -1 to 1 do
+            //We just pick the first unit we can get - not really smart, but
+            // that will do for now.
+            if (not done) and (col_arr[i].GetUnitInField(j,k)<>nil)
+              and ((j<>0) or (k<>0)) then
+            begin
+              src_x:= j;
+              src_y:= k;
+              work_unit:= col_arr[i].GetUnitInField(j,k);
+              done:= true;
+            end;//if
+        //So let's hope we found someone.
+        if (done and (work_unit<>nil)) then
+        begin
+          //remove unit from field
+          col_arr[i].SetUnitInField(src_x, src_y, nil);
+          //...and let it do the smith's job
+          // --- this line should always return zero at the moment, but better
+          //     be safe than sorry
+          dest_x:= col_arr[i].GetFirstFreeBuildingSlot(btBlacksmith);
+          if (dest_x<>-1) then
+            col_arr[i].SetUnitInBuilding(btBlacksmith, dest_x, work_unit);
+        end;//if unit to place in smith's house found
+      end;//if smith required
+      
+      //If there is no ore left, the smith unit can be removed and mine ore
+      // instead.
+      if (col_arr[i].GetStore(gtOre)=0)
+        and (col_arr[i].GetTotalProduction(btBlacksmith, false, false)>0) then
+      begin
+        src_x:= col_arr[i].GetLastOccupiedBuildingSlot(btBlacksmith);
+        if (src_x<>-1) then
+        begin
+          done:= false;
+          col_arr[i].GetBestFieldForGood(dest_x, dest_y, GetMap, gtOre);
+          //found a place?
+          if (dest_x<>0) or (dest_y<>0) then
+          begin
+            work_unit:= col_arr[i].GetUnitInBuilding(btBlacksmith, src_x);
+            //remove unit from building
+            col_arr[i].SetUnitInBuilding(btBlacksmith, src_x, nil);
+            //set the unit to its new destination
+            col_arr[i].SetUnitInField(dest_x, dest_y, work_unit, gtOre);
+          end;//if destination found
+        end;//if unit found
+      end;//if smith can be removed
     end;//if construction in progress
 
   end;//for i (col_arr)
