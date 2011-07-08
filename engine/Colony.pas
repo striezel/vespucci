@@ -190,6 +190,23 @@ type
             inefficent), but for AI stuff only.
       }
       function GetFieldProduction(const AMap: TMap; const gt: TGoodType; const HasHudson: Boolean): Integer;
+      
+      { returns the of the field that would be the best to produce a certain good
+
+        parameters:
+            x, y      - variables that will be used to return the field offset
+            AMap      - the current map (must not be nil, or the function will
+                        return zero for both x and y)
+            gt        - the type of good we are looking for
+            work_unit - the unit that will be placed in the fields (can be nil,
+                        if the unit is not in the fields yet)
+
+        remarks:
+            This function is used for AI stuff only.
+            Returning zero for both x and y means that an error occured or no
+            field could be found.
+      }
+      procedure GetBestFieldForGood(var x, y: Integer; const AMap: TMap; const gt: TGoodType; const work_unit: TUnit=nil);
 
       { starts a new round for that colony, i.e. adds produced goods to storage
         and so on
@@ -701,6 +718,33 @@ begin
   if (gt=AMap.tiles[PosX, PosY].GetColonyGoodType) then
     Result:= Result + AMap.tiles[PosX, PosY].GetColonyGoodAmount;
 end;//func
+
+procedure TColony.GetBestFieldForGood(var x, y: Integer; const AMap: TMap; const gt: TGoodType; const work_unit: TUnit);
+var i, j: Integer;
+begin
+  x:= 0;
+  y:= 0;
+  for i:= -1 to 1 do
+    for j:= -1 to 1 do
+      if ((self.GetUnitInField(i,j)=nil)
+        or ((work_unit<>nil) and (self.GetUnitInField(i,j)=work_unit)))
+        and ((i<>0) or (j<>0)) then
+      begin
+        if ((x=0) and (y=0)) then
+        begin
+          //set this as the first possible field
+          x:= i;
+          y:= j;
+        end//if
+        else if (AMap.tiles[self.GetPosX+i, self.GetPosY+j].GetGoodProduction(gt, false)
+               >AMap.tiles[self.GetPosX+x, self.GetPosY+y].GetGoodProduction(gt, false)) then
+        begin
+          //found a better place to set the unit to
+          x:= i;
+          y:= j;
+        end;//else if
+      end;//if
+end;//proc
 
 //only calculates the good changes due to production in buildings;
 // and production in fields (i.e. by farmers)
