@@ -1692,13 +1692,16 @@ begin
   if (not inherited Done) then
   begin
     inherited Execute;
+    Result:= true;
   end
   else begin
     if target.GetLocation=ulAmerica then
     begin
       if (m_Map.tiles[target.GetPosX, target.GetPosY].GetType=ttOpenSea) then
         target.SendToEurope;
-    end;//if
+      Result:= true;    
+    end//if
+    else Result:= target.GetLocation=ulGoToEurope;
   end;//else
 end;//func
 
