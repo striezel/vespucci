@@ -487,7 +487,7 @@ type
 
   // ---- the AI stuff ----
   { enumeration type to indicate the type of an AI task }
-  TTaskType = (ttGeneric, ttPlough, ttRoad, ttClear, ttGoTo, ttFindLand);
+  TTaskType = (ttGeneric, ttPlough, ttRoad, ttClear, ttGoTo, ttGoToEurope, ttFindLand);
 
   { ********
     **** TTask abstract class
@@ -697,6 +697,47 @@ type
 
       { returns the y-ccordinate of the destination field }
       function DestinationY: Byte;
+
+      { returns the type of the task (something like a RTTI) }
+      function GetType: TTaskType; override;
+  end;//class
+  
+ 
+  { ********
+    **** TGoToEuropeTask class
+    ****
+    **** purpose: represents a task where a unit has to travel to a high sea map
+    ****          square and then will be sent to Europe. This task uses A* for
+    ****          path finding.
+    ****          Derived from TGoToTask.
+    *******
+  }
+  TGoToEuropeTask = class(TGoToTask)
+    public
+      { constructor
+
+        parameters:
+            target_unit - the unit that shall travel to Europe
+            ToX,ToY     - destination position, i.e. position of a high sea map square
+            AMap        - the current map (must not be nil)
+      }
+      constructor Create(const target_unit: TUnit; ToX, ToY: Byte; const AMap: TMap);
+
+      { destructor }
+      destructor Destroy; override;
+
+      { returns true, if the unit has arrived at its destination or if there is
+        no path to the desired destination }
+      function Done: Boolean; override;
+
+      { executes the next step of the task and returns true, if something was
+        done. Usually, a return value of false indicates that the task is
+        already done (see Done()).
+      }
+      function Execute: Boolean; override;
+
+      { returns the type of the task (something like a RTTI) }
+      function GetType: TTaskType; override;
   end;//class
 
   { ********
@@ -1623,6 +1664,48 @@ begin
   target.SetState(usNormal);
   inherited Destroy;
 end;//destruc
+
+function TGoToTask.GetType: TTaskType;
+begin
+  Result:= ttGoTo;
+end;//func
+
+// **** TGoToEuropeTask methods ****
+
+constructor TGoToEuropeTask.Create(const target_unit: TUnit; ToX, ToY: Byte; const AMap: TMap);
+begin
+  inherited Create(target_unit, ToX, ToY, AMap);
+end;//construc
+
+destructor TGoToEuropeTask.Destroy;
+begin
+  inherited Destroy;
+end;//destruc
+
+function TGoToEuropeTask.Done: Boolean;
+begin
+  Result:= (inherited Done) and (target.GetLocation=ulEurope);
+end;//func
+
+function TGoToEuropeTask.Execute: Boolean;
+begin
+  if (not inherited Done) then
+  begin
+    inherited Execute;
+  end
+  else begin
+    if target.GetLocation=ulAmerica then
+    begin
+      if (m_Map.tiles[target.GetPosX, target.GetPosY].GetType=ttOpenSea) then
+        target.SendToEurope;
+    end;//if
+  end;//else
+end;//func
+
+function TGoToEuropeTask.GetType: TTaskType;
+begin
+  Result:= ttGoToEurope;
+end;//func
 
 // **** TFindLandForColonyTask methods ****
 
