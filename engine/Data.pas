@@ -1176,7 +1176,7 @@ const construction_list: array [0..3] of record
                             (bt: btBlacksmith; level: 2) //Schmiede
                           );
 var u_arr: TUnitArr;
-    done: Boolean;
+    done, need_ship, ship_arrived: Boolean;
     i, j, k: Integer;
     new_task: TTask;
     preferredType: TFoundingFatherType;
@@ -1186,6 +1186,7 @@ var u_arr: TUnitArr;
     work_unit: TUnit;
     src_x, src_y, dest_x, dest_y: Integer;
     hammers, tools: Word;
+    AIGoTo: TGoToTask;
 begin
   //Is this really a European nation?
   if (num_Nation<cMinEuropean) or (num_Nation>cMaxEuropean) then Exit;
@@ -1390,7 +1391,7 @@ begin
           end;//if destination found
         end;//if unit found
       end;//if carpenter can be removed
-    
+
       { *********************************
         **** ore/tools-related stuff ****
         ********************************* }
@@ -1430,7 +1431,7 @@ begin
           end;//if destination found
         end;//if done
       end;//if ore miner needed
-      
+
       //Are there enough tools?
       if ((col_arr[i].GetStore(gtTool)<tools) and (tools<>0)
         //...and is there enough ore in store to finish the building?
@@ -1469,7 +1470,7 @@ begin
             col_arr[i].SetUnitInBuilding(btBlacksmith, dest_x, work_unit);
         end;//if unit to place in smith's house found
       end;//if smith required
-      
+
       //If there is no ore left, the smith unit can be removed and mine ore
       // instead.
       if (col_arr[i].GetStore(gtOre)=0)
@@ -1493,7 +1494,145 @@ begin
       end;//if smith can be removed
     end;//if construction in progress
 
+    // ---- check for need to sell goods ----
+    need_ship:= false;
+    src_x:= (col_arr[i].GetBuildingLevel(btWarehouse)+1)*80; //set limit to 80 of 100
+    //check produced goods
+    for j:= Ord(gtCoat) downto Ord(gtRum) do
+    begin
+      if not need_ship and (col_arr[i].GetStore(TGoodType(j))>=src_x)
+         and (not EuroNat.IsBoycotted(TGoodType(j))) then
+        need_ship:= true;
+    end;//for j
+    //check planted stuff/ ores
+    for j:= Ord(gtSilver) downto Ord(gtSugar) do
+    begin
+      if not need_ship and (col_arr[i].GetStore(TGoodType(j))>=src_x)
+         and (not EuroNat.IsBoycotted(TGoodType(j))) then
+        need_ship:= true;
+    end;//for j
+    
+    if need_ship then
+    begin
+      //try to find ship
+      u_arr:= GetAllShips(num_Nation);
+      done:= false;
+      ship_arrived:= false;
+      for k:= 0 to High(u_arr) do
+      begin
+        if (not done) then
+        begin
+          if (u_arr[k].GetTask<>nil) then
+          begin
+            if (u_arr[k].GetTask.GetType=ttGoTo) then
+            begin
+              AIGoTo:= u_arr[k].GetTask as TGoToTask;
+              if (AIGoTo.DestinationX=col_arr[i].GetPosX) and (AIGoTo.DestinationY=col_arr[i].GetPosY) then
+                //there already is a ship on the way, don't worry
+                done:= true;
+            end;//if
+          end//Task<>nil
+          else begin
+            //if the ship is already there and has some free slots, then this could be ours
+            done:= (u_arr[k].GetPosX=col_arr[i].GetPosX) and (u_arr[k].GetPosY=col_arr[i].GetPosY)
+                   and (u_arr[k].GetLocation=ulAmerica) and (u_arr[k].FreeCapacity>0);
+            if done then
+            begin
+              ship_arrived:= true;
+              dest_x:= k;//save index for later use
+            end;  
+          end;//else  
+        end;//if not done
+      end;//for k
+      
+      //Are we done yet?
+      if not done then
+      begin
+        //No, we aren't, let's find a free ship.
+        for k:= 0 to High(u_arr) do
+        begin
+          if not done and (u_arr[k].GetTask=nil) and (u_arr[k].FreeCapacity>0)
+            and (u_arr[k].GetLocation=ulAmerica) then
+          begin
+            //found our ship, let's move it to the colony
+            AIGoTo:= TGoToTask.Create(u_arr[k], col_arr[i].GetPosX, col_arr[i].GetPosY,
+                                      GetMap, col_arr[i].GetPosX, col_arr[i].GetPosY);
+            u_arr[k].SetTask(AIGoTo);
+            done:= true;
+          end;//if
+        end;//for k
+      end;//if not done
+      
+      //Has a ship arrived at colony?
+      if ship_arrived then
+      begin
+        //load all possible stuff onto the ship
+        for j:= Ord(gtCoat) downto Ord(gtRum) do
+        begin
+          if (col_arr[i].GetStore(TGoodType(j))>=src_x) and (not EuroNat.IsBoycotted(TGoodType(j)))
+             and (u_arr[dest_x].FreeCapacity>0) then
+          begin
+            //load stuff onto ship
+            while (col_arr[i].GetStore(TGoodType(j))>0) and (u_arr[dest_x].FreeCapacity>0) do
+            begin
+              dest_y:= col_arr[i].GetStore(TGoodType(j));
+              if (dest_y>100) then dest_y:= 100; //cut down to 100 at most
+              if u_arr[dest_x].LoadGood(TGoodType(j), dest_y) then
+                col_arr[i].RemoveFromStore(TGoodType(j), dest_y);
+              //We can ignore RemoveFromStore()'s return value here, because we
+              // know there is enough of that good.
+            end;//while
+          end;//if
+        end;//for j
+        
+        for j:= Ord(gtSilver) downto Ord(gtSugar) do
+        begin
+          if (col_arr[i].GetStore(TGoodType(j))>=src_x) and (not EuroNat.IsBoycotted(TGoodType(j)))
+             and (u_arr[dest_x].FreeCapacity>0) then
+          begin
+            //load stuff onto ship
+            while (col_arr[i].GetStore(TGoodType(j))>0) and (u_arr[dest_x].FreeCapacity>0) do
+            begin
+              dest_y:= col_arr[i].GetStore(TGoodType(j));
+              if (dest_y>100) then dest_y:= 100; //cut down to 100 at most
+              if u_arr[dest_x].LoadGood(TGoodType(j), dest_y) then
+                col_arr[i].RemoveFromStore(TGoodType(j), dest_y);
+              //We can ignore RemoveFromStore()'s return value here, because we
+              // know there is enough of that good.
+            end;//while
+          end;//if
+        end;//for j
+        
+        //Ship is loaded with goods, send it to Europe.
+        if EuroNat.HasValidSpawnpoint then
+          AIGoTo:= TGoToEuropeTask.Create(u_arr[dest_x], EuroNat.GetSpawnpointX, EuroNat.GetSpawnpointY, GetMap)
+        else
+          AIGoTo:= TGoToEuropeTask.Create(u_arr[dest_x], cMap_X-1, cMap_Y div 2, GetMap);
+        u_arr[dest_x].SetTask(AIGoTo);
+      end;//if ship_arrived
+    end;//if need_ship
   end;//for i (col_arr)
+  
+  //Handle ships in Europe.
+  u_arr:= GetAllShipsInEurope(num_Nation);
+  for i:= 0 to High(u_arr) do
+  begin
+    //unload/sell stuff
+    for j:= 0 to 5 do
+    begin
+      if (u_arr[i].GetCargoAmountBySlot(j)>0) and (not EuroNat.IsBoycotted(u_arr[i].GetCargoGoodBySlot(j)))
+         and (u_arr[i].GetCargoGoodBySlot(j) in [gtSugar..gtSilver, gtRum..gtCoat]) then
+      begin
+        //unload it
+        dest_x:= u_arr[i].UnloadGood(u_arr[i].GetCargoGoodBySlot(j), u_arr[i].GetCargoAmountBySlot(j));
+        //recalculate nation's gold
+        EuroNat.SellGood(u_arr[i].GetCargoGoodBySlot(j), dest_x);
+      end;//if
+    end;//for j
+    //get back to America
+    u_arr[i].SendToNewWorld;
+  end;//for i (u_arr / ships in Europe)
+  
 end;//proc
 
 procedure  TData.UpdateAITasksIndian(const num_Nation: LongInt);
