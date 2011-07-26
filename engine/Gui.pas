@@ -26,7 +26,7 @@ interface
 uses
   Map, Data, GL, GLUT, Terrain, Language, Colony, Tribe, Nation, Goods,
   Units, SysUtils, BitmapReader, Callbacks, Helper, ErrorTexture,
-  FoundingFathers, EuropeanNation;
+  FoundingFathers, EuropeanNation, MessageSystem;
 
 type
   TRiverType = (rtOne, rtTwo_Bend, rtTwo_Straight, rtThree, rtFour);
@@ -231,7 +231,7 @@ const
     );
 
   { caption of game window }
-  cWindowCaption = 'Vespucci v0.01.r184';
+  cWindowCaption = 'Vespucci v0.01.r185';
 
   { text colour (greenish) }
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
@@ -282,7 +282,7 @@ type
     **** TODO:
     **** =====
     ****
-    **** - Player should only be able to select units and colonie of his/her
+    **** - Player should only be able to select units and colonies of his/her
     ****   own nation and not those of others, too.
     **** - When new round is started, units of other nations should be updated,
     ****   too, and not only the player's units.
@@ -309,18 +309,6 @@ type
       dat: TData;
       report: TReportType;
       report_pages: Integer;
-      //text messages
-      msg: record
-             txt: AnsiString;
-             options: TShortStrArr;
-             selected_option: Integer;
-             inputCaption, inputText: ShortString;
-             cbRec: TCallbackRec;
-           end;//rec
-      msg_queue: record
-                   first: PQueueElem;
-                   last: PQueueElem;
-                 end;//rec
       //terrain texture "names" (as in OpenGL names)
       m_TerrainTexNames: array [TTerrainType] of GLuint;
       //river texture "names" (as in OpenGL names)
@@ -693,24 +681,6 @@ type
       }
       function GetMessageOptionAtMouse(const mx, my: LongInt): Integer;
 
-      { pushes a new message at the end of the message queue
-
-        parameters:
-            msg_txt   - text of the message
-            opts      - array that contains the answer options to that message
-            inCaption - caption for the input field
-            inText    - preset text of the input field
-            cbRec     - callback record; used after the message window was
-                        closed to handle input/ selection
-
-        remarks:
-            If opts contains more than zero options, the player can choose from
-            the specified number of options in the message window.
-            If opts contains no options, but inCaption is not an empty string,
-            the player will get a one-line field to enter a text.
-      }
-      procedure EnqueueNewMessage(const msg_txt: AnsiString; const opts: TShortStrArr; const inCaption, inText: ShortString; cbRec: TCallbackRec);
-
       { deletes the current message and replaces it with the next message in
         the message queue
       }
@@ -832,37 +802,6 @@ type
       }
       function TextWidthTimesRoman24(const msg_txt: string): LongInt;
 
-      { shows a new message with the given text (or better: puts it into the
-        message queue)
-
-        paramaters:
-            msg_text - the text of the message
-      }
-      procedure ShowMessageSimple(const msg_txt: AnsiString);
-
-      { shows a new message with the given text and options (or better: puts it
-        into the message queue)
-
-        paramaters:
-            msg_text - the text of the message
-            opts     - the options the player can choose from
-            cbRec    - callback record for callback after player has chosen an
-                       option
-      }
-      procedure ShowMessageOptions(const msg_txt: AnsiString; const opts: TShortStrArr; cbRec: TCallbackRec);
-
-      { shows a new message with the given text and an input field (or better:
-         puts the message into the message queue)
-
-        paramaters:
-            msg_text  - the text of the message
-            inCaption - caption of the input field
-            inDefault - default (preset) text for the input field
-            cbRec     - callback record for callback after player has made his
-                        input
-      }
-      procedure ShowMessageInput(const msg_txt: AnsiString; const inCaption: ShortString; const inDefault: ShortString; cbRec: TCallbackRec);
-
       { returns true, if the menu is active }
       function InMenu: Boolean;
 
@@ -944,13 +883,13 @@ begin
   europe:= nil;
   focused:= nil;
   //message
-  msg.txt:= '';
+  {msg.txt:= '';
   SetLength(msg.options, 0);
   msg.selected_option:=0;
   msg.inputCaption:= '';
   msg.inputText:= '';
   msg_queue.first:= nil;
-  msg_queue.last:= nil;
+  msg_queue.last:= nil; }
 
   //center on caravel
   Ship:= dat.GetFirstLazyUnit(dat.PlayerNation);
@@ -1143,7 +1082,7 @@ begin
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
   //welcome message (German), originally for test reasons only
-  ShowMessageSimple(
+  msg.AddMessageSimple(
           'Willkommen bei Vespucci!                                    '
          +cSpace60
          +'Hinweise zur Steuerung:                                     '
@@ -1303,7 +1242,7 @@ begin
     else begin
       temp_cb._type:= CBT_EXIT;
       temp_cb.cbExit:= @CBF_Exit;
-      ShowMessageOptions('Vespucci beenden?', ToShortStrArr('Nein', 'Ja'), temp_cb);
+      msg.AddMessageOptions('Vespucci beenden?', ToShortStrArr('Nein', 'Ja'), temp_cb);
     end;//else
   end;//if KEY_ESCAPE
 
@@ -1334,10 +1273,10 @@ begin
            begin
              temp_Map:= dat.GetMap;
              if (focused.IsShip or temp_Map.tiles[focused.GetPosX, focused.GetPosY].IsWater) then
-               ShowMessageSimple(dat.GetLang.GetBuildColony(2))
+               msg.AddMessageSimple(dat.GetLang.GetBuildColony(2))
              else begin
                if temp_Map.tiles[focused.GetPosX, focused.GetPosY].GetType=ttMountains then
-                 ShowMessageSimple(dat.GetLang.GetBuildColony(4))
+                 msg.AddMessageSimple(dat.GetLang.GetBuildColony(4))
                else begin
                  if dat.FreeForSettlement(focused.GetPosX, focused.GetPosY) then
                  begin
@@ -1347,13 +1286,13 @@ begin
                    temp_cb.BuildColony.y:= focused.GetPosY;
                    temp_cb.BuildColony.founder:= focused;
                    temp_cb.BuildColony.AData:= dat;
-                   ShowMessageInput(dat.GetLang.GetBuildColony(0), dat.GetLang.GetBuildColony(1),
+                   msg.AddMessageInput(dat.GetLang.GetBuildColony(0), dat.GetLang.GetBuildColony(1),
                        dat.GetLang.GetColonyNames(focused.GetNation,
                        length(dat.GetColonyList(focused.GetNation))), temp_cb);
                    focused:= nil;
                  end
                  else
-                   ShowMessageSimple(dat.GetLang.GetBuildColony(3));
+                   msg.AddMessageSimple(dat.GetLang.GetBuildColony(3));
                end;//else
              end;//if
            end;//if
@@ -1467,7 +1406,7 @@ begin
             temp_cb.Landfall.x:= temp_x;
             temp_cb.Landfall.y:= temp_y;
             temp_cb.Landfall.AMap:= temp_Map;
-            ShowMessageOptions(dat.GetLang.GetLandfall(0), ToShortStrArr(dat.GetLang.GetLandfall(1), dat.GetLang.GetLandfall(2)), temp_cb);
+            msg.AddMessageOptions(dat.GetLang.GetLandfall(0), ToShortStrArr(dat.GetLang.GetLandfall(1), dat.GetLang.GetLandfall(2)), temp_cb);
           end //if passengers>0
           else focused.Move(direc, temp_Map, dat);
         end//if not water
@@ -1570,7 +1509,7 @@ begin
         temp_cbr._type:= CBT_RENAME_COLONY;
         temp_cbr.RenameColony.AColony:= cur_colony;
         with dat.GetLang do
-          ShowMessageInput(GetColonyString(csRenameQuestion), GetColonyString(csRenameLabel), cur_colony.GetName, temp_cbr);
+          msg.AddMessageInput(GetColonyString(csRenameQuestion), GetColonyString(csRenameLabel), cur_colony.GetName, temp_cbr);
         Exit;
       end//if title bar clicked
 
@@ -1605,7 +1544,7 @@ begin
         temp_cbr.JobChange.x_shift:= sx;
         temp_cbr.JobChange.y_shift:= sy;
         temp_cbr.JobChange.AColony:= cur_colony;
-        ShowMessageOptions('Choose profession for unit '+dat.GetLang.GetUnitName(cur_colony.GetUnitInField(sx, sy).GetType)+':',
+        msg.AddMessageOptions('Choose profession for unit '+dat.GetLang.GetUnitName(cur_colony.GetUnitInField(sx, sy).GetType)+':',
                            dat.GetJobList(sx, sy, cur_colony.GetUnitInField(sx, sy).GetType, cur_colony), temp_cbr);
       end;//else if
 
@@ -1649,7 +1588,7 @@ begin
           begin
             cur_colony.RemoveFromStore(tempGood, tempAmount);
           end//if
-          else ShowMessageSimple(dat.GetLang.GetTransfer(tsOutOfSpace));
+          else msg.AddMessageSimple(dat.GetLang.GetTransfer(tsOutOfSpace));
         end;//if
       end;//if
 
@@ -1680,7 +1619,7 @@ begin
             temp_cbr.AbandonColony.AColony:= cur_colony;
             temp_cbr.AbandonColony.AData:= dat;
             with dat.GetLang do
-              ShowMessageOptions(GetColonyString(csAbandonQuestion), ToShortStrArr(GetColonyString(csAbandonNo), GetColonyString(csAbandonYes)), temp_cbr);
+              msg.AddMessageOptions(GetColonyString(csAbandonQuestion), ToShortStrArr(GetColonyString(csAbandonNo), GetColonyString(csAbandonYes)), temp_cbr);
           end;//else
         end;//if unit<>nil
       end;//if
@@ -1703,7 +1642,7 @@ begin
             str_arr[1]:= dat.GetLang.GetColonyUnit(cusOnBoard)
           else str_arr[1]:= dat.GetLang.GetColonyUnit(cusFortify);
           str_arr[2]:= dat.GetLang.GetOthers(osNoChanges);
-          ShowMessageOptions(dat.GetLang.GetColonyUnit(cusOptions)+' '+dat.GetLang.GetUnitName(tempUArr[pos_x].GetType)+':',
+          msg.AddMessageOptions(dat.GetLang.GetColonyUnit(cusOptions)+' '+dat.GetLang.GetUnitName(tempUArr[pos_x].GetType)+':',
                              str_arr, temp_cbr);
         end;//if
       end;//if
@@ -1735,7 +1674,7 @@ begin
             cur_colony.SetUnitInField(sx, sy, nil);
             cur_colony.SetUnitInBuilding(bType, sx_d, tempUnit);
           end//if
-          else ShowMessageSimple(dat.GetLang.GetBuildingString(bsMaxThree));
+          else msg.AddMessageSimple(dat.GetLang.GetBuildingString(bsMaxThree));
         end;//if unit<>nil
       end;//if
       //dragging unit from building to field
@@ -1774,7 +1713,7 @@ begin
             cur_colony.RealignUnitsInBuilding(bType);
             cur_colony.SetUnitInBuilding(bType2, sy, tempUnit);
           end//if
-          else ShowMessageSimple(dat.GetLang.GetBuildingString(bsMaxThree));
+          else msg.AddMessageSimple(dat.GetLang.GetBuildingString(bsMaxThree));
         end;//if
       end;//if
 
@@ -1799,7 +1738,7 @@ begin
                );
           end;//if
         end;//for
-        ShowMessageOptions(dat.GetLang.GetBuildingString(bsSelectNext), str_arr, temp_cbr);
+        msg.AddMessageOptions(dat.GetLang.GetBuildingString(bsSelectNext), str_arr, temp_cbr);
       end;//construction bar
     end;//if (left button up)
     {$IFDEF DEBUG_CODE}
@@ -1835,13 +1774,13 @@ begin
           begin
             //we have a cargo transfer to the port
             if europe.IsBoycotted(tempUArr[0].GetCargoGoodBySlot(sx)) then
-              ShowMessageSimple(dat.GetLang.GetTransfer(tsBoycotted))
+              msg.AddMessageSimple(dat.GetLang.GetTransfer(tsBoycotted))
             else begin
               //start the transfer, finally
               tempGood:= tempUArr[0].GetCargoGoodBySlot(sx);
               tempAmount:= tempUArr[0].UnloadGood(tempUArr[0].GetCargoGoodBySlot(sx), tempUArr[0].GetCargoAmountBySlot(sx));
               //print message about earnings
-              ShowMessageSimple(
+              msg.AddMessageSimple(
               StretchTo60(dat.GetLang.GetGoodName(tempGood)+': '+IntToStr(tempAmount)+'x'
                  +IntToStr(europe.GetPrice(tempGood, True))+' '+dat.GetLang.GetOthers(osGold),
                 IntToStr(europe.GetPrice(tempGood, True)*tempAmount)+' '+dat.GetLang.GetOthers(osGold))
@@ -1865,21 +1804,21 @@ begin
         begin
           //cargo transfer from port to ship
           if europe.IsBoycotted(tempGood) then
-            ShowMessageSimple(dat.GetLang.GetTransfer(tsBoycotted))
+            msg.AddMessageSimple(dat.GetLang.GetTransfer(tsBoycotted))
           else if europe.GetPrice(tempGood, False)*100>europe.GetGold then
-            ShowMessageSimple(dat.GetLang.GetTransfer(tsOutOfGold))
+            msg.AddMessageSimple(dat.GetLang.GetTransfer(tsOutOfGold))
           else begin
             //start the transfer
             if tempUArr[0].LoadGood(tempGood, 100) then
             begin
               europe.BuyGood(tempGood, 100);
               //should show message about costs to player
-              ShowMessageSimple(
+              msg.AddMessageSimple(
               StretchTo60(dat.GetLang.GetGoodName(tempGood)+': 100x', IntToStr(europe.GetPrice(tempGood, false))+' '+dat.GetLang.GetOthers(osGold))
               + StretchTo60(dat.GetLang.GetOthers(osCost)+':', IntToStr(europe.GetPrice(tempGood, false)*100)+' '+dat.GetLang.GetOthers(osGold))
               );
             end
-            else ShowMessageSimple(dat.GetLang.GetTransfer(tsOutOfSpace));
+            else msg.AddMessageSimple(dat.GetLang.GetTransfer(tsOutOfSpace));
           end;//else
         end;//if
       end;//if
@@ -1959,7 +1898,7 @@ begin
           temp_cbr.inputText:= '';
           temp_cbr.EuroPort.AUnit:= tempUArr[pos_x];
           temp_cbr.EuroPort.EuroNat:= europe;
-          ShowMessageOptions(dat.GetLang.GetEuroPort(epsManageHeading), str_arr, temp_cbr);
+          msg.AddMessageOptions(dat.GetLang.GetEuroPort(epsManageHeading), str_arr, temp_cbr);
           Exit;
         end;//if pos_x<>High(array)
       end;//if pos_x<>-1
@@ -1984,7 +1923,7 @@ begin
              temp_cbr.inputText:= '';
              temp_cbr.EuroBuy.EuroNat:= europe;
              temp_cbr.EuroBuy.AData:= dat;
-             ShowMessageOptions(dat.GetLang.GetEuroPort(epsBuyHeading), str_arr, temp_cbr);
+             msg.AddMessageOptions(dat.GetLang.GetEuroPort(epsBuyHeading), str_arr, temp_cbr);
            end;//case ButtonAtMouse=1 ("Buy Ship")
         2: begin
              SetLength(str_arr, 1);
@@ -2002,7 +1941,7 @@ begin
              temp_cbr.inputText:= '';
              temp_cbr.EuroTrain.EuroNat:= europe;
              temp_cbr.EuroTrain.AData:= dat;
-             ShowMessageOptions(dat.GetLang.GetEuroPort(epsTrainHeading),
+             msg.AddMessageOptions(dat.GetLang.GetEuroPort(epsTrainHeading),
                                str_arr, temp_cbr);
            end;//case ButtonAtMouse=2 ("Train units")
       end;//case
@@ -4376,112 +4315,6 @@ begin
   end;//else
 end;//func
 
-procedure TGui.EnqueueNewMessage(const msg_txt: AnsiString; const opts: TShortStrArr; const inCaption, inText: ShortString; cbRec: TCallbackRec);
-var temp: PQueueElem;
-    i: Integer;
-begin
-  {$IFDEF DEBUG_CODE}
-    WriteLn('Entered TGui.EnqueueNewMessage');
-  {$ENDIF}
-  New(temp);
-  temp^.txt:= msg_txt;
-  SetLength(temp^.options, length(opts));
-  for i:= 0 to High(opts) do temp^.options[i]:= copy(Trim(opts[i]),1,59);
-  //maximum caption is half the line long (i.e. 30 characters)
-  temp^.inputCaption:= copy(Trim(inCaption),1, 30);
-  temp^.inputText:= Trim(inText);
-  temp^.cbRec:= cbRec;
-  temp^.next:= nil;
-  if msg_queue.first=nil then
-  begin
-    msg_queue.first:= temp;
-    msg_queue.last:= temp;
-  end//if
-  else begin
-    msg_queue.last^.next:= temp;
-    msg_queue.last:= temp;
-  end;//else
-  {$IFDEF DEBUG_CODE}
-    WriteLn('Leaving TGui.EnqueueNewMessage');
-  {$ENDIF}
-end;//proc
-
-procedure TGui.ShowMessageSimple(const msg_txt: AnsiString);
-var null_opts: TShortStrArr;
-begin
-  {$IFDEF DEBUG_CODE}
-    WriteLn('Entered TGui.ShowMessageSimple');
-  {$ENDIF}
-  if msg.txt='' then
-  begin
-    msg.txt:= Trim(msg_txt);
-    SetLength(msg.options, 0);
-    msg.inputCaption:= '';
-    msg.inputText:= '';
-    msg.cbRec:= cEmptyCallback;
-  end
-  else begin
-    //enqueue new message
-    SetLength(null_opts, 0);
-    EnqueueNewMessage(msg_txt, null_opts, '', '', cEmptyCallback);
-  end;//else
-  {$IFDEF DEBUG_CODE}
-    WriteLn('Leaving TGui.ShowMessageSimple');
-  {$ENDIF}
-end;//proc
-
-procedure TGui.ShowMessageOptions(const msg_txt: AnsiString; const opts: TShortStrArr; cbRec: TCallbackRec);
-var i: Integer;
-begin
-  {$IFDEF DEBUG_CODE}
-    WriteLn('Entered TGui.ShowMessageOptions');
-  {$ENDIF}
-  if msg.txt='' then
-  begin
-    msg.txt:= Trim(msg_txt)+cSpace60;
-    SetLength(msg.options, length(opts));
-    for i:= 0 to High(opts) do
-      msg.options[i]:= copy(Trim(opts[i]),1,59);
-    msg.inputCaption:= '';
-    msg.inputText:= '';
-    msg.selected_option:= 0;
-    msg.cbRec:= cbRec;
-  end
-  else begin
-    //enqueue new message
-    EnqueueNewMessage(Trim(msg_txt)+cSpace60, opts, '', '', cbRec);
-  end;//else
-  {$IFDEF DEBUG_CODE}
-    WriteLn('Leaving TGui.ShowMessageOptions');
-  {$ENDIF}
-end;//proc
-
-procedure TGui.ShowMessageInput(const msg_txt: AnsiString; const inCaption: ShortString; const inDefault: ShortString; cbRec: TCallbackRec);
-var null_opts: TShortStrArr;
-begin
-  {$IFDEF DEBUG_CODE}
-    WriteLn('Entered TGui.ShowMessageInput');
-  {$ENDIF}
-  if msg.txt='' then
-  begin
-    msg.txt:= Trim(msg_txt)+cSpace60;
-    SetLength(msg.options, 0);
-    //input caption maximum is half the line (i.e. 30 characters)
-    msg.inputCaption:= copy(Trim(inCaption),1, 30);
-    msg.inputText:= Trim(inDefault);
-    msg.selected_option:= 0;
-    msg.cbRec:= cbRec;
-  end//if
-  else begin
-    //enqueue new message
-    SetLength(null_opts, 0);
-    EnqueueNewMessage(Trim(msg_txt)+cSpace60, null_opts, inCaption, inDefault, cbRec);
-  end;//else
-  {$IFDEF DEBUG_CODE}
-    WriteLn('Leaving TGui.ShowMessageInput');
-  {$ENDIF}
-end;//func
-
 procedure TGui.GetNextMessage;
 var i: Integer;
     temp: PQueueElem;
@@ -4501,58 +4334,37 @@ begin
        or ((msg.cbRec._type=CBT_LOAD_GAME) and (dat.GetSaveInfo(msg.selected_option)='('+dat.GetLang.GetOthers(osEmpty)+')'))) then
     begin
       //skip callbacks
+      WriteLn('DEBUG: TGui.GetNextMessage: skipping callbacks');
     end
     else begin
       //handle callbacks
+      WriteLn('DEBUG: TGui.GetNextMessage: handling callback');
+      WriteLn('DEBUG: TGui.GetNextMessage: callback type is ', msg.cbRec._type);
       local_bool:= HandleCallback(msg.cbRec);
+      WriteLn('DEBUG: TGui.GetNextMessage: local bool is ', local_bool);
 
       case msg.cbRec._type of
         CBT_LOAD_GAME: begin
                          if not local_bool then
                          begin
-                           ShowMessageSimple(dat.GetLang.GetSaveLoad(slsLoadError));
+                           msg.AddMessageSimple(dat.GetLang.GetSaveLoad(slsLoadError));
                            Wooden_Mode:= True;
                          end//if
                          else begin
                            Wooden_Mode:= False;
-                           ShowMessageSimple(dat.GetLang.GetSaveLoad(slsLoadSuccess));
+                           msg.AddMessageSimple(dat.GetLang.GetSaveLoad(slsLoadSuccess));
                          end;//else
                        end;// CBT_LOAD_GAME
         CBT_SAVE_GAME: begin
-                         if local_bool then ShowMessageSimple(dat.GetLang.GetSaveLoad(slsSaveSuccess))
-                         else ShowMessageSimple(dat.GetLang.GetSaveLoad(slsSaveError));
+                         if local_bool then msg.AddMessageSimple(dat.GetLang.GetSaveLoad(slsSaveSuccess))
+                         else msg.AddMessageSimple(dat.GetLang.GetSaveLoad(slsSaveError));
                        end;// CBT_SAVE_GAME
         CBT_ABANDON_COLONY: if local_bool then cur_colony:= nil;
       end;//case
     end;//else
   end;//if
   //now the main work
-  if msg_queue.first<>nil then
-  begin
-    msg.txt:= msg_queue.first^.txt;
-    SetLength(msg.options, length(msg_queue.first^.options));
-    for i:=0 to High(msg_queue.first^.options) do
-      msg.options[i]:= msg_queue.first^.options[i];
-    msg.inputCaption:= msg_queue.first^.inputCaption;
-    msg.inputText:= msg_queue.first^.inputText;
-    msg.cbRec:= msg_queue.first^.cbRec;
-    //move first pointer to new first element
-    temp:= msg_queue.first;
-    msg_queue.first:= msg_queue.first^.next;
-    if msg_queue.first=nil then msg_queue.last:= nil;
-    //shorten queue (and thus free former first element)
-    Dispose(temp);
-    msg.selected_option:=0;
-  end//if-then-branch
-  else begin
-    //no new messages in queue; clear msg.
-    msg.txt:= '';
-    SetLength(msg.options, 0);
-    msg.selected_option:=0;
-    msg.inputCaption:= '';
-    msg.inputText:= '';
-    msg.cbRec:= cEmptyCallback;
-  end;//else branch
+  msg.DequeueMessage;
   {$IFDEF DEBUG_CODE}
     WriteLn('Leaving TGui.GetNextMessage');
   {$ENDIF}
@@ -4571,12 +4383,12 @@ begin
               case selected of
                 1: begin //save
                      if InWoodenMode then
-                       ShowMessageSimple(dat.GetLang.GetSaveLoad(slsNoGameLoaded))
+                       msg.AddMessageSimple(dat.GetLang.GetSaveLoad(slsNoGameLoaded))
                      else begin
                        temp_cb._type:= CBT_SAVE_GAME;
                        temp_cb.SaveGame.AData:= dat;
                        str_arr:= dat.GetSaveSlots;
-                       ShowMessageOptions(dat.GetLang.GetSaveLoad(slsSaveChoose),
+                       msg.AddMessageOptions(dat.GetLang.GetSaveLoad(slsSaveChoose),
                                           ToShortStrArr(dat.GetLang.GetOthers(osNothing), str_arr),
                                           temp_cb);
                      end;//else
@@ -4585,14 +4397,14 @@ begin
                      temp_cb._type:= CBT_LOAD_GAME;
                      temp_cb.LoadGame.AData:= dat;
                      str_arr:= dat.GetSaveSlots;
-                     ShowMessageOptions(dat.GetLang.GetSaveLoad(slsLoadChoose),
+                     msg.AddMessageOptions(dat.GetLang.GetSaveLoad(slsLoadChoose),
                                         ToShortStrArr(dat.GetLang.GetOthers(osNothing), str_arr),
                                         temp_cb);
                    end;//load
                 3: begin//quit?
                      temp_cb._type:= CBT_EXIT;
                      temp_cb.cbExit:= @CBF_Exit;
-                     ShowMessageOptions('Vespucci beenden?', ToShortStrArr('Nein', 'Ja'), temp_cb);
+                     msg.AddMessageOptions('Vespucci beenden?', ToShortStrArr('Nein', 'Ja'), temp_cb);
                    end;//3 of mcGame
               end;//case
             end;//mcGame
@@ -4631,17 +4443,17 @@ begin
                            temp_cb.option:= 0;
                            temp_cb.GotoShip.Ship:= focused;
                            temp_cb.GotoShip.AData:= dat;
-                           ShowMessageOptions('Choose a destination location:', str_arr, temp_cb);
+                           msg.AddMessageOptions('Choose a destination location:', str_arr, temp_cb);
                          end;//if
                        end;//if; mcOrders,2, goto
                     3: //clear forest
                        if focused<>nil then
                        begin
                          if not dat.GetMap.tiles[focused.GetPosX, focused.GetPosY].HasForest then
-                           ShowMessageSimple(dat.GetLang.GetPioneer(psIsCleared))
+                           msg.AddMessageSimple(dat.GetLang.GetPioneer(psIsCleared))
                          else if focused.IsShip or (focused.GetType in [utRegular, utDragoon, utScout, utConvoy]) then
-                           ShowMessageSimple(dat.GetLang.GetPioneer(psWrongUnit))
-                         else if focused.GetToolAmount<20 then ShowMessageSimple(dat.GetLang.GetPioneer(psNoTools))
+                           msg.AddMessageSimple(dat.GetLang.GetPioneer(psWrongUnit))
+                         else if focused.GetToolAmount<20 then msg.AddMessageSimple(dat.GetLang.GetPioneer(psNoTools))
                          else begin
                            //do the real work now :)
                            tempTask:= TClearTask.Create(focused, focused.GetPosX, focused.GetPosY, dat.GetMap);
@@ -4652,12 +4464,12 @@ begin
                        if focused<>nil then
                        begin
                          if dat.GetMap.tiles[focused.GetPosX, focused.GetPosY].IsPloughed then
-                           ShowMessageSimple(dat.GetLang.GetPioneer(psIsPloughed))
+                           msg.AddMessageSimple(dat.GetLang.GetPioneer(psIsPloughed))
                          else if dat.GetMap.tiles[focused.GetPosX, focused.GetPosY].HasForest then
-                           ShowMessageSimple(dat.GetLang.GetPioneer(psNeedsClearing))
+                           msg.AddMessageSimple(dat.GetLang.GetPioneer(psNeedsClearing))
                          else if focused.IsShip or (focused.GetType in [utRegular, utDragoon, utScout, utConvoy]) then
-                           ShowMessageSimple(dat.GetLang.GetPioneer(psWrongUnit))
-                         else if focused.GetToolAmount<20 then ShowMessageSimple(dat.GetLang.GetPioneer(psNoTools))
+                           msg.AddMessageSimple(dat.GetLang.GetPioneer(psWrongUnit))
+                         else if focused.GetToolAmount<20 then msg.AddMessageSimple(dat.GetLang.GetPioneer(psNoTools))
                          else begin
                            //do the real work now :)
                            tempTask:= TPloughTask.Create(focused, focused.GetPosX, focused.GetPosY, dat.GetMap);
@@ -4668,10 +4480,10 @@ begin
                        if focused<>nil then
                        begin
                          if dat.GetMap.tiles[focused.GetPosX,focused.GetPosY].HasRoad then
-                           ShowMessageSimple(dat.GetLang.GetPioneer(psHasRoad))
+                           msg.AddMessageSimple(dat.GetLang.GetPioneer(psHasRoad))
                          else if focused.IsShip or (focused.GetType in [utRegular, utDragoon, utScout, utConvoy]) then
-                           ShowMessageSimple(dat.GetLang.GetPioneer(psWrongUnit))
-                         else if focused.GetToolAmount<20 then ShowMessageSimple(dat.GetLang.GetPioneer(psNoTools))
+                           msg.AddMessageSimple(dat.GetLang.GetPioneer(psWrongUnit))
+                         else if focused.GetToolAmount<20 then msg.AddMessageSimple(dat.GetLang.GetPioneer(psNoTools))
                          else begin
                            //do the real work now :)
                            tempTask:= TRoadTask.Create(focused, focused.GetPosX, focused.GetPosY, dat.GetMap);
@@ -5125,7 +4937,7 @@ begin
               +' ('+dat.GetLang.GetFoundingFatherTypeName(GetFoundingFatherType(temp_cb.FoundingSelect.Choices[i]))+')';
         end;//if
       end;//for
-      ShowMessageOptions('Which founding father shall join the continental congress   next?',
+      msg.AddMessageOptions('Which founding father shall join the continental congress   next?',
                           str_arr, temp_cb);
     end;//if has colonies
   end;//if
