@@ -25,8 +25,12 @@ interface
 
 uses
   Map, Data, GL, GLUT, Terrain, Language, Colony, Tribe, Nation, Goods,
-  Units, SysUtils, BitmapReader, Callbacks, Helper, ErrorTexture,
-  FoundingFathers, EuropeanNation, MessageSystem;
+  Units, SysUtils, BitmapReader, Helper, ErrorTexture, FoundingFathers,
+  EuropeanNation, MessageSystem, BasicCallback, ExitCallback, LandfallCallback,
+  SaveLoadCallbacks, JobChangeCallback, EuroPortUnitCallback, EuroPortBuyCallback,
+  EuroPortTrainCallback, BuildColonyCallback, RenameColonyCallback,
+  AbandonColonyCallback, ColonyUnitCallback, GotoShipCallback,
+  ConstructionCallback, FoundingSelectCallback;
 
 type
   TRiverType = (rtOne, rtTwo_Bend, rtTwo_Straight, rtThree, rtFour);
@@ -231,7 +235,7 @@ const
     );
 
   { caption of game window }
-  cWindowCaption = 'Vespucci v0.01.r185';
+  cWindowCaption = 'Vespucci v0.01.r186';
 
   { text colour (greenish) }
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
@@ -263,15 +267,15 @@ const
 
 type
   { pointer type for elements of the message queue }
-  PQueueElem = ^TQueueElem;
+  //PQueueElem = ^TQueueElem;
   { record that hold an element of the message queue }
-  TQueueElem = record
+  {TQueueElem = record
                  txt: AnsiString;
                  options:TShortStrArr;
                  inputCaption, inputText: ShortString;
-                 cbRec: TCallbackRec;
+                 cbRec: TBasicCallback;
                  next: PQueueElem;
-               end;//rec
+               end;//rec}
 
   { ********
     **** TGui class
@@ -1149,7 +1153,7 @@ end;//proc
 
 procedure TGui.KeyFunc(Key: Byte; {x, y: LongInt;} Special: Boolean = False);
 var tempUnit: TUnit;
-    temp_cb: TCallbackRec;
+    temp_cb: TBasicCallback;
     temp_x, temp_y: Byte;
     temp_Map: TMap;
     direc: TDirection;
@@ -1240,8 +1244,8 @@ begin
       if (report_pages<=0) then report:= rtNone;
     end
     else begin
+      temp_cb:= TExitCallback.Create;
       temp_cb._type:= CBT_EXIT;
-      temp_cb.cbExit:= @CBF_Exit;
       msg.AddMessageOptions('Vespucci beenden?', ToShortStrArr('Nein', 'Ja'), temp_cb);
     end;//else
   end;//if KEY_ESCAPE
@@ -1280,12 +1284,14 @@ begin
                else begin
                  if dat.FreeForSettlement(focused.GetPosX, focused.GetPosY) then
                  begin
+                   temp_cb:= TBuildColonyCallback.Create(focused.GetPosX, focused.GetPosY,
+                              focused, dat);
                    temp_cb.inputText:= '';
                    temp_cb._type:= CBT_BUILD_COLONY;
-                   temp_cb.BuildColony.x:= focused.GetPosX;
+                   {temp_cb.BuildColony.x:= focused.GetPosX;
                    temp_cb.BuildColony.y:= focused.GetPosY;
                    temp_cb.BuildColony.founder:= focused;
-                   temp_cb.BuildColony.AData:= dat;
+                   temp_cb.BuildColony.AData:= dat;}
                    msg.AddMessageInput(dat.GetLang.GetBuildColony(0), dat.GetLang.GetBuildColony(1),
                        dat.GetLang.GetColonyNames(focused.GetNation,
                        length(dat.GetColonyList(focused.GetNation))), temp_cb);
@@ -1397,15 +1403,10 @@ begin
           else if (focused.EmbarkedPassengers>0) then
           begin
             //check for landfall
-            temp_cb._type:= CBT_LANDFALL;
-            temp_cb.Landfall.cbLandfall:= @CBF_Landfall;
-            temp_cb.Landfall.Ship:= focused;
+            temp_cb:= TLandfallCallback.Create(focused, temp_x, temp_y, temp_Map);
             tempUnit:= focused.GetFirstEmbarkedPassenger;
-            if tempUnit<>nil then temp_cb.Landfall.UType:= tempUnit.GetType
-            else temp_cb.Landfall.UType:= utGalleon;
-            temp_cb.Landfall.x:= temp_x;
-            temp_cb.Landfall.y:= temp_y;
-            temp_cb.Landfall.AMap:= temp_Map;
+            if tempUnit<>nil then (temp_cb as TLandfallCallback).UType:= tempUnit.GetType
+            else (temp_cb as TLandfallCallback).UType:= utGalleon;
             msg.AddMessageOptions(dat.GetLang.GetLandfall(0), ToShortStrArr(dat.GetLang.GetLandfall(1), dat.GetLang.GetLandfall(2)), temp_cb);
           end //if passengers>0
           else focused.Move(direc, temp_Map, dat);
@@ -1431,7 +1432,7 @@ procedure TGui.MouseFunc(const button, state, x,y: LongInt);
 var pos_x, pos_y: Integer;
     temp_cat: TMenuCategory;
     sx, sy, sx_d, sy_d: ShortInt;
-    temp_cbr: TCallbackRec;
+    temp_cbr: TBasicCallback;
     tempUnit: TUnit;
     tempGood: TGoodType;
     tempUArr: TUnitArr;
@@ -1506,8 +1507,7 @@ begin
       //check for colony bar click (i.e. renaming colony)
       else if ((mouse.y<=16) and (mouse.down_y<=16)) then
       begin
-        temp_cbr._type:= CBT_RENAME_COLONY;
-        temp_cbr.RenameColony.AColony:= cur_colony;
+        temp_cbr:= TRenameColonyCallback.Create(cur_colony);
         with dat.GetLang do
           msg.AddMessageInput(GetColonyString(csRenameQuestion), GetColonyString(csRenameLabel), cur_colony.GetName, temp_cbr);
         Exit;
@@ -1540,10 +1540,7 @@ begin
       //change job of unit
       else if ((sx<>-2) and (sx_d<>-2) and (cur_colony.GetUnitInField(sx, sy)<>nil)) then
       begin
-        temp_cbr._type:= CBT_JOB_CHANGE;
-        temp_cbr.JobChange.x_shift:= sx;
-        temp_cbr.JobChange.y_shift:= sy;
-        temp_cbr.JobChange.AColony:= cur_colony;
+        temp_cbr:= TJobChangeCallback.Create(sx, sy, cur_colony);
         msg.AddMessageOptions('Choose profession for unit '+dat.GetLang.GetUnitName(cur_colony.GetUnitInField(sx, sy).GetType)+':',
                            dat.GetJobList(sx, sy, cur_colony.GetUnitInField(sx, sy).GetType, cur_colony), temp_cbr);
       end;//else if
@@ -1615,9 +1612,7 @@ begin
           if cur_colony.GetInhabitants>1 then cur_colony.SetUnitInField(sx, sy, nil)
           else begin
             //ask whether they want to abandon colony
-            temp_cbr._type:= CBT_ABANDON_COLONY;
-            temp_cbr.AbandonColony.AColony:= cur_colony;
-            temp_cbr.AbandonColony.AData:= dat;
+            temp_cbr:= TAbandonColonyCallback.Create(cur_colony, dat);
             with dat.GetLang do
               msg.AddMessageOptions(GetColonyString(csAbandonQuestion), ToShortStrArr(GetColonyString(csAbandonNo), GetColonyString(csAbandonYes)), temp_cbr);
           end;//else
@@ -1632,8 +1627,7 @@ begin
         tempUArr:= dat.GetAllUnitsInColony(cur_colony);
         if High(tempUArr)>=pos_x then
         begin
-          temp_cbr._type:= CBT_COLONY_UNIT;
-          temp_cbr.ColonyUnit.AUnit:= tempUArr[pos_x];
+          temp_cbr:= TColonyUnitCallback.Create(tempUArr[pos_x]);
           SetLength(str_arr, 3);
           if (tempUArr[pos_x].GetState in [usFortified, usWaitingforShip]) then
             str_arr[0]:= dat.GetLang.GetColonyUnit(cusCancelOrders)
@@ -1720,8 +1714,7 @@ begin
       //check for clicking construction bar
       if (IsMouseInConstructionBar(x,y) and IsMouseInConstructionBar(mouse.down_x,mouse.down_y)) then
       begin
-        temp_cbr._type:= CBT_CONSTRUCTION;
-        temp_cbr.Construction.AColony:= cur_colony;
+        temp_cbr:= TConstructionCallback.Create(cur_colony);
         SetLength(str_arr, 1);
         str_arr[0]:= dat.GetLang.GetOthers(osNothing);
         for pos_x:= Ord(Succ(btNone)) to Ord(High(TBuildingType)) do
@@ -1893,11 +1886,10 @@ begin
                    +' '+IntToStr(europe.GetPrice(gtTool, False)*(100-tempUArr[pos_x].GetToolAmount))+' '+GetOthers(osGold)+')';
             str_arr[4]:= GetOthers(osNoChanges);
           end;//with
+          temp_cbr:= TEuroPortUnitCallback.Create(tempUArr[pos_x], europe);
           temp_cbr.option:=0;
           temp_cbr._type:= CBT_EURO_PORT_UNIT;
           temp_cbr.inputText:= '';
-          temp_cbr.EuroPort.AUnit:= tempUArr[pos_x];
-          temp_cbr.EuroPort.EuroNat:= europe;
           msg.AddMessageOptions(dat.GetLang.GetEuroPort(epsManageHeading), str_arr, temp_cbr);
           Exit;
         end;//if pos_x<>High(array)
@@ -1918,11 +1910,11 @@ begin
                with dat.GetLang do
                  str_arr[2+pos_x-Ord(utCaravel)]:= StretchTo59(GetUnitName(TUnitType(pos_x)),GetOthers(osCost)
                       +' '+IntToStr(cShipPrices[TUnitType(pos_x)])+' '+GetOthers(osGold));
+
+             temp_cbr:= TEuroPortBuyCallback.Create(dat, europe);
              temp_cbr.option:=0;
              temp_cbr._type:= CBT_EURO_PORT_BUY;
              temp_cbr.inputText:= '';
-             temp_cbr.EuroBuy.EuroNat:= europe;
-             temp_cbr.EuroBuy.AData:= dat;
              msg.AddMessageOptions(dat.GetLang.GetEuroPort(epsBuyHeading), str_arr, temp_cbr);
            end;//case ButtonAtMouse=1 ("Buy Ship")
         2: begin
@@ -1936,11 +1928,10 @@ begin
                    str_arr[High(str_arr)]:= StretchTo59(GetUnitName(TUnitType(pos_x))+':',GetOthers(osCost)
                                    +' '+IntToStr(cUnitPrices[TUnitType(pos_x)])+' '+GetOthers(osGold));
                end;//if
+             temp_cbr:= TEuroPortTrainCallback.Create(dat, europe);
              temp_cbr.option:= 0;
              temp_cbr._type:= CBT_EURO_PORT_TRAIN;
              temp_cbr.inputText:= '';
-             temp_cbr.EuroTrain.EuroNat:= europe;
-             temp_cbr.EuroTrain.AData:= dat;
              msg.AddMessageOptions(dat.GetLang.GetEuroPort(epsTrainHeading),
                                str_arr, temp_cbr);
            end;//case ButtonAtMouse=2 ("Train units")
@@ -4340,7 +4331,9 @@ begin
       //handle callbacks
       WriteLn('DEBUG: TGui.GetNextMessage: handling callback');
       WriteLn('DEBUG: TGui.GetNextMessage: callback type is ', msg.cbRec._type);
-      local_bool:= HandleCallback(msg.cbRec);
+      if (msg.cbRec<>nil) then
+        local_bool:= msg.cbRec.Handle
+      else local_bool:= true;
       WriteLn('DEBUG: TGui.GetNextMessage: local bool is ', local_bool);
 
       case msg.cbRec._type of
@@ -4371,7 +4364,7 @@ begin
 end;//proc
 
 procedure TGui.HandleMenuSelection(const categ: TMenuCategory; const selected: Integer);
-var temp_cb: TCallbackRec;
+var temp_cb: TBasicCallback;
     tempUnit: TUnit;
     str_arr: TShortStrArr;
     col_arr: TColonyArr;
@@ -4385,8 +4378,7 @@ begin
                      if InWoodenMode then
                        msg.AddMessageSimple(dat.GetLang.GetSaveLoad(slsNoGameLoaded))
                      else begin
-                       temp_cb._type:= CBT_SAVE_GAME;
-                       temp_cb.SaveGame.AData:= dat;
+                       temp_cb:= TSaveCallback.Create(dat);
                        str_arr:= dat.GetSaveSlots;
                        msg.AddMessageOptions(dat.GetLang.GetSaveLoad(slsSaveChoose),
                                           ToShortStrArr(dat.GetLang.GetOthers(osNothing), str_arr),
@@ -4394,16 +4386,15 @@ begin
                      end;//else
                    end;//save
                 2: begin //load
-                     temp_cb._type:= CBT_LOAD_GAME;
-                     temp_cb.LoadGame.AData:= dat;
+                     temp_cb:= TLoadCallback.Create(dat);
                      str_arr:= dat.GetSaveSlots;
                      msg.AddMessageOptions(dat.GetLang.GetSaveLoad(slsLoadChoose),
                                         ToShortStrArr(dat.GetLang.GetOthers(osNothing), str_arr),
                                         temp_cb);
                    end;//load
                 3: begin//quit?
-                     temp_cb._type:= CBT_EXIT;
-                     temp_cb.cbExit:= @CBF_Exit;
+                     temp_cb:= TExitCallback.Create;
+                     /// TODO: localize via Language class
                      msg.AddMessageOptions('Vespucci beenden?', ToShortStrArr('Nein', 'Ja'), temp_cb);
                    end;//3 of mcGame
               end;//case
@@ -4439,10 +4430,9 @@ begin
                                SetLength(str_arr, length(str_arr)+1);
                                str_arr[High(str_arr)]:= col_arr[i].GetName;
                              end;//if
-                           temp_cb._type:= CBT_GOTO_SHIP;
+                           temp_cb:= TGotoShipCallback.Create(focused, dat);
                            temp_cb.option:= 0;
-                           temp_cb.GotoShip.Ship:= focused;
-                           temp_cb.GotoShip.AData:= dat;
+                           ///TODO: adjust language in message string
                            msg.AddMessageOptions('Choose a destination location:', str_arr, temp_cb);
                          end;//if
                        end;//if; mcOrders,2, goto
@@ -4911,7 +4901,7 @@ begin
 end;//func
 
 procedure TGui.CheckFoundingFatherMessage;
-var temp_cb: TCallbackRec;
+var temp_cb: TFoundingSelectCallback;
     EuroNat: TEuropeanNation;
     str_arr: TShortStrArr;
     i: Integer;
@@ -4922,19 +4912,18 @@ begin
   begin
     if length(dat.GetColonyList(dat.PlayerNation))>0 then
     begin
+      temp_cb:= TFoundingSelectCallback.Create(EuroNat, EuroNat.GetFoundingFatherSelection);
       temp_cb._type:= CBT_SELECT_FOUNDING_FATHER;
       temp_cb.option:= 0;
-      temp_cb.FoundingSelect.ENat:= EuroNat;
-      temp_cb.FoundingSelect.Choices:= EuroNat.GetFoundingFatherSelection;
       //strings und so
       SetLength(str_arr, 0);
       for i:= 0 to 4 do
       begin
-        if temp_cb.FoundingSelect.Choices[i]<>ffNone then
+        if temp_cb.Choices[i]<>ffNone then
         begin
           SetLength(str_arr, length(str_arr)+1);
-          str_arr[High(str_arr)]:= dat.GetLang.GetFoundingFatherName(temp_cb.FoundingSelect.Choices[i])
-              +' ('+dat.GetLang.GetFoundingFatherTypeName(GetFoundingFatherType(temp_cb.FoundingSelect.Choices[i]))+')';
+          str_arr[High(str_arr)]:= dat.GetLang.GetFoundingFatherName(temp_cb.Choices[i])
+              +' ('+dat.GetLang.GetFoundingFatherTypeName(GetFoundingFatherType(temp_cb.Choices[i]))+')';
         end;//if
       end;//for
       msg.AddMessageOptions('Which founding father shall join the continental congress   next?',

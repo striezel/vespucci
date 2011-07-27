@@ -29,115 +29,115 @@ uses
 const
   { integer constant that identifies the type of a callback record }
   CBT_ANY = 0;
-  CBT_EXIT = 1;
-  CBT_LANDFALL = 2;
-  CBT_BUILD_COLONY = 3;
-  CBT_SAVE_GAME = 4;
-  CBT_LOAD_GAME = 5;
-  CBT_JOB_CHANGE = 6;
-  CBT_EURO_PORT_UNIT = 7;
-  CBT_EURO_PORT_BUY = 8;
-  CBT_EURO_PORT_TRAIN = 9;
-  CBT_RENAME_COLONY = 10;
-  CBT_ABANDON_COLONY = 11;
-  CBT_COLONY_UNIT = 12;
-  CBT_GOTO_SHIP = 13;
-  CBT_CONSTRUCTION = 14;
-  CBT_SELECT_FOUNDING_FATHER = 15;
+  //CBT_EXIT = 1;
+  //CBT_LANDFALL = 2;
+  //CBT_BUILD_COLONY = 3;
+  //CBT_SAVE_GAME = 4;
+  //CBT_LOAD_GAME = 5;
+  //CBT_JOB_CHANGE = 6;
+  //CBT_EURO_PORT_UNIT = 7;
+  //CBT_EURO_PORT_BUY = 8;
+  //CBT_EURO_PORT_TRAIN = 9;
+  //CBT_RENAME_COLONY = 10;
+  //CBT_ABANDON_COLONY = 11;
+  //CBT_COLONY_UNIT = 12;
+  //CBT_GOTO_SHIP = 13;
+  //CBT_CONSTRUCTION = 14;
+  //CBT_SELECT_FOUNDING_FATHER = 15;
 
-type
-  TExitCallback = procedure (const option: Integer);
-  TLandfallCallback = function (const option: Integer; AShip: TUnit; const AType: TUnitType; const x,y: Byte; AMap: TMap): Boolean;
+//type
+  //TExitCallback = procedure (const option: Integer);
+  //TLandfallCallback = function (const option: Integer; AShip: TUnit; const AType: TUnitType; const x,y: Byte; AMap: TMap): Boolean;
 
   { records that hold the data which is not common to all types of callbacks }
-  TLandfallData = record
+  {TLandfallData = record
                     cbLandfall: TLandfallCallback;
                     Ship: TUnit;
                     UType: TUnitType;
                     x,y: Byte;
                     AMap: TMap;
-                  end;//rec
-  TBuildColonyData = record
+                  end;//rec}
+  {TBuildColonyData = record
                         x,y: Byte;
                         //ColName: ShortString; //delivered through input text
                         //num_nation: Byte; //given by founder.GetNation
                         founder: TUnit;
                         AData: TData;
-                      end;//rec
-  TSaveGameData = record
+                      end;//rec}
+  {TSaveGameData = record
                     AData: TData;
                   end;//rec
   TLoadGameData = record
                     AData: TData;
-                  end;//rec
-  TJobChangeData = record
+                  end;//rec}
+  {TJobChangeData = record
                      x_shift, y_shift: ShortInt;
                      AColony: TColony;
-                   end;//rec
-  TEuroPortUnitData = record
+                   end;//rec}
+  {TEuroPortUnitData = record
                         AUnit: TUnit;
                         EuroNat: TEuropeanNation;
-                      end;//rec
-  TEuroBuyData = record
+                      end;//rec}
+  {TEuroBuyData = record
                    AData: TData;
                    EuroNat: TEuropeanNation;
-                 end;//rec
-  TEuroTrainData = record
+                 end;//rec}
+  {TEuroTrainData = record
                      AData: TData;
                      EuroNat: TEuropeanNation;
-                   end;//rec
-  TRenameColonyData = record
+                   end;//rec}
+  {TRenameColonyData = record
                         AColony: TColony;
-                      end;//rec
-  TAbandonColonyData = record
+                      end;//rec}
+  {TAbandonColonyData = record
                          AColony: TColony;
                          AData: TData;
-                       end;//rec
-  TColonyUnitData = record
+                       end;//rec}
+  {TColonyUnitData = record
                       AUnit: TUnit;
-                    end;//rec
-  TGotoShipData = record
+                    end;//rec}
+  {TGotoShipData = record
                     Ship: TUnit;
                     AData: TData;
-                  end;//rec
-  TConstructionData = record
+                  end;//rec}
+  {TConstructionData = record
                         AColony: TColony;
-                      end;//rec
-  TFoundingSelectData = record
+                      end;//rec}
+  {TFoundingSelectData = record
                           ENat: TEuropeanNation;
                           Choices: TFoundingFatherArray;
-                        end;
+                        end;}
 
   { record that holds all information that is neccessary to handle a callback }
-  TCallbackRec = record
+  {TCallbackRec = record
                    option: Integer;
                    inputText: ShortString;
                    _type: LongInt;
                    case LongInt of
                      0: (Data: Pointer);
-                     1: (cbExit: TExitCallback);
-                     2: (Landfall: TLandfallData);
-                     3: (BuildColony: TBuildColonyData);
-                     4: (SaveGame: TSaveGameData);
-                     5: (LoadGame: TLoadGameData);
-                     6: (JobChange: TJobChangeData);
-                     7: (EuroPort: TEuroPortUnitData);
-                     8: (EuroBuy: TEuroBuyData);
-                     9: (EuroTrain: TEuroTrainData);
-                     10: (RenameColony: TRenameColonyData);
-                     11: (AbandonColony: TAbandonColonyData);
-                     12: (ColonyUnit: TColonyUnitData);
-                     13: (GotoShip: TGotoShipData);
-                     14: (Construction: TConstructionData);
-                     15: (FoundingSelect: TFoundingSelectData);
-                 end;//rec
+                     //1: (cbExit: TExitCallback);
+                     //2: (Landfall: TLandfallData);
+                     //3: (BuildColony: TBuildColonyData);
+                     //4: (SaveGame: TSaveGameData);
+                     //5: (LoadGame: TLoadGameData);
+                     //6: (JobChange: TJobChangeData);
+                     //7: (EuroPort: TEuroPortUnitData);
+                     //8: (EuroBuy: TEuroBuyData);
+                     //9: (EuroTrain: TEuroTrainData);
+                     //10: (RenameColony: TRenameColonyData);
+                     //11: (AbandonColony: TAbandonColonyData);
+                     //12: (ColonyUnit: TColonyUnitData);
+                     //13: (GotoShip: TGotoShipData);
+                     //14: (Construction: TConstructionData);
+                     //15: (FoundingSelect: TFoundingSelectData);
+                 end;//rec}
 
-const
+//const
   { constant record for an empty callback, i.e. "no callback" }
-  cEmptyCallback: TCallbackRec =(option: 0; inputText: ''; _type: CBT_ANY; Data: nil);
+  //cEmptyCallback: TCallbackRec =(option: 0; inputText: ''; _type: CBT_ANY; Data: nil);
 
-  procedure CBF_Exit(const option: Integer);
-  function CBF_Landfall(const option: Integer; AShip: TUnit; const AType: TUnitType; const x,y: Byte; AMap: TMap): Boolean;
+  //procedure CBF_Exit(const option: Integer);
+  //function CBF_Landfall(const option: Integer; AShip: TUnit; const AType: TUnitType; const x,y: Byte; AMap: TMap): Boolean;
 
   { handles the given callback record, i.e. calls another function to handle it,
     and returns true on succes. What exactly "success" means, depends on the
@@ -147,22 +147,22 @@ const
         cbRec - the TCallbackRec structure which holds the data needed to handle
                 the callback
   }
-  function HandleCallback(const cbRec: TCallbackRec): Boolean;
+  //function HandleCallback(const cbRec: TCallbackRec): Boolean;
 
 implementation
 
-procedure CBF_Exit(const option: Integer);
+{procedure CBF_Exit(const option: Integer);
 begin
   if option=1 then halt;
-end;//func
+end;//func }
 
-function CBF_Landfall(const option: Integer; AShip: TUnit; const AType: TUnitType; const x,y: Byte; AMap: TMap): Boolean;
+{function CBF_Landfall(const option: Integer; AShip: TUnit; const AType: TUnitType; const x,y: Byte; AMap: TMap): Boolean;
 begin
   if ((option=1) and (AShip<>nil)) then Result:= AShip.UnloadUnit(AType, x,y, AMap)
   else Result:= False;
-end;//func
+end;//func }
 
-function CBF_BuildColony(const x,y: Byte; {const num_nation: Byte;} ColName: ShortString; founder: TUnit; AData: TData): Boolean;
+{function CBF_BuildColony(const x,y: Byte; ColName: ShortString; founder: TUnit; AData: TData): Boolean;
 var i,j: Integer;
 begin
   Result:= False;
@@ -201,9 +201,9 @@ begin
       Result:= True;
     end;//if
   end;//if
-end;//func
+end;//func }
 
-function CBF_SaveGame(const option: Integer; AData: TData): Boolean;
+{function CBF_SaveGame(const option: Integer; AData: TData): Boolean;
 var err_str: string;
 begin
   err_str:= 'not saved.';
@@ -217,9 +217,9 @@ begin
   end//if
   else Result:= False;
   WriteLn('SaveGame errors: '+err_str);
-end;//func
+end;//func}
 
-function CBF_LoadGame(const option: Integer; AData: TData): Boolean;
+{function CBF_LoadGame(const option: Integer; AData: TData): Boolean;
 var err_str: string;
 begin
   err_str:= 'not loaded.';
@@ -229,9 +229,9 @@ begin
   end//if
   else Result:= False;
   WriteLn('LoadGame errors: '+err_str);
-end;//if
+end;//if}
 
-function CBF_JobChange(const option: Integer; const cbRec: TCallbackRec): Boolean;
+{function CBF_JobChange(const option: Integer; const cbRec: TCallbackRec): Boolean;
 var new_good: TGoodType;
 begin
   Result:= False;
@@ -253,9 +253,9 @@ begin
   cbRec.JobChange.AColony.SetUnitInField(cbRec.JobChange.x_shift, cbRec.JobChange.y_shift,
         cbRec.JobChange.AColony.GetUnitInField(cbRec.JobChange.x_shift, cbRec.JobChange.y_shift), new_good);
   Result:= True;
-end;//func
+end;//func}
 
-function CBF_EuroPortUnit(const option: Integer; AUnit: TUnit; EuroNat: TEuropeanNation): Boolean;
+{function CBF_EuroPortUnit(const option: Integer; AUnit: TUnit; EuroNat: TEuropeanNation): Boolean;
 begin
   Result:= False;
   if ((AUnit=nil) or (EuroNat=nil)) then Exit;
@@ -316,9 +316,9 @@ begin
     4: ;//no changes at all
   end;//case
   Result:= True;
-end;//func
+end;//func}
 
-function CBF_EuroPortBuy(const option: Integer; AData: TData; EuroNat: TEuropeanNation): Boolean;
+{function CBF_EuroPortBuy(const option: Integer; AData: TData; EuroNat: TEuropeanNation): Boolean;
 var buy_unit: TUnitType;
     new_unit: TUnit;
     start_x, start_y: Byte;
@@ -358,16 +358,16 @@ begin
         //set start position to center at the eastern end of map
         start_x:= cMap_X-1;
         start_y:= cMap_Y div 2;
-      end;//else  
+      end;//else
     end;//else
     new_unit:= AData.NewUnit(buy_unit, EuroNat.GetCount, start_x, start_y);
     new_unit.SetLocation(ulEurope);
     EuroNat.DecreaseGold(cShipPrices[buy_unit]);
     Result:= True;
   end;//if
-end;//func
+end;//func}
 
-function CBF_EuroPortTrain(const option: Integer; AData: TData; EuroNat: TEuropeanNation): Boolean;
+{function CBF_EuroPortTrain(const option: Integer; AData: TData; EuroNat: TEuropeanNation): Boolean;
 var train_unit: TUnitType;
     new_unit: TUnit;
 begin
@@ -405,9 +405,9 @@ begin
     EuroNat.DecreaseGold(cUnitPrices[train_unit]);
     Result:= True;
   end;//if
-end;//func
+end;//func}
 
-function CBF_RenameColony(const ACol: TColony; const NewName: ShortString): Boolean;
+{function CBF_RenameColony(const ACol: TColony; const NewName: ShortString): Boolean;
 begin
   if (ACol=nil) then
   begin
@@ -416,9 +416,9 @@ begin
   end;//if
   ACol.SetName(NewName);
   Result:= True;
-end;//func
+end;//func }
 
-function CBF_AbandonColony(const option: Integer; ACol: TColony; AData: TData): Boolean;
+{function CBF_AbandonColony(const option: Integer; ACol: TColony; AData: TData): Boolean;
 begin
   Result:= False;
   if ((ACol=nil) or (AData=nil)) then Exit;
@@ -426,9 +426,9 @@ begin
   begin
     Result:= AData.DeleteColony(ACol.GetPosX, ACol.GetPosY);
   end;//if
-end;//func
+end;//func}
 
-function CBF_ColonyUnit(const option: Integer; AUnit: TUnit): Boolean;
+{function CBF_ColonyUnit(const option: Integer; AUnit: TUnit): Boolean;
 begin
   if AUnit=nil then
   begin
@@ -448,9 +448,9 @@ begin
   //2: keine Veränderung/ no changes
   else Result:= False;
   end;//case
-end;//func
+end;//func}
 
-function CBF_GotoShip(const option: Integer; Ship: TUnit; dat: TData): Boolean;
+{function CBF_GotoShip(const option: Integer; Ship: TUnit; dat: TData): Boolean;
 var col_arr: TColonyArr;
     goTask: TGoToTask;
 begin
@@ -465,9 +465,9 @@ begin
     Ship.SetTask(goTask, True);
     Result:= True;
   end;//else
-end;//func
+end;//func}
 
-function CBF_Construction(const option: Integer; ACol: TColony): Boolean;
+{function CBF_Construction(const option: Integer; ACol: TColony): Boolean;
 var bt_arr: array of TBuildingType;
     i: Integer;
 begin
@@ -492,9 +492,9 @@ begin
     ACol.SetCurrentConstruction(bt_arr[option-1]);
     Result:= True;
   end;//else-branch
-end;//func
+end;//func}
 
-function CBF_FoundingSelect(const option: Integer; ENat: TEuropeanNation; const Choices: TFoundingFatherArray): Boolean;
+{function CBF_FoundingSelect(const option: Integer; ENat: TEuropeanNation; const Choices: TFoundingFatherArray): Boolean;
 begin
   Result:= False;
   if ((ENat=nil) or (option<0) or (option>High(Choices))) then Exit;
@@ -504,37 +504,37 @@ begin
   if Choices[option]=ffNone then Exit;
   ENat.SetNextFoundingFather(Choices[option]);
   Result:= True;
-end;//func
+end;//func}
 
-function HandleCallback(const cbRec: TCallbackRec): Boolean;
+{function HandleCallback(const cbRec: TCallbackRec): Boolean;
 begin
   case cbRec._type of
     CBT_ANY: Result:=True; //do nothing here
-    CBT_EXIT: begin
-                cbRec.cbExit(cbRec.option);
-                Result:= True;
+   // CBT_EXIT: begin
+   //             cbRec.cbExit(cbRec.option);
+   //             Result:= True;
               end;
-    CBT_LANDFALL: Result:= cbRec.Landfall.cbLandfall(cbRec.option, cbRec.Landfall.Ship,
-                    cbRec.Landfall.UType, cbRec.Landfall.x, cbRec.Landfall.y,
-                    cbRec.Landfall.AMap);
-    CBT_BUILD_COLONY: Result:= CBF_BuildColony(cbRec.BuildColony.x, cbRec.BuildColony.y,
-                        cbRec.inputText, cbRec.BuildColony.founder, cbRec.BuildColony.AData);
-    CBT_SAVE_GAME: Result:= CBF_SaveGame(cbRec.option, cbRec.SaveGame.AData);
-    CBT_LOAD_GAME: Result:= CBF_LoadGame(cbRec.option, cbRec.LoadGame.AData);
-    CBT_JOB_CHANGE: Result:= CBF_JobChange(cbRec.option, cbRec);
-    CBT_EURO_PORT_UNIT: Result:= CBF_EuroPortUnit(cbRec.option, cbRec.EuroPort.AUnit, cbRec.EuroPort.EuroNat);
-    CBT_EURO_PORT_BUY: Result:= CBF_EuroPortBuy(cbRec.option, cbRec.EuroBuy.AData, cbRec.EuroBuy.EuroNat);
-    CBT_EURO_PORT_TRAIN: Result:= CBF_EuroPortTrain(cbRec.option, cbRec.EuroTrain.AData, cbRec.EuroTrain.EuroNat);
-    CBT_RENAME_COLONY: Result:= CBF_RenameColony(cbRec.RenameColony.AColony, cbRec.inputText);
-    CBT_ABANDON_COLONY: Result:= CBF_AbandonColony(cbRec.option, cbRec.AbandonColony.AColony, cbRec.AbandonColony.AData);
-    CBT_COLONY_UNIT: Result:= CBF_ColonyUnit(cbRec.option, cbRec.ColonyUnit.AUnit);
-    CBT_GOTO_SHIP: Result:= CBF_GoToShip(cbRec.option, cbRec.GotoShip.Ship, cbRec.GotoShip.AData);
-    CBT_CONSTRUCTION: Result:= CBF_Construction(cbRec.option, cbRec.Construction.AColony);
-    CBT_SELECT_FOUNDING_FATHER: Result:= CBF_FoundingSelect(cbRec.option,
-                                         cbRec.FoundingSelect.ENat, cbRec.FoundingSelect.Choices);
+   // CBT_LANDFALL: Result:= cbRec.Landfall.cbLandfall(cbRec.option, cbRec.Landfall.Ship,
+   //                 cbRec.Landfall.UType, cbRec.Landfall.x, cbRec.Landfall.y,
+   //                 cbRec.Landfall.AMap);
+   // CBT_BUILD_COLONY: Result:= CBF_BuildColony(cbRec.BuildColony.x, cbRec.BuildColony.y,
+   //                     cbRec.inputText, cbRec.BuildColony.founder, cbRec.BuildColony.AData);
+    //CBT_SAVE_GAME: Result:= CBF_SaveGame(cbRec.option, cbRec.SaveGame.AData);
+    //CBT_LOAD_GAME: Result:= CBF_LoadGame(cbRec.option, cbRec.LoadGame.AData);
+    //CBT_JOB_CHANGE: Result:= CBF_JobChange(cbRec.option, cbRec);
+    //CBT_EURO_PORT_UNIT: Result:= CBF_EuroPortUnit(cbRec.option, cbRec.EuroPort.AUnit, cbRec.EuroPort.EuroNat);
+    //CBT_EURO_PORT_BUY: Result:= CBF_EuroPortBuy(cbRec.option, cbRec.EuroBuy.AData, cbRec.EuroBuy.EuroNat);
+    //CBT_EURO_PORT_TRAIN: Result:= CBF_EuroPortTrain(cbRec.option, cbRec.EuroTrain.AData, cbRec.EuroTrain.EuroNat);
+    //CBT_RENAME_COLONY: Result:= CBF_RenameColony(cbRec.RenameColony.AColony, cbRec.inputText);
+    //CBT_ABANDON_COLONY: Result:= CBF_AbandonColony(cbRec.option, cbRec.AbandonColony.AColony, cbRec.AbandonColony.AData);
+    //CBT_COLONY_UNIT: Result:= CBF_ColonyUnit(cbRec.option, cbRec.ColonyUnit.AUnit);
+    //CBT_GOTO_SHIP: Result:= CBF_GoToShip(cbRec.option, cbRec.GotoShip.Ship, cbRec.GotoShip.AData);
+    //CBT_CONSTRUCTION: Result:= CBF_Construction(cbRec.option, cbRec.Construction.AColony);
+    //CBT_SELECT_FOUNDING_FATHER: Result:= CBF_FoundingSelect(cbRec.option,
+    //                                     cbRec.FoundingSelect.ENat, cbRec.FoundingSelect.Choices);
   else
     Result:= False; //unknown callback type or type not supported/ implemented
   end;//case
-end;//proc
+end;//proc}
 
 end.

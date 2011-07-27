@@ -24,7 +24,7 @@ unit MessageSystem;
 interface
 
 uses
-  Callbacks, Helper;
+  BasicCallback, Helper;
 
 type
   { pointer type for elements of the message queue }
@@ -34,7 +34,7 @@ type
                  txt: AnsiString;
                  options: TShortStrArr;
                  inputCaption, inputText: ShortString;
-                 cbRec: TCallbackRec;
+                 cbRec: TBasicCallback;
                  next: PQueueElem;
                end;//rec
 
@@ -76,7 +76,7 @@ type
             If opts contains no options, but inCaption is not an empty string,
             the player will get a one-line field to enter a text.
       }
-      procedure EnqueueNewMessage(const msg_txt: AnsiString; const opts: TShortStrArr; const inCaption, inText: ShortString; the_cbRec: TCallbackRec);
+      procedure EnqueueNewMessage(const msg_txt: AnsiString; const opts: TShortStrArr; const inCaption, inText: ShortString; the_cb: TBasicCallback);
     public
       //text messages
       //msg: record
@@ -84,7 +84,7 @@ type
              options: TShortStrArr;
              selected_option: Integer;
              inputCaption, inputText: ShortString;
-             cbRec: TCallbackRec;
+             cbRec: TBasicCallback;
       //     end;//rec
 
       { constructor }
@@ -110,7 +110,7 @@ type
             the_cbRec - callback record for callback after player has chosen an
                         option
       }
-      procedure AddMessageOptions(const msg_txt: AnsiString; const opts: TShortStrArr; the_cbRec: TCallbackRec);
+      procedure AddMessageOptions(const msg_txt: AnsiString; const opts: TShortStrArr; the_cb: TBasicCallback);
 
       { adds a new message with the given text and an input field (or better:
         puts the message into the message queue)
@@ -122,7 +122,7 @@ type
             the_cbRec - callback record for callback after player has made his
                         input
       }
-      procedure AddMessageInput(const msg_txt: AnsiString; const inCaption: ShortString; const inDefault: ShortString; the_cbRec: TCallbackRec);
+      procedure AddMessageInput(const msg_txt: AnsiString; const inCaption: ShortString; const inDefault: ShortString; the_cb: TBasicCallback);
 
       { deletes the current message and replaces it with the next message in
         the message queue
@@ -144,7 +144,7 @@ begin
   selected_option:= 0;
   inputCaption:= '';
   inputText:= '';
-  cbRec:= cEmptyCallback;
+  cbRec:= nil;
   //queue
   msg_queue.first:= nil;
   msg_queue.last:= nil;
@@ -171,19 +171,19 @@ begin
     SetLength(msg.options, 0);
     inputCaption:= '';
     inputText:= '';
-    cbRec:= cEmptyCallback;
+    cbRec:= nil;
   end
   else begin
     //enqueue new message
     SetLength(null_opts, 0);
-    EnqueueNewMessage(msg_txt, null_opts, '', '', cEmptyCallback);
+    EnqueueNewMessage(msg_txt, null_opts, '', '', nil);
   end;//else
   {$IFDEF DEBUG_CODE}
     WriteLn('Leaving TMessageSystem.AddMessageSimple');
   {$ENDIF}
 end;//proc
 
-procedure TMessageSystem.AddMessageOptions(const msg_txt: AnsiString; const opts: TShortStrArr; the_cbRec: TCallbackRec);
+procedure TMessageSystem.AddMessageOptions(const msg_txt: AnsiString; const opts: TShortStrArr; the_cb: TBasicCallback);
 var i: Integer;
 begin
   {$IFDEF DEBUG_CODE}
@@ -198,18 +198,18 @@ begin
     inputCaption:= '';
     inputText:= '';
     selected_option:= 0;
-    cbRec:= the_cbRec;
+    cbRec:= the_cb;
   end
   else begin
     //enqueue new message
-    EnqueueNewMessage(Trim(msg_txt)+cSpace60, opts, '', '', the_cbRec);
+    EnqueueNewMessage(Trim(msg_txt)+cSpace60, opts, '', '', the_cb);
   end;//else
   {$IFDEF DEBUG_CODE}
     WriteLn('Leaving TMessageSystem.AddMessageOptions');
   {$ENDIF}
 end;//proc
 
-procedure TMessageSystem.AddMessageInput(const msg_txt: AnsiString; const inCaption: ShortString; const inDefault: ShortString; the_cbRec: TCallbackRec);
+procedure TMessageSystem.AddMessageInput(const msg_txt: AnsiString; const inCaption: ShortString; const inDefault: ShortString; the_cb: TBasicCallback);
 var null_opts: TShortStrArr;
 begin
   {$IFDEF DEBUG_CODE}
@@ -223,19 +223,19 @@ begin
     inputCaption:= copy(Trim(inCaption),1, 30);
     inputText:= Trim(inDefault);
     selected_option:= 0;
-    cbRec:= the_cbRec;
+    cbRec:= the_cb;
   end//if
   else begin
     //enqueue new message
     SetLength(null_opts, 0);
-    EnqueueNewMessage(Trim(msg_txt)+cSpace60, null_opts, inCaption, inDefault, the_cbRec);
+    EnqueueNewMessage(Trim(msg_txt)+cSpace60, null_opts, inCaption, inDefault, the_cb);
   end;//else
   {$IFDEF DEBUG_CODE}
     WriteLn('Leaving TMessageSystem.AddMessageInput');
   {$ENDIF}
 end;//proc
 
-procedure TMessageSystem.EnqueueNewMessage(const msg_txt: AnsiString; const opts: TShortStrArr; const inCaption, inText: ShortString; the_cbRec: TCallbackRec);
+procedure TMessageSystem.EnqueueNewMessage(const msg_txt: AnsiString; const opts: TShortStrArr; const inCaption, inText: ShortString; the_cb: TBasicCallback);
 var temp: PQueueElem;
     i: Integer;
 begin
@@ -249,7 +249,7 @@ begin
   //maximum caption is half the line long (i.e. 30 characters)
   temp^.inputCaption:= copy(Trim(inCaption),1, 30);
   temp^.inputText:= Trim(inText);
-  temp^.cbRec:= the_cbRec;
+  temp^.cbRec:= the_cb;
   temp^.next:= nil;
   if msg_queue.first=nil then
   begin
@@ -293,7 +293,7 @@ begin
     selected_option:=0;
     inputCaption:= '';
     inputText:= '';
-    cbRec:= cEmptyCallback;
+    cbRec:= nil;
   end;//else branch
 end;//proc
 
