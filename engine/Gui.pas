@@ -28,8 +28,8 @@ uses
   Units, SysUtils, BitmapReader, Helper, ErrorTexture, FoundingFathers,
   EuropeanNation, MessageSystem, BasicCallback, ExitCallback, LandfallCallback,
   SaveLoadCallbacks, JobChangeCallback, EuroPortCallbacks, BuildColonyCallback,
-  RenameColonyCallback, AbandonColonyCallback, ColonyUnitCallback,
-  GotoShipCallback, ConstructionCallback, FoundingSelectCallback;
+  AbandonColonyCallback, ColonyCallbacks, GotoShipCallback,
+  FoundingSelectCallback;
 
 type
   TRiverType = (rtOne, rtTwo_Bend, rtTwo_Straight, rtThree, rtFour);
@@ -234,7 +234,7 @@ const
     );
 
   { caption of game window }
-  cWindowCaption = 'Vespucci v0.01.r187';
+  cWindowCaption = 'Vespucci v0.01.r188';
 
   { text colour (greenish) }
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);

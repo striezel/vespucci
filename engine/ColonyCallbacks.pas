@@ -1,7 +1,7 @@
 { ***************************************************************************
 
     This file is part of Vespucci.
-    Copyright (C) 2009, 2011  Dirk Stolle
+    Copyright (C) 2008, 2009, 2011  Dirk Stolle
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -19,18 +19,56 @@
   ***************************************************************************
 }
 
-unit ConstructionCallback;
+unit ColonyCallbacks;
 
 interface
 
 uses
-  BasicCallback, Colony;
+  BasicCallback, Colony, Units;
 
 const
   { integer constant that identifies the type of a callback record }
+  CBT_RENAME_COLONY = 10;
+  CBT_COLONY_UNIT = 12;
   CBT_CONSTRUCTION = 14;
 
 type
+
+  TRenameColonyCallback = class(TBasicCallback)
+    public
+      AColony: TColony;
+
+      { function to handle the callback, i.e. perform all necessary steps after
+        the player has made his/her choice. Should return true on success, false
+        on failure
+
+        remarks:
+            Derived classes have to implement their own version of that function.
+      }
+      function Handle: Boolean; override;
+
+      constructor Create(const col: TColony);
+  end;//class
+  PRenameColonyCallback = ^TRenameColonyCallback;
+
+
+  TColonyUnitCallback = class(TBasicCallback)
+    public
+      AUnit: TUnit;
+
+      { function to handle the callback, i.e. perform all necessary steps after
+        the player has made his/her choice. Should return true on success, false
+        on failure
+
+        remarks:
+            Derived classes have to implement their own version of that function.
+      }
+      function Handle: Boolean; override;
+
+      constructor Create(const u: TUnit);
+  end;//class
+  PColonyUnitCallback = ^TColonyUnitCallback;
+
 
   TConstructionCallback = class(TBasicCallback)
     public
@@ -50,6 +88,57 @@ type
   PConstructionCallback = ^TConstructionCallback;
 
 implementation
+
+{ **** TRenameColonyCallback **** }
+
+function TRenameColonyCallback.Handle: Boolean;
+begin
+  if (AColony=nil) then
+  begin
+    Result:= False;
+    Exit;
+  end;//if
+  AColony.SetName(inputText);
+  Result:= True;
+end;//func
+
+constructor TRenameColonyCallback.Create(const col: TColony);
+begin
+  _type:= CBT_RENAME_COLONY;
+  AColony:= col;
+end;//construc
+
+{ **** TColonyUnitCallback **** }
+
+function TColonyUnitCallback.Handle: Boolean;
+begin
+  if AUnit=nil then
+  begin
+    Result:= False;
+    Exit;
+  end;//if
+  Result:= True;
+  case option of
+    0: case AUnit.GetState of
+         usFortified, usWaitingForShip: AUnit.SetState(usNormal);
+       else AUnit.SetState(usWaitingForShip);
+       end;//case
+    1: case AUnit.GetState of
+         usFortified: AUnit.SetState(usWaitingForShip);
+         usWaitingForShip, usNormal: AUnit.SetState(usFortified);
+       end;//case
+  //2: keine Veränderung/ no changes
+  else Result:= False;
+  end;//case
+end;//func
+
+constructor TColonyUnitCallback.Create(const u: TUnit);
+begin
+  _type:= CBT_COLONY_UNIT;
+  AUnit:= u;
+end;//construc
+
+{ **** TConstructionCallback **** }
 
 function TConstructionCallback.Handle: Boolean;
 var bt_arr: array of TBuildingType;
