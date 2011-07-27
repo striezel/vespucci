@@ -27,10 +27,9 @@ uses
   Map, Data, GL, GLUT, Terrain, Language, Colony, Tribe, Nation, Goods,
   Units, SysUtils, BitmapReader, Helper, ErrorTexture, FoundingFathers,
   EuropeanNation, MessageSystem, BasicCallback, ExitCallback, LandfallCallback,
-  SaveLoadCallbacks, JobChangeCallback, EuroPortUnitCallback, EuroPortBuyCallback,
-  EuroPortTrainCallback, BuildColonyCallback, RenameColonyCallback,
-  AbandonColonyCallback, ColonyUnitCallback, GotoShipCallback,
-  ConstructionCallback, FoundingSelectCallback;
+  SaveLoadCallbacks, JobChangeCallback, EuroPortCallbacks, BuildColonyCallback,
+  RenameColonyCallback, AbandonColonyCallback, ColonyUnitCallback,
+  GotoShipCallback, ConstructionCallback, FoundingSelectCallback;
 
 type
   TRiverType = (rtOne, rtTwo_Bend, rtTwo_Straight, rtThree, rtFour);
@@ -235,7 +234,7 @@ const
     );
 
   { caption of game window }
-  cWindowCaption = 'Vespucci v0.01.r186';
+  cWindowCaption = 'Vespucci v0.01.r187';
 
   { text colour (greenish) }
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
