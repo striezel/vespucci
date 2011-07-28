@@ -885,14 +885,6 @@ begin
   ColonyBuildingPage:= False;
   europe:= nil;
   focused:= nil;
-  //message
-  {msg.txt:= '';
-  SetLength(msg.options, 0);
-  msg.selected_option:=0;
-  msg.inputCaption:= '';
-  msg.inputText:= '';
-  msg_queue.first:= nil;
-  msg_queue.last:= nil; }
 
   //center on caravel
   Ship:= dat.GetFirstLazyUnit(dat.PlayerNation);
@@ -908,6 +900,7 @@ begin
   for i:= Ord(Low(TTerrainType)) to Ord(High(TTerrainType)) do
   begin
     m_TerrainTexNames[TTerrainType(i)]:= 0;
+    err_str:= '(undefined)';
     if ReadBitmapToArr32RGB(dat.GetPathBase+terrain_img_path+cTerrainTexNames[TTerrainType(i)], tempTex, err_str) then
     begin
       //change order of color components from blue, green, red (as in file) to
@@ -1963,7 +1956,6 @@ begin
     if InMenu then
     begin
       GetMenuSelectionAtMouse(temp_cat, pos_x);
-      //WriteLn('Debug: GUI got selection: cat.: ', Ord(temp_cat), '; sel.: ', pos_x);//for debug
       if (pos_x=0) and (temp_cat=menu_cat) then menu_cat:= mcNone
       else if (pos_x=0) then
       begin
@@ -1988,7 +1980,6 @@ begin
     else begin
       //in america view
       GetSquareAtMouse(pos_x, pos_y);
-      //WriteLn('GUI got square: x: ', pos_x, '; y: ', pos_y);//for debug
     end;//else
     if (pos_x<>-1) then
     begin
@@ -3777,6 +3768,7 @@ begin
      glVertex2f(2.0-2*PixelWidth, y_Fields-10.0+2*PixelWidth);
      glColor3ubv(@cMenuTextColour[0]);
      glVertex2f(2.0, y_Fields-11.0);
+
      glVertex2f(2.0+16.0/5000.0*score.Total, y_Fields-11.0);
      glVertex2f(2.0+16.0/5000.0*score.Total, y_Fields-10.0);
      glVertex2f(2.0, y_Fields-10.0);
@@ -4306,9 +4298,7 @@ begin
 end;//func
 
 procedure TGui.GetNextMessage;
-var i: Integer;
-    temp: PQueueElem;
-    local_bool: Boolean;
+var local_bool: Boolean;
 begin
   {$IFDEF DEBUG_CODE}
     WriteLn('Entered TGui.GetNextMessage');
