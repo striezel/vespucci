@@ -234,7 +234,7 @@ const
     );
 
   { caption of game window }
-  cWindowCaption = 'Vespucci v0.01.r188';
+  cWindowCaption = 'Vespucci v0.01.r190';
 
   { text colour (greenish) }
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
@@ -4363,7 +4363,10 @@ begin
   case categ of
     mcGame: begin
               case selected of
-                1: begin //save
+                1: begin //new game
+                     //not implemented yet
+                   end;//new game
+                2: begin //save
                      if InWoodenMode then
                        msg.AddMessageSimple(dat.GetLang.GetSaveLoad(slsNoGameLoaded))
                      else begin
@@ -4374,14 +4377,14 @@ begin
                                           temp_cb);
                      end;//else
                    end;//save
-                2: begin //load
+                3: begin //load
                      temp_cb:= TLoadCallback.Create(dat);
                      str_arr:= dat.GetSaveSlots;
                      msg.AddMessageOptions(dat.GetLang.GetSaveLoad(slsLoadChoose),
                                         ToShortStrArr(dat.GetLang.GetOthers(osNothing), str_arr),
                                         temp_cb);
                    end;//load
-                3: begin//quit?
+                4: begin//quit?
                      temp_cb:= TExitCallback.Create;
                      /// TODO: localize via Language class
                      msg.AddMessageOptions('Vespucci beenden?', ToShortStrArr('Nein', 'Ja'), temp_cb);

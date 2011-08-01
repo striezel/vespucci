@@ -1,7 +1,7 @@
 { ***************************************************************************
 
     This file is part of Vespucci.
-    Copyright (C) 2008, 2009, 2010  Thoronador
+    Copyright (C) 2008, 2009, 2010, 2011  Thoronador
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -424,9 +424,10 @@ begin
       MenuOptions[TMenuCategory(i), j]:= '';
   //present options
   // -- Spiel
-  MenuOptions[mcGame, 1]:= 'Speichern';
-  MenuOptions[mcGame, 2]:= 'Laden';
-  MenuOptions[mcGame, 3]:= 'Spiel beenden';
+  MenuOptions[mcGame, 1]:= 'Neues Spiel';
+  MenuOptions[mcGame, 2]:= 'Speichern';
+  MenuOptions[mcGame, 3]:= 'Laden';
+  MenuOptions[mcGame, 4]:= 'Spiel beenden';
   // -- Ansicht
   MenuOptions[mcView, 1]:= 'Europa-Status';
   MenuOptions[mcView, 2]:= 'Ansicht zentrieren';
