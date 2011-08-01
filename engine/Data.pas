@@ -163,6 +163,9 @@ type
 
               { deletes all units }
               procedure DeInitUnits;
+
+              { deletes all nations }
+              procedure DeInitNations;
             public
               { constructor
 
@@ -193,6 +196,18 @@ type
 
               { advances to next year and/or advances the season }
               procedure AdvanceYear;
+
+              { resets data and starts a new game
+
+                parameters:
+                    InAmerica        - set this to true, if the new game shall
+                                       use the predefined America map
+                    NumNation_Player - the player's nation
+                    Landmass         - landmass parameter passed to the map
+                                       generation function (only used, if InAmerica=false)
+              }
+              procedure StartNewGame(const InAmerica: Boolean; const NumNation_Player: LongInt; const Landmass: Single);
+              
               // ---- unit-related functions ----
               { creates a new unit and returns the created unit
 
@@ -595,7 +610,11 @@ procedure TData.DeInitColonies;
 var i: Integer;
 begin
   for i:= Colony_max downto 0 do
-    if m_Colonies[i]<>nil then m_Colonies[i].Destroy;
+    if m_Colonies[i]<>nil then
+    begin
+      m_Colonies[i].Destroy;
+      m_Colonies[i]:= nil;
+    end;  
   SetLength(m_Colonies, 0);
   Colony_max:= -1;
 end;//proc
@@ -604,7 +623,11 @@ procedure TData.DeInitTribes;
 var i: Integer;
 begin
   for i:= Tribe_max downto 0 do
-    if m_Tribes[i]<>nil then m_Tribes[i].Destroy;
+    if m_Tribes[i]<>nil then
+    begin
+      m_Tribes[i].Destroy;
+      m_Tribes[i]:= nil;
+    end;  
   SetLength(m_Tribes, 0);
   Tribe_max:= -1;
 end;//proc
@@ -613,9 +636,25 @@ procedure TData.DeInitUnits;
 var i: Integer;
 begin
   for i:=Unit_max downto 0 do
-    if m_Units[i]<>nil then m_Units[i].Destroy;
+    if m_Units[i]<>nil then
+    begin
+      m_Units[i].Destroy;
+      m_Units[i]:= nil;
+    end;  
   SetLength(m_Units, 0);
   Unit_max:= -1;
+end;//proc
+
+procedure TData.DeInitNations;
+var i: Integer;
+begin
+  for i:=High(Nations) downto Low(Nations) do
+    if Nations[i]<>nil then
+    begin
+      Nations[i].Destroy;
+      Nations[i]:= nil;
+    end;
+  //array Nations has fixed size, no adjustment needed
 end;//proc
 
 function TData.GetYear: LongInt;
@@ -655,6 +694,71 @@ begin
   else
     Result:= Nations[count];
 end;//func
+
+procedure TData.StartNewGame(const InAmerica: Boolean; const NumNation_Player: LongInt; const Landmass: Single);
+var i, j: Integer;
+    bits: Byte;
+begin
+  //not completely implemented yet
+  if NumNation_Player in [cMinEuropean..cMaxEuropean] then
+    player_nation:= NumNation_Player
+  else player_nation:= cNationEngland;
+  //reset year and season
+  Year:= 1492;
+  Autumn:= False;
+  //nations
+  DeInitNations;
+  InitializeNations;
+  //units
+  DeInitUnits;
+  //colonies
+  DeInitColonies;
+  //tribes
+  DeInitTribes;
+  //map
+  if m_Map<>nil then
+  begin
+    m_Map.Destroy;
+    m_Map:= nil;
+  end;//if
+  //...map and initial units
+  Randomize;
+  bits:= 0;
+  if InAmerica then
+  begin
+    InitializeMap;//creates a new map and tries to load the America map
+    InitTribes_America;
+    for j:= cMinEuropean to cMaxEuropean do
+    begin
+      repeat
+        i:= Random(4);
+      until ((1 shl i) and bits)=0;
+      (GetNation(j) as TEuropeanNation).SetSpawnpoint(cSpawnpointsAmerica[i].x, cSpawnpointsAmerica[i].y);
+      SpawnEuropeanNation(j, cSpawnpointsAmerica[i].x, cSpawnpointsAmerica[i].y);
+      bits:= bits or (1 shl i);
+    end;//for
+    WriteLn('First ships created.');    
+  end
+  else begin
+    //generate map
+    m_Map:= TMap.Create;
+    m_Map.Generate(Landmass, @Map.h2);
+    //set initial units
+    for j:= cMinEuropean to cMaxEuropean do
+    begin
+      repeat
+        i:= Random(4);
+      until ((1 shl i) and bits)=0;
+      //Only the Y-coordinates of the America map's spawnpoints are used. The
+      // X-coordinate is set to the rightmost tile in that row.
+      (GetNation(j) as TEuropeanNation).SetSpawnpoint(cMap_X-1, cSpawnpointsAmerica[i].y);
+      SpawnEuropeanNation(j, cMap_X-1, cSpawnpointsAmerica[i].y);
+      bits:= bits or (1 shl i);
+    end;//for
+    WriteLn('First ships created.');
+  end;//else branch
+  //TODO: complete this procedure
+end;//proc
 
 function TData.NewUnit(const TypeOfUnit: TUnitType; const ANation: Integer; X: Integer=1; Y: Integer=1): TUnit;
 var i: Integer;
@@ -1511,7 +1615,7 @@ begin
          and (not EuroNat.IsBoycotted(TGoodType(j))) then
         need_ship:= true;
     end;//for j
-    
+
     if need_ship then
     begin
       //try to find ship
@@ -1540,11 +1644,11 @@ begin
             begin
               ship_arrived:= true;
               dest_x:= k;//save index for later use
-            end;  
-          end;//else  
+            end;
+          end;//else
         end;//if not done
       end;//for k
-      
+
       //Are we done yet?
       if not done then
       begin
@@ -1562,7 +1666,7 @@ begin
           end;//if
         end;//for k
       end;//if not done
-      
+
       //Has a ship arrived at colony?
       if ship_arrived then
       begin
@@ -1584,7 +1688,7 @@ begin
             end;//while
           end;//if
         end;//for j
-        
+
         for j:= Ord(gtSilver) downto Ord(gtSugar) do
         begin
           if (col_arr[i].GetStore(TGoodType(j))>=src_x) and (not EuroNat.IsBoycotted(TGoodType(j)))
@@ -1602,7 +1706,7 @@ begin
             end;//while
           end;//if
         end;//for j
-        
+
         //Ship is loaded with goods, send it to Europe.
         if EuroNat.HasValidSpawnpoint then
           AIGoTo:= TGoToEuropeTask.Create(u_arr[dest_x], EuroNat.GetSpawnpointX, EuroNat.GetSpawnpointY, GetMap)
@@ -1612,7 +1716,7 @@ begin
       end;//if ship_arrived
     end;//if need_ship
   end;//for i (col_arr)
-  
+
   //Handle ships in Europe.
   u_arr:= GetAllShipsInEurope(num_Nation);
   for i:= 0 to High(u_arr) do
@@ -1632,7 +1736,7 @@ begin
     //get back to America
     u_arr[i].SendToNewWorld;
   end;//for i (u_arr / ships in Europe)
-  
+
 end;//proc
 
 procedure  TData.UpdateAITasksIndian(const num_Nation: LongInt);

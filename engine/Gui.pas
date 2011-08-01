@@ -29,7 +29,7 @@ uses
   EuropeanNation, MessageSystem, BasicCallback, ExitCallback, LandfallCallback,
   SaveLoadCallbacks, JobChangeCallback, EuroPortCallbacks, BuildColonyCallback,
   AbandonColonyCallback, ColonyCallbacks, GotoShipCallback,
-  FoundingSelectCallback;
+  FoundingSelectCallback, NewGameCallbacks;
 
 type
   TRiverType = (rtOne, rtTwo_Bend, rtTwo_Straight, rtThree, rtFour);
@@ -234,7 +234,7 @@ const
     );
 
   { caption of game window }
-  cWindowCaption = 'Vespucci v0.01.r190';
+  cWindowCaption = 'Vespucci v0.01.r191';
 
   { text colour (greenish) }
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
@@ -4342,6 +4342,8 @@ begin
                          else msg.AddMessageSimple(dat.GetLang.GetSaveLoad(slsSaveError));
                        end;// CBT_SAVE_GAME
         CBT_ABANDON_COLONY: if local_bool then cur_colony:= nil;
+        CBT_NEW_GAME,
+        CBT_CLIMATE_SELECTION: if local_bool then Wooden_Mode:= False;
       end;//case
     end;//else
   end;//if
@@ -4364,7 +4366,18 @@ begin
     mcGame: begin
               case selected of
                 1: begin //new game
-                     //not implemented yet
+                     //not completely implemented yet
+                     //clear referenced data
+                     focused:= nil;
+                     europe:= nil;
+                     cur_colony:= nil;
+                     Wooden_Mode:= true;
+                     temp_cb:= TNewGameCallback.Create(dat);
+                     SetLength(str_arr, 2);
+                     str_arr[0]:= dat.GetLang.GetNewGameString(ngsNewWorld);
+                     str_arr[1]:= dat.GetLang.GetNewGameString(ngsAmerica);
+                     msg.AddMessageOptions(dat.GetLang.GetNewGameString(ngsNewGame),
+                                           str_arr, temp_cb);
                    end;//new game
                 2: begin //save
                      if InWoodenMode then
