@@ -58,6 +58,10 @@ type
                         rlsCongress, rlsNextCongress, rlsRebelAttitude,
                         rlsLoyalAttitude, rlsExpeditionForces, rlsFoundingFathers);
   TNotifyString = (nsJoinedCongress);
+  TNewGameString = (ngsNewGame, ngsNewWorld, ngsAmerica, ngsLandmass, ngsLandmassSmall,
+                    ngsLandmassMedium, ngsLandmassLarge, ngsTemperature,
+                    ngsTemperatureCool, ngsTemperatureModerate, ngsTemperatureWarm,
+                    ngsClimate, ngsClimateDry, ngsClimateNormal, ngsClimateWet);
 
 
   { ********
@@ -117,6 +121,8 @@ type
       ReportLabels: array[TReportLabelString] of string;
       //notification strings
       Notifications: array[TNotifyString] of string;
+      //strings for new game messages/ map generation choices
+      NewGame: array[TNewGameString] of string;
 
       //names of founding fathers
       FoundingFathers: array[TFoundingFathers] of string;
@@ -371,6 +377,14 @@ type
             which - indicates the requested message
       }
       function GetNotification(const which: TNotifyString): string;
+
+      { returns a string message related to starting a new game/ generating a
+        map for a new game
+
+        parameters:
+            which - indicates the requested message
+      }
+      function GetNewGameString(const which: TNewGameString): string;
 
       { tries to save the language data to the given file and returns true in
         case of success
@@ -693,6 +707,22 @@ begin
   //notifications
   Notifications[nsJoinedCongress]:= 'Gründerväter geben bekannt, dass %s dem '
                                    +'Kontinentalkongress beigetreten ist.';
+  //new game/ map generation
+  NewGame[ngsNewGame]:= 'Neues Spiel:';
+  NewGame[ngsNewWorld]:= 'Ein Spiel in der Neuen Welt starten';//random map
+  NewGame[ngsAmerica]:= 'Ein Spiel in Amerika starten';//America map
+  NewGame[ngsLandmass]:= 'Landmasse';
+  NewGame[ngsLandmassSmall]:= 'klein';
+  NewGame[ngsLandmassMedium]:= 'mittelgroß';
+  NewGame[ngsLandmassLarge]:= 'groß';
+  NewGame[ngsTemperature]:= 'Temperatur';
+  NewGame[ngsTemperatureCool]:= 'kühl';
+  NewGame[ngsTemperatureModerate]:= 'gemäßigt';
+  NewGame[ngsTemperatureWarm]:= 'warm';
+  NewGame[ngsClimate]:= 'Klima';
+  NewGame[ngsClimateDry]:= 'trocken';
+  NewGame[ngsClimateNormal]:= 'normal';
+  NewGame[ngsClimateWet]:= 'feucht';
   //founding fathers
   InitialFoundingFathers;
 
@@ -1076,6 +1106,11 @@ begin
   Result:= Notifications[which];
 end;//func
 
+function TLanguage.GetNewGameString(const which: TNewGameString): string;
+begin
+  Result:= NewGame[which];
+end;//func
+
 function TLanguage.SaveToFile(const FileName: string): Boolean;
 var dat: TextFile;
     i, j: Integer;
@@ -1163,6 +1198,10 @@ begin
   WriteLn(dat, '[Notifications]');
   for i:= Ord(Low(TNotifyString)) to Ord(High(TNotifyString)) do
     WriteLn(dat, Notifications[TNotifyString(i)]);
+  WriteLn(dat);
+  WriteLn(dat, '[NewGame]');
+  for i:= Ord(Low(TNewGameString)) to Ord(High(TNewGameString)) do
+    WriteLn(dat, NewGame[TNewGameString(i)]);
   WriteLn(dat);
   WriteLn(dat, '[Buildings]');
   for i:= Ord(Succ(btNone)) to Ord(High(TBuildingType)) do
@@ -1403,6 +1442,17 @@ begin
           ReadLn(dat, str1);
           str1:= Trim(str1);
           if str1<>'' then Notifications[TNotifyString(i)]:= str1;
+          i:= i+1;
+        end;//while
+      end//if
+      else if str1='[NewGame]' then
+      begin
+        i:= Ord(Low(TNewGameString));
+        while (i<=Ord(High(TNewGameString))) and not Eof(dat) do
+        begin
+          ReadLn(dat, str1);
+          str1:= Trim(str1);
+          if str1<>'' then NewGame[TNewGameString(i)]:= str1;
           i:= i+1;
         end;//while
       end//if

@@ -1,7 +1,7 @@
 { ***************************************************************************
 
     This file is part of Vespucci.
-    Copyright (C) 2008, 2009, 2010  Dirk Stolle
+    Copyright (C) 2008, 2009, 2010, 2011  Dirk Stolle
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -347,11 +347,11 @@ var i,j: Integer;
     currentLandmass: Cardinal;
     count: Cardinal;
 begin
-  if (LandMass>0.85) then
+  if (LandMass>=0.86) then
   begin
     WriteLn('Invalid parameter value for LandMass in TMap.Generate!');
-    WriteLn('Using simplified generation function instead.');
-    Generate(0.8);
+    WriteLn('Using generation function with default parameter instead.');
+    Generate(0.85, f);
     Exit;
   end;
 
@@ -427,6 +427,7 @@ begin
       rivermap[i,j]:= false;
 
   //generate one river for every 4% of landmass, but still seems quite dry there
+  //TODO: climate parameter should influence this
   for i:= 1 to Trunc(25*LandMass) do
   begin
     //get a location that is land and has no river yet
@@ -507,7 +508,7 @@ begin
           (tiles[i+1,j].m_Type=ttGrassland) and (tiles[i,j+1].m_Type=ttGrassland)) then
           tiles[i,j].m_Type:= ttGrassland;
     end;//for}
-  //no rivers yet
+  //update river cache
   ClearRiverCache;
   //set the flag to indicate that we have data for all tiles
   filled:= True;
@@ -517,7 +518,7 @@ end;//proc Generate (with f)
 procedure TMap.GenerateSpecials(const LandOnly: Boolean=True);
 var i, j: Integer;
 begin
-  if not filled then Generate(0.7)
+  if not filled then Generate(0.7, h2)
   else Randomize;
   for i:= 0 to cMap_X-1 do
     for j:= 0 to cMap_Y-1 do
