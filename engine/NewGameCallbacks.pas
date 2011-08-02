@@ -32,6 +32,8 @@ const
   CBT_LANDMASS_SELECTION = 17;
   CBT_TEMPERATURE_SELECTION = 18;
   CBT_CLIMATE_SELECTION = 19;
+  CBT_NATION_SELECTION = 20;
+  CBT_PLAYER_NAME_SELECTION = 21;
 
 type
   TNewGameCallback = class(TBasicCallback)
@@ -53,6 +55,8 @@ type
 
 
   TLandmassSelectionCallback = class(TNewGameCallback)
+    protected
+      m_America: Boolean;
     public
       { function to handle the callback, i.e. perform all necessary steps after
         the player has made his/her choice. Should return true on success, false
@@ -63,7 +67,7 @@ type
       }
       function Handle: Boolean; override;
 
-      constructor Create(const dat: TData);
+      constructor Create(const dat: TData; const America: Boolean);
   end;//class
 
 
@@ -80,7 +84,7 @@ type
       }
       function Handle: Boolean; override;
 
-      constructor Create(const dat: TData; const Landmass: Single);
+      constructor Create(const dat: TData; const America: Boolean; const Landmass: Single);
   end;//class
 
 
@@ -97,13 +101,47 @@ type
       }
       function Handle: Boolean; override;
 
-      constructor Create(const dat: TData; const Landmass: Single; const temp: Integer);
+      constructor Create(const dat: TData; const America: Boolean; const Landmass: Single; const temp: Integer);
+  end;//class
+
+
+  TNationSelectionCallback = class(TClimateSelectionCallback)
+    protected
+      m_Climate: Integer;
+    public
+      { function to handle the callback, i.e. perform all necessary steps after
+        the player has made his/her choice. Should return true on success, false
+        on failure
+
+        remarks:
+            Derived classes have to implement their own version of that function.
+      }
+      function Handle: Boolean; override;
+
+      constructor Create(const dat: TData; const America: Boolean; const Landmass: Single; const temp: Integer; const Climate: Integer);
+  end;//class
+
+
+  TPlayerNameSelectionCallback = class(TNationSelectionCallback)
+    protected
+      m_Nation: Integer;
+    public
+      { function to handle the callback, i.e. perform all necessary steps after
+        the player has made his/her choice. Should return true on success, false
+        on failure
+
+        remarks:
+            Derived classes have to implement their own version of that function.
+      }
+      function Handle: Boolean; override;
+
+      constructor Create(const dat: TData; const America: Boolean; const Landmass: Single; const temp: Integer; const Climate: Integer; const Nat: Integer);
   end;//class
 
 implementation
 
 uses
-  Helper, Language, MessageSystem, Nation;
+  Helper, Language, MessageSystem, Nation, EuropeanNation;
 
 function TNewGameCallback.Handle: Boolean;
 var temp_cb: TBasicCallback;
@@ -111,19 +149,22 @@ begin
   Result:= true; //set result to true, always
   if option=1 then
   begin
-    //America map was chosen
-    AData.StartNewGame(true, cNationEngland, 1.0);
-    Result:= true;
+    //America map was chosen, go on with nation selection
+    temp_cb:= TNationSelectionCallback.Create(AData, true, 0.75, 0, 0);
+    msg.AddMessageOptions(AData.GetLang.GetNewGameString(ngsEuropeanPower),
+          ToShortStrArr(AData.GetLang.GetNewGameString(ngsEuropeanPowerEngland),
+          AData.GetLang.GetNewGameString(ngsEuropeanPowerFrance),
+          AData.GetLang.GetNewGameString(ngsEuropeanPowerSpain),
+          AData.GetLang.GetNewGameString(ngsEuropeanPowerHolland)), temp_cb);
   end
   else begin
-    //random map was chosen
+    //random map was chosen, let player set parameters
     Result:= false;
-    temp_cb:= TLandmassSelectionCallback.Create(AData);
+    temp_cb:= TLandmassSelectionCallback.Create(AData, true);
     msg.AddMessageOptions(AData.GetLang.GetNewGameString(ngsLandmass),
             ToShortStrArr(AData.GetLang.GetNewGameString(ngsLandmassSmall),
             AData.GetLang.GetNewGameString(ngsLandmassMedium),
             AData.GetLang.GetNewGameString(ngsLandmassLarge)), temp_cb);
-    //TODO: not properly implemented yet
   end;//else branch
 end;//func
 
@@ -135,10 +176,11 @@ end;//construc
 
 { **** TLandmassSelectionCallback functions **** }
 
-constructor TLandmassSelectionCallback.Create(const dat: TData);
+constructor TLandmassSelectionCallback.Create(const dat: TData; const America: Boolean);
 begin
   _type:= CBT_LANDMASS_SELECTION;
   AData:= dat;
+  m_America:= America;
 end;//construc
 
 function TLandmassSelectionCallback.Handle: Boolean;
@@ -153,7 +195,7 @@ begin
   else
     landmass:= 0.75;
   end;//case
-  temp_cb:= TTemperatureSelectionCallback.Create(AData, landmass);
+  temp_cb:= TTemperatureSelectionCallback.Create(AData, m_America, landmass);
   msg.AddMessageOptions(AData.GetLang.GetNewGameString(ngsTemperature),
           ToShortStrArr(AData.GetLang.GetNewGameString(ngsTemperatureCool),
           AData.GetLang.GetNewGameString(ngsTemperatureModerate),
@@ -162,10 +204,11 @@ end;//func
 
 { **** TTemperatureSelectionCallback functions **** }
 
-constructor TTemperatureSelectionCallback.Create(const dat: TData; const Landmass: Single);
+constructor TTemperatureSelectionCallback.Create(const dat: TData; const America: Boolean; const Landmass: Single);
 begin
   _type:= CBT_TEMPERATURE_SELECTION;
   AData:= dat;
+  m_America:= America;
   m_Landmass:= Landmass;
 end;//construc
 
@@ -175,7 +218,7 @@ var temp_cb: TBasicCallback;
 begin
   Result:= true; //always successful
   temperature:= option; //not complete/ used yet
-  temp_cb:= TClimateSelectionCallback.Create(AData, m_Landmass, temperature);
+  temp_cb:= TClimateSelectionCallback.Create(AData, m_America, m_Landmass, temperature);
   msg.AddMessageOptions(AData.GetLang.GetNewGameString(ngsClimate),
           ToShortStrArr(AData.GetLang.GetNewGameString(ngsClimateDry),
           AData.GetLang.GetNewGameString(ngsClimateNormal),
@@ -184,10 +227,11 @@ end;//func
 
 { **** TClimateSelectionCallback functions **** }
 
-constructor TClimateSelectionCallback.Create(const dat: TData; const Landmass: Single; const temp: Integer);
+constructor TClimateSelectionCallback.Create(const dat: TData; const America: Boolean; const Landmass: Single; const temp: Integer);
 begin
   _type:= CBT_CLIMATE_SELECTION;
   AData:= dat;
+  m_America:= America;
   m_Landmass:= Landmass;
   m_Temperature:= temp;
 end;//construc
@@ -197,11 +241,68 @@ var temp_cb: TBasicCallback;
     climate: Integer;
 begin
   climate:= option; //not used yet
+  temp_cb:= TNationSelectionCallback.Create(AData, m_America, m_Landmass, m_Temperature, climate);
+  msg.AddMessageOptions(AData.GetLang.GetNewGameString(ngsEuropeanPower),
+          ToShortStrArr(AData.GetLang.GetNewGameString(ngsEuropeanPowerEngland),
+          AData.GetLang.GetNewGameString(ngsEuropeanPowerFrance),
+          AData.GetLang.GetNewGameString(ngsEuropeanPowerSpain),
+          AData.GetLang.GetNewGameString(ngsEuropeanPowerHolland)), temp_cb);
+  Result:= true; //always successful
+end;//func
+
+{ **** TNationSelectionCallback functions **** }
+
+constructor TNationSelectionCallback.Create(const dat: TData; const America: Boolean; const Landmass: Single; const temp: Integer; const Climate: Integer);
+begin
+  _type:= CBT_NATION_SELECTION;
+  AData:= dat;
+  m_America:= America;
+  m_Landmass:= Landmass;
+  m_Temperature:= temp;
+  m_Climate:= Climate;
+end;//construc
+
+function TNationSelectionCallback.Handle: Boolean;
+var temp_cb: TBasicCallback;
+    nat: Integer;
+begin
+  Result:= true; //always successful
+  case option of
+    0: nat:= cNationEngland;
+    1: nat:= cNationFrance;
+    2: nat:= cNationSpain;
+    3: nat:= cNationHolland;
+  else
+    //should never happen, but better be save than sorry
+    nat:= cNationEngland;
+  end;//case
+  temp_cb:= TPlayerNameSelectionCallback.Create(AData, m_America, m_Landmass, m_Temperature, m_Climate, nat);
+  msg.AddMessageInput('Enter your name:', 'Name:', AData.GetLang.GetDefaultLeaderName(nat), temp_cb);
+end;//func
+
+{ **** TPlayerNameSelectionCallback functions **** }
+
+constructor TPlayerNameSelectionCallback.Create(const dat: TData; const America: Boolean; const Landmass: Single; const temp: Integer; const Climate: Integer; const Nat: Integer);
+begin
+  _type:= CBT_PLAYER_NAME_SELECTION;
+  AData:= dat;
+  m_America:= America;
+  m_Landmass:= Landmass;
+  m_Temperature:= temp;
+  m_Climate:= Climate;
+  m_Nation:= Nat;
+end;//construc
+
+function TPlayerNameSelectionCallback.Handle: Boolean;
+begin
+  inputText:= trim(inputText);
+  if (inputText='') then inputText:= AData.GetLang.GetDefaultLeaderName(m_Nation);
   //TODO: make use of climate and temperature selection and pass it to the map
   // generation function
 
   //finally start the new game
-  AData.StartNewGame(false, cNationEngland, m_Landmass);
+  AData.StartNewGame(m_America, m_Nation, m_Landmass);
+  (AData.GetNation(m_Nation) as TEuropeanNation).ChangeLeaderName(inputText);
   Result:= true; //always successful
 end;//func
 

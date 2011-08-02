@@ -61,7 +61,9 @@ type
   TNewGameString = (ngsNewGame, ngsNewWorld, ngsAmerica, ngsLandmass, ngsLandmassSmall,
                     ngsLandmassMedium, ngsLandmassLarge, ngsTemperature,
                     ngsTemperatureCool, ngsTemperatureModerate, ngsTemperatureWarm,
-                    ngsClimate, ngsClimateDry, ngsClimateNormal, ngsClimateWet);
+                    ngsClimate, ngsClimateDry, ngsClimateNormal, ngsClimateWet,
+                    ngsEuropeanPower, ngsEuropeanPowerEngland, ngsEuropeanPowerFrance,
+                    ngsEuropeanPowerSpain, ngsEuropeanPowerHolland);
 
 
   { ********
@@ -86,6 +88,8 @@ type
       GoodNames: array[TGoodType] of string;
       //names of all nations, including Indians
       NationNames: array[cMinNations..cMaxIndian] of string;
+      //default names of European leaders
+      LeaderNames: array[cMinEuropean..cMaxEuropean] of string;
       //names of ports in Europe
       PortNames: array[cMinEuropean..cMaxEuropean] of string;
       //names of terrain types
@@ -221,6 +225,17 @@ type
             this function just will return '(no nation)'.
       }
       function GetNationName(const NationNum: Integer): string;
+
+      { returns the default name of a Eueopean nation's leader
+
+        parameters:
+            NationNum - integer identifying the nation whose name is requested
+
+        remarks:
+            The value of NationNum has to be in [cMinEurope..cMaxEurope], or
+            this function just will return '(no leader name set)'.
+      }
+      function GetDefaultLeaderName(const NationNum: Integer): string;
 
       { returns the name of the European port of a certain nation
 
@@ -501,6 +516,11 @@ begin
   NationNames[cNationIroquois]:= 'Irokesen';
   NationNames[cNationSioux]:= 'Sioux';
   NationNames[cNationApache]:= 'Apache';
+  //leaders's default names
+  LeaderNames[cNationEngland]:= 'Walter Raleigh';
+  LeaderNames[cNationFrance]:= 'Jacques Cartier';
+  LeaderNames[cNationSpain]:= 'Christoph Columbus';
+  LeaderNames[cNationHolland]:= 'Michiel De Ruyter';
   //ports in europe
   PortNames[cNationEngland]:= 'London';
   PortNames[cNationFrance]:= 'La Rochelle';
@@ -723,6 +743,11 @@ begin
   NewGame[ngsClimateDry]:= 'trocken';
   NewGame[ngsClimateNormal]:= 'normal';
   NewGame[ngsClimateWet]:= 'feucht';
+  NewGame[ngsEuropeanPower]:= 'Europäische Macht auswählen:';
+  NewGame[ngsEuropeanPowerEngland]:= 'England (Immigration)';
+  NewGame[ngsEuropeanPowerFrance]:= 'Frankreich (Kooperation)';
+  NewGame[ngsEuropeanPowerSpain]:= 'Spanien (Eroberung)';
+  NewGame[ngsEuropeanPowerHolland]:= 'Holland (Handel)';
   //founding fathers
   InitialFoundingFathers;
 
@@ -990,6 +1015,12 @@ begin
   else Result:= NationNames[NationNum];
 end;//func
 
+function TLanguage.GetDefaultLeaderName(const NationNum: Integer): string;
+begin
+  if (NationNum<cMinEuropean) or (NationNum>cMaxEuropean) then Result:= '(no leader name set)'
+  else Result:= LeaderNames[NationNum];
+end;//func
+
 function TLanguage.GetPortName(const NationNum: Integer): string;
 begin
   if (NationNum<cMinEuropean) or (NationNum>cMaxEuropean) then Result:= '(no port name)'
@@ -1131,6 +1162,10 @@ begin
   for i:= cMinNations to cMaxIndian do
     WriteLn(dat, NationNames[i]);
   WriteLn(dat);
+  WriteLn(dat, '[Leaders]');
+  for i:= cMinEuropean to cMaxEuropean do
+    WriteLn(dat, LeaderNames[i]);
+  WriteLn(dat);
   WriteLn(dat, '[Ports]');
   for i:= cMinEuropean to cMaxEuropean do
     WriteLn(dat, PortNames[i]);
@@ -1255,6 +1290,17 @@ begin
           ReadLn(dat, str1);
           str1:= Trim(str1);
           if str1<>'' then NationNames[i]:= str1;
+          i:= i+1;
+        end;//while
+      end//if
+      else if str1='[Leaders]' then
+      begin
+        i:= cMinEuropean;
+        while (i<=cMaxEuropean) and not Eof(dat) do
+        begin
+          ReadLn(dat, str1);
+          str1:= Trim(str1);
+          if str1<>'' then LeaderNames[i]:= str1;
           i:= i+1;
         end;//while
       end//if

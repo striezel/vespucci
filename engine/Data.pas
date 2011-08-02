@@ -207,7 +207,7 @@ type
                                        generation function (only used, if InAmerica=false)
               }
               procedure StartNewGame(const InAmerica: Boolean; const NumNation_Player: LongInt; const Landmass: Single);
-              
+
               // ---- unit-related functions ----
               { creates a new unit and returns the created unit
 
@@ -561,13 +561,13 @@ procedure TData.InitializeNations;
 var i: Integer;
 begin
   if (Nations[cNationEngland]<>nil) then Nations[cNationEngland].Destroy;
-  Nations[cNationEngland]:= TEuropeanNation.Create(cNationEngland, lang.GetNationName(cNationEngland), 'Walter Raleigh');
+  Nations[cNationEngland]:= TEuropeanNation.Create(cNationEngland, lang.GetNationName(cNationEngland), lang.GetDefaultLeaderName(cNationEngland));
   if (Nations[cNationFrance]<>nil) then Nations[cNationFrance].Destroy;
-  Nations[cNationFrance]:= TEuropeanNation.Create(cNationFrance, lang.GetNationName(cNationFrance), 'Jacques Cartier');
+  Nations[cNationFrance]:= TEuropeanNation.Create(cNationFrance, lang.GetNationName(cNationFrance), lang.GetDefaultLeaderName(cNationFrance));
   if (Nations[cNationSpain]<>nil) then Nations[cNationSpain].Destroy;
-  Nations[cNationSpain]:= TEuropeanNation.Create(cNationSpain, lang.GetNationName(cNationSpain), 'Christoph Columbus');
+  Nations[cNationSpain]:= TEuropeanNation.Create(cNationSpain, lang.GetNationName(cNationSpain), lang.GetDefaultLeaderName(cNationSpain));
   if (Nations[cNationHolland]<>nil) then Nations[cNationHolland].Destroy;
-  Nations[cNationHolland]:= TEuropeanNation.Create(cNationHolland, lang.GetNationName(cNationHolland), 'Michiel De Ruyter');
+  Nations[cNationHolland]:= TEuropeanNation.Create(cNationHolland, lang.GetNationName(cNationHolland), lang.GetDefaultLeaderName(cNationHolland));
   for i:= cMinIndian to cMaxIndian do
   begin
     if (Nations[i]<>nil) then Nations[i].Destroy;
@@ -614,7 +614,7 @@ begin
     begin
       m_Colonies[i].Destroy;
       m_Colonies[i]:= nil;
-    end;  
+    end;
   SetLength(m_Colonies, 0);
   Colony_max:= -1;
 end;//proc
@@ -627,7 +627,7 @@ begin
     begin
       m_Tribes[i].Destroy;
       m_Tribes[i]:= nil;
-    end;  
+    end;
   SetLength(m_Tribes, 0);
   Tribe_max:= -1;
 end;//proc
@@ -640,7 +640,7 @@ begin
     begin
       m_Units[i].Destroy;
       m_Units[i]:= nil;
-    end;  
+    end;
   SetLength(m_Units, 0);
   Unit_max:= -1;
 end;//proc
@@ -737,7 +737,7 @@ begin
       SpawnEuropeanNation(j, cSpawnpointsAmerica[i].x, cSpawnpointsAmerica[i].y);
       bits:= bits or (1 shl i);
     end;//for
-    WriteLn('First ships created.');    
+    WriteLn('First ships created.');
   end
   else begin
     //generate map
