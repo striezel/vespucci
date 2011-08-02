@@ -234,7 +234,7 @@ const
     );
 
   { caption of game window }
-  cWindowCaption = 'Vespucci v0.01.r191';
+  cWindowCaption = 'Vespucci v0.01.r192';
 
   { text colour (greenish) }
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
@@ -4342,8 +4342,7 @@ begin
                          else msg.AddMessageSimple(dat.GetLang.GetSaveLoad(slsSaveError));
                        end;// CBT_SAVE_GAME
         CBT_ABANDON_COLONY: if local_bool then cur_colony:= nil;
-        CBT_NEW_GAME,
-        CBT_CLIMATE_SELECTION: if local_bool then Wooden_Mode:= False;
+        CBT_PLAYER_NAME_SELECTION: if local_bool then Wooden_Mode:= False;
       end;//case
     end;//else
   end;//if
