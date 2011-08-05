@@ -160,7 +160,7 @@ begin
   else begin
     //random map was chosen, let player set parameters
     Result:= false;
-    temp_cb:= TLandmassSelectionCallback.Create(AData, true);
+    temp_cb:= TLandmassSelectionCallback.Create(AData, false);
     msg.AddMessageOptions(AData.GetLang.GetNewGameString(ngsLandmass),
             ToShortStrArr(AData.GetLang.GetNewGameString(ngsLandmassSmall),
             AData.GetLang.GetNewGameString(ngsLandmassMedium),
