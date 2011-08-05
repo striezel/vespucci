@@ -339,6 +339,54 @@ begin
   filled:= True;
 end;//proc
 
+function TerrainProbability(const h1, h2, y: Integer): Single;
+begin
+  if y<h1 then Result:= 1.0
+  else if y>h2 then Result:= 0.0
+  else Result:= -0.9/(h2-h1) * y +0.95+0.9*h1/(h2-h1);
+end;//function
+
+function TerrainByH(const h: Integer): TTerrainType;
+const cTundraStart = 1;
+      cBorealStart = 7;
+      cLeafStart = 14;
+      cPrairieStart = 21;
+      cSavannahStart = 28;
+      cTropicalCenter = (cMap_Y div 2);
+      cSavannahEnd = cMap_Y -28;
+      cPrairieEnd = cMap_Y-21;
+      cLeafEnd = cMap_Y-14;
+      cBorealEnd = cMap_Y-7;
+      cTundraEnd = cMap_Y-1;
+begin
+  case h of
+    cTundraStart..cBorealStart-1: if Random < TerrainProbability(cTundraStart, cBorealStart, h) then Result:= ttTundra
+                                  else Result:= ttBoreal;
+    cBorealStart..cLeafStart-1: if Random < TerrainProbability(cBorealStart, cLeafStart, h) then Result:= ttBoreal
+                                else Result:= ttBroadleaf;
+    cLeafStart..cPrairieStart-1: if Random < TerrainProbability(cLeafStart, cPrairieStart, h) then Result:= ttBroadleaf
+                                 else Result:= ttPrairie;
+    cPrairieStart..cSavannahStart-1: if Random < TerrainProbability(cPrairieStart, cSavannahStart, h) then Result:= ttPrairie
+                                  else Result:= ttSavannah;
+    cSavannahStart..cTropicalCenter-1: if Random < TerrainProbability(cSavannahStart, cTropicalCenter, h) then Result:= ttSavannah
+                                  else Result:= ttRainForest;
+    cTropicalCenter: Result:= ttTropicalForest;
+    cTropicalCenter+1..cSavannahEnd: if Random < TerrainProbability(cTropicalCenter, cSavannahEnd, h) then Result:= ttRainForest
+                                     else Result:= ttSavannah;
+    cSavannahEnd+1..cPrairieEnd: if Random < TerrainProbability(cSavannahEnd, cPrairieEnd, h) then Result:= ttSavannah
+                                 else Result:= ttPrairie;
+    cPrairieEnd+1..cLeafEnd: if Random < TerrainProbability(cPrairieEnd, cLeafEnd, h) then Result:= ttPrairie
+                             else Result:= ttBroadleaf;
+    cLeafEnd+1..cBorealEnd: if Random < TerrainProbability(cLeafEnd, cBorealEnd, h) then Result:= ttBroadleaf
+                            else Result:= ttBoreal;
+    cBorealEnd+1..cTundraEnd: if Random < TerrainProbability(cBorealEnd, cTundraEnd, h) then Result:= ttBoreal
+                            else Result:= ttTundra;
+  else
+    //should not normally happen
+    Result:= ttArctic;
+  end;//case
+end;//func
+
 procedure TMap.Generate(const LandMass: Single; const f: THillFunction);
 var i,j: Integer;
     heightmap: array [0..cMap_X-1, 0..cMap_Y-1] of Single;
@@ -494,7 +542,7 @@ begin
       if heightmap[i,j]<=0.0 then
         tiles[i,j]:= TTerrain.Create(ttSea, rivermap[i,j])
       else if heightmap[i,j]<=1.0 then
-        tiles[i,j]:= TTerrain.Create(ttGrassland, rivermap[i,j])
+        tiles[i,j]:= TTerrain.Create(TerrainByH(j), rivermap[i,j])
       else if heightmap[i,j]<=2.0 then
         tiles[i,j]:= TTerrain.Create(ttHills, rivermap[i,j])
       else tiles[i,j]:= TTerrain.Create(ttMountains, rivermap[i,j]);
