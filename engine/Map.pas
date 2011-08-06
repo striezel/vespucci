@@ -566,7 +566,7 @@ end;//proc Generate (with f)
 procedure TMap.GenerateSpecials(const LandOnly: Boolean=True);
 var i, j: Integer;
 begin
-  if not filled then Generate(0.7, h2)
+  if not filled then Generate(0.7, @h2)
   else Randomize;
   for i:= 0 to cMap_X-1 do
     for j:= 0 to cMap_Y-1 do
@@ -698,6 +698,7 @@ end;//func
 procedure TMap.SetRiverType(const x,y: Byte);
 begin
   if ((x<cMap_X) and (y<cMap_Y) and filled) then
+
   begin
     river[x,y]:= cMapRiverNone;
     if (tiles[x,y].HasRiver) then
