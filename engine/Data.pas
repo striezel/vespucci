@@ -205,8 +205,12 @@ type
                     NumNation_Player - the player's nation
                     Landmass         - landmass parameter passed to the map
                                        generation function (only used, if InAmerica=false)
+                    temp             - temperature parameter passed to the map
+                                       generation function (only used, if InAmerica=false)
+                    climate          - climate parameter passed to the map
+                                       generation function (only used, if InAmerica=false)
               }
-              procedure StartNewGame(const InAmerica: Boolean; const NumNation_Player: LongInt; const Landmass: Single);
+              procedure StartNewGame(const InAmerica: Boolean; const NumNation_Player: LongInt; const Landmass: Single; const temp: TTemperatureType; const climate: TClimateType);
 
               // ---- unit-related functions ----
               { creates a new unit and returns the created unit
@@ -596,12 +600,12 @@ begin
     end//if
     else begin
       WriteLn('Couldn''t load map file "'+GetPathBase+america_map_path+'" properly. Using generation routine instead.');
-      m_Map.Generate(0.7, @Map.h4);
+      m_Map.Generate(0.7, @Map.h4, ttModerate, ctNormal);
     end;
   end
   else begin
     WriteLn('Couldn''t find map file "'+GetPathBase+america_map_path+'". Using generation routine instead.');
-    m_Map.Generate(0.7, @Map.h4);
+    m_Map.Generate(0.7, @Map.h4, ttModerate, ctNormal);
   end;
   m_Map.GenerateSpecials;
 end;//proc
@@ -695,7 +699,7 @@ begin
     Result:= Nations[count];
 end;//func
 
-procedure TData.StartNewGame(const InAmerica: Boolean; const NumNation_Player: LongInt; const Landmass: Single);
+procedure TData.StartNewGame(const InAmerica: Boolean; const NumNation_Player: LongInt; const Landmass: Single; const temp: TTemperatureType; const climate: TClimateType);
 var i, j: Integer;
     bits: Byte;
 begin
@@ -742,7 +746,7 @@ begin
   else begin
     //generate map
     m_Map:= TMap.Create;
-    m_Map.Generate(Landmass, @Map.h2);
+    m_Map.Generate(Landmass, @Map.h2, temp, climate);
     //set initial units
     for j:= cMinEuropean to cMaxEuropean do
     begin
@@ -2330,16 +2334,20 @@ end;//func
 function TData.GetSaveSlots: TShortStrArr;
 var i: Integer;
 begin
-  {data<n>.vdd - simple data
-      map<n>.vmd - map itself
-      units<n>.vud - all units
-      colony<n>.vcd - all colonies
-      nations<n>.vnd - european nations}
+  {   data<n>.vdd - simple data
+       map<n>.vmd - map itself
+     units<n>.vud - all units
+    colony<n>.vcd - all colonies
+   nations<n>.vnd - european nations}
 
   SetLength(Result, 10);
   for i:=1 to 10 do
   begin
-    if (FileExists(GetPathBase+save_path +'data'+IntToStr(i)+'.vdd') and FileExists(GetPathBase+save_path +'map'+IntToStr(i)+'.vmd') and FileExists(GetPathBase+save_path +'units'+IntToStr(i)+'.vud') and FileExists(GetPathBase+save_path +'colony'+IntToStr(i)+'.vcd') and FileExists(GetPathBase+save_path +'nations'+IntToStr(i)+'.vnd')) then
+    if (FileExists(GetPathBase+save_path +'data'+IntToStr(i)+'.vdd')
+        and FileExists(GetPathBase+save_path +'map'+IntToStr(i)+'.vmd')
+        and FileExists(GetPathBase+save_path +'units'+IntToStr(i)+'.vud')
+        and FileExists(GetPathBase+save_path +'colony'+IntToStr(i)+'.vcd')
+        and FileExists(GetPathBase+save_path +'nations'+IntToStr(i)+'.vnd')) then
     Result[i-1]:= GetSaveInfo(i)
     else Result[i-1]:= '('+lang.GetOthers(osEmpty)+')';
   end;//for

@@ -73,6 +73,12 @@ type
   }
   THillFunction = function(const mx, my, r: Byte; const h: Single; const x, y: Byte): Single;
 
+  { enumeration type for climate setting in map generation function }
+  TClimateType = (ctDry, ctNormal, ctWet);
+
+  { enumeration type for temperature setting in map generation function }
+  TTemperatureType = (ttCool, ttModerate, ttWarm);
+
   { ********
     **** TMap class
     ****
@@ -149,21 +155,26 @@ type
       { generates a map with the given parameters
 
         parameters:
-            Landmass - the amount of land on the map - 1.0 means all is land,
-                       while 0.0 means no land and just water. Usually this
-                       value should be between 0.5 and 0.8, I guess.
-            f        - the function that is used to generate hills/ mountains
+            Landmass    - the amount of land on the map - 1.0 means all is land,
+                          while 0.0 means no land and just water. Usually this
+                          value should be between 0.3 and 0.8, I guess.
+            f           - the function that is used to generate hills/ mountains
+            temperature - the temperate setting used to generate terrain tiles
+                          (This setting is ignored in the current implementation.)
+            climate     - the climate setting used to generate terrain tiles
 
         remarks:
             Although this function already generates a map, it does not do it
             too well. It just generates a row of arctic terrain at the top and
             bottom of the map, a column of open sea at the left and right side,
-            and all other land is either grassland or sea. Function f is used
-            to generate the height map.
+            and all other land is a more or less randomly chosen type of
+            terrain. Function f is used to generate the height map. The climate
+            setting influences the number of rivers generated, the temperature
+            setting is currently ignored.
             This is a try to implement a slightly better version of the map
             generation function.
       }
-      procedure Generate(const LandMass: Single; const f: THillFunction); overload;
+      procedure Generate(const LandMass: Single; const f: THillFunction; const temperature: TTemperatureType; const climate: TClimateType); overload;
 
       { generates the special ressources for the map
 
@@ -387,8 +398,8 @@ begin
   end;//case
 end;//func
 
-procedure TMap.Generate(const LandMass: Single; const f: THillFunction);
-var i,j: Integer;
+procedure TMap.Generate(const LandMass: Single; const f: THillFunction; const temperature: TTemperatureType; const climate: TClimateType);
+var i,j, river_count: Integer;
     heightmap: array [0..cMap_X-1, 0..cMap_Y-1] of Single;
     rivermap: array [0..cMap_X-1, 0..cMap_Y-1] of Boolean;
     h_x, h_y, radius, new_x, new_y: Byte;
@@ -399,7 +410,7 @@ begin
   begin
     WriteLn('Invalid parameter value for LandMass in TMap.Generate!');
     WriteLn('Using generation function with default parameter instead.');
-    Generate(0.85, f);
+    Generate(0.85, f, temperature, climate);
     Exit;
   end;
 
@@ -474,9 +485,16 @@ begin
     for j:=0 to cMap_Y-1 do
       rivermap[i,j]:= false;
 
-  //generate one river for every 4% of landmass, but still seems quite dry there
-  //TODO: climate parameter should influence this
-  for i:= 1 to Trunc(25*LandMass) do
+  //generate one river for every 4% of landmasson average, but still seems quite
+  // dry there
+  case climate of
+    ctDry:    river_count:= Trunc(15*LandMass);
+    ctNormal: river_count:= Trunc(25*LandMass);
+    ctWet:    river_count:= Trunc(35*LandMass);
+  else
+    river_count:= 0; //should never happen
+  end;//case
+  for i:= 1 to river_count do
   begin
     //get a location that is land and has no river yet
     repeat
@@ -528,7 +546,7 @@ begin
       end;//else
     until (heightmap[h_x, h_y]<0.0);
   end;//for
-
+  // ---- end of generation of rivers ----
 
   //now set the real tiles
   for i:= 1 to cMap_X-2 do
@@ -566,7 +584,7 @@ end;//proc Generate (with f)
 procedure TMap.GenerateSpecials(const LandOnly: Boolean=True);
 var i, j: Integer;
 begin
-  if not filled then Generate(0.7, @h2)
+  if not filled then Generate(0.7, @h2, ttModerate, ctNormal)
   else Randomize;
   for i:= 0 to cMap_X-1 do
     for j:= 0 to cMap_Y-1 do
