@@ -701,8 +701,8 @@ type
       { returns the type of the task (something like a RTTI) }
       function GetType: TTaskType; override;
   end;//class
-  
- 
+
+
   { ********
     **** TGoToEuropeTask class
     ****
@@ -746,6 +746,8 @@ type
     **** purpose: represents a task where a unit tries to find a land square for
     ****          building a colony there. Might not always succeed yet.
     ****          Derived from TTask.
+    ****
+    **** TODO: make sure it always succeeds
     *******
   }
   TFindLandForColonyTask = class(TTask)
@@ -1699,7 +1701,7 @@ begin
     begin
       if (m_Map.tiles[target.GetPosX, target.GetPosY].GetType=ttOpenSea) then
         target.SendToEurope;
-      Result:= true;    
+      Result:= true;
     end//if
     else Result:= target.GetLocation=ulGoToEurope;
   end;//else
