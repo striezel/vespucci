@@ -389,8 +389,8 @@ begin
     cPrairieEnd+1..cLeafEnd: if Random < TerrainProbability(cPrairieEnd, cLeafEnd, h) then Result:= ttPrairie
                              else Result:= ttBroadleaf;
     cLeafEnd+1..cBorealEnd: if Random < TerrainProbability(cLeafEnd, cBorealEnd, h) then Result:= ttBroadleaf
-                            else Result:= ttBoreal;
-    cBorealEnd+1..cTundraEnd: if Random < TerrainProbability(cBorealEnd, cTundraEnd, h) then Result:= ttBoreal
+                            else Result:= ttConiferForest;
+    cBorealEnd+1..cTundraEnd: if Random < TerrainProbability(cBorealEnd, cTundraEnd, h) then Result:= ttConiferForest
                             else Result:= ttTundra;
   else
     //should not normally happen
@@ -485,12 +485,12 @@ begin
     for j:=0 to cMap_Y-1 do
       rivermap[i,j]:= false;
 
-  //generate one river for every 4% of landmasson average, but still seems quite
+  //generate one river for every 3% of landmasson average, but still seems quite
   // dry there
   case climate of
-    ctDry:    river_count:= Trunc(15*LandMass);
-    ctNormal: river_count:= Trunc(25*LandMass);
-    ctWet:    river_count:= Trunc(35*LandMass);
+    ctDry:    river_count:= Trunc(25*LandMass);
+    ctNormal: river_count:= Trunc(33*LandMass);
+    ctWet:    river_count:= Trunc(50*LandMass);
   else
     river_count:= 0; //should never happen
   end;//case
