@@ -45,12 +45,6 @@ type
     **** purpose: holds data of currently shown text messages in game and
     ****          provides interface to add new messages
     ****
-    **** TODO:
-    **** =====
-    ****
-    **** - Class TCallbackRec should be completely removed from this class and
-    ****   its dependencies and be replaced with another neutral, minimalistic
-    ****   callback class.
     *******
   }
   TMessageSystem = class
