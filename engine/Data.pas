@@ -100,6 +100,7 @@ type
   TIndianReportArray = array[cMinIndian..cMaxIndian] of record
                                                           settlements: Integer;
                                                           tech_level: TTechLevel;
+                                                          attitude: TIndianAttitude;
                                                         end;//rec
 
   { ********
@@ -1084,8 +1085,15 @@ begin
   for i:=cMinIndian to cMaxIndian do
   begin
     Result[i].settlements:= 0;
-    if (GetNation(i)<>nil) then Result[i].tech_level:= (GetNation(i) as TIndianNation).GetTechLevel
-    else Result[i].tech_level:= tlNomadic;
+    if (GetNation(i)<>nil) then
+    begin
+      Result[i].tech_level:= (GetNation(i) as TIndianNation).GetTechLevel;
+      Result[i].attitude:= (GetNation(i) as TIndianNation).GetAttitude(num_nation);
+    end//if
+    else begin
+      Result[i].tech_level:= tlNomadic;
+      Result[i].attitude:= iaPleased;
+    end;//else
   end;//for
   //search through settlements
   for i:= 0 to Tribe_max do
@@ -1124,6 +1132,7 @@ begin
   end;//if
   m_Colonies[Colony_max+1]:= TColony.Create(x, y, num_nation, AName);
   Colony_max:= Colony_max+1;
+
   Result:= m_Colonies[Colony_max];
 end;//func
 

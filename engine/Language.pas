@@ -132,6 +132,8 @@ type
       NewGame: array[TNewGameString] of string;
       //strings for Indian tech levels
       TechLevelStrings: array[TTechLevel] of array[TTechLevelString] of string;
+      //strings for attitudes
+      Attitudes: array[TIndianAttitude] of string;
 
       //names of founding fathers
       FoundingFathers: array[TFoundingFathers] of string;
@@ -407,12 +409,19 @@ type
       function GetNewGameString(const which: TNewGameString): string;
 
       { returns a string related to Indian nations' tech levels
-      
+
         parameters:
             level - the tech level whose string is requested
             which - indicates the requested string
       }
       function GetTechLevelString(const level: TTechLevel; const which: TTechLevelString): string;
+
+      { returns a string describing an Indian nations' attitude
+
+        parameters:
+            attitude - the attitude whose description is requested
+      }
+      function GetAttitudeString(const attitude: TIndianAttitude): string;
 
       { tries to save the language data to the given file and returns true in
         case of success
@@ -778,6 +787,12 @@ begin
   TechLevelStrings[tlCivilised, tlsLevelName]:= 'zivilisiert';
   TechLevelStrings[tlCivilised, tlsOneSettlementName]:= 'eine Stadt';
   TechLevelStrings[tlCivilised, tlsMultipleSettlementName]:= 'Städte';
+  //attitudes
+  Attitudes[iaPleased]:= 'zufrieden';
+  Attitudes[iaWorried]:= 'besorgt';
+  Attitudes[iaAnxious]:= 'unruhig';
+  Attitudes[iaAngry]:= 'verärgert';
+  Attitudes[iaBelligerent]:= 'kriegerisch';
   //founding fathers
   InitialFoundingFathers;
 
@@ -1177,6 +1192,11 @@ begin
   Result:= TechLevelStrings[level, which];
 end;//func
 
+function TLanguage.GetAttitudeString(const attitude: TIndianAttitude): string;
+begin
+  Result:= Attitudes[attitude];
+end;//func
+
 function TLanguage.SaveToFile(const FileName: string): Boolean;
 var dat: TextFile;
     i, j: Integer;
@@ -1289,6 +1309,10 @@ begin
   for i:= Ord(Low(TTechLevel)) to Ord(High(TTechLevel)) do
     for j:= Ord(Low(TTechLevelString)) to Ord(High(TTechLevelString)) do
       WriteLn(dat, TechLevelStrings[TTechLevel(i), TTechLevelString(j)]);
+  WriteLn(dat);
+  WriteLn(dat, '[Attitudes]');
+  for i:= Ord(Low(TIndianAttitude)) to Ord(High(TIndianAttitude)) do
+    WriteLn(dat, Attitudes[TIndianAttitude(i)]);
   CloseFile(dat);
   Result:= True;
 end;//func
@@ -1581,6 +1605,17 @@ begin
             str1:= Trim(str1);
             if str1<>'' then TechLevelStrings[TTechLevel(i), TTechLevelString(j)]:= str1;
           end;//for j
+          i:= i+1;
+        end;//while
+      end//if
+      else if str1='[Attitudes]' then
+      begin
+        i:= Ord(Low(TIndianAttitude));
+        while (i<=Ord(High(TIndianAttitude))) and not Eof(dat) do
+        begin
+          ReadLn(dat, str1);
+          str1:= Trim(str1);
+          if str1<>'' then Attitudes[TIndianAttitude(i)]:= str1;
           i:= i+1;
         end;//while
       end;//if
