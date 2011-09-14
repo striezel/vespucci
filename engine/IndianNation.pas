@@ -1,7 +1,7 @@
 { ***************************************************************************
 
     This file is part of Vespucci.
-    Copyright (C) 2010  Thoronador
+    Copyright (C) 2010, 2011  Thoronador
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -24,9 +24,12 @@ unit IndianNation;
 interface
 
 uses
-  Nation;
+  Nation, Classes;
 
 type
+  { enumeration type for tech level of an Indian nation }
+  TTechLevel = (tlNomadic, tlAgricultural, tlDeveloped, tlCivilised);
+  
   { ********
     **** TIndianNation class
     ****
@@ -35,6 +38,11 @@ type
     *******
   }
   TIndianNation = class(TNation)
+    protected
+      //tech level of that nation
+      m_TechLevel: TTechLevel;
+      //contact with European Nations
+      m_Contact: array[cMinEuropean..cMaxEuropean] of Boolean;
     public
       { constructor
 
@@ -57,6 +65,42 @@ type
             Will always return false.
       }
       function IsEuropean: Boolean; override;
+
+      { returns the nation's tech level }
+      function GetTechLevel: TTechLevel;
+
+      { returns whether this nation had already contact with an European nation
+
+        parameters:
+            num_EuroNat - the European nation's ID
+      }
+      function HasContactWith(const num_EuroNat: LongInt): Boolean;
+
+      { sets the contact status with an European Nation
+      
+        parameters:
+            num_EuroNat - the European nation's ID
+            newContact  - the new contact state
+      }
+      procedure SetContactWith(const num_EuroNat: LongInt; const newContact: Boolean=True);
+
+      { tries to save this nation's data to the given stream and returns true
+        in case of success, or false if an error occured
+
+        parameters:
+            fs - the file stream the nation shall be saved in
+
+        remarks:
+            The file stream already has to be opened and be ready for writing.
+      }
+      function SaveToStream(var fs: TFileStream): Boolean; override;
+
+      { loads the European nation from the stream and returns true on success
+
+        parameters:
+            fs   - the file stream the nation will be loaded from
+      }
+      function LoadFromStream(var fs: TFileStream): Boolean; override;
   end;//class
 
 implementation
@@ -64,11 +108,20 @@ implementation
 // **** functions of TIndianNation ****
 
 constructor TIndianNation.Create(const num: LongInt; const NameStr: string);
+var i: Integer;
 begin
   inherited Create(num, NameStr);
   //check number and pick a default in case of invalidity
   if ((m_count<cMinIndian) or (m_count>cMaxIndian)) then
     m_count:= cNationArawak;
+  for i:=cMinEuropean to cMaxEuropean do
+    m_Contact[i]:= false;
+  case m_count of
+    cNationArawak, cNationCherokee, cNationIroquois: m_TechLevel:= tlAgricultural;
+    cNationAztec: m_TechLevel:= tlDeveloped;
+    cNationInca: m_TechLevel:= tlCivilised;
+  else m_TechLevel:= tlNomadic; //Tupi, Sioux, and Apache
+  end;//case
 end;//construc
 
 function TIndianNation.IsIndian: Boolean;
@@ -79,6 +132,58 @@ end;//func
 function TIndianNation.IsEuropean: Boolean;
 begin
   Result:= False;
+end;//func
+
+function TIndianNation.GetTechLevel: TTechLevel;
+begin
+  Result:= m_TechLevel;
+end;//func
+
+function TIndianNation.HasContactWith(const num_EuroNat: LongInt): Boolean;
+begin
+  if num_EuroNat in [cMinEuropean..cMaxEuropean] then
+    Result:= m_Contact[num_EuroNat]
+  else Result:= False;
+end;//func
+
+procedure TIndianNation.SetContactWith(const num_EuroNat: LongInt; const newContact: Boolean=True);
+begin
+  if num_EuroNat in [cMinEuropean..cMaxEuropean] then
+    m_Contact[num_EuroNat]:= newContact;
+end;//proc
+
+function TIndianNation.SaveToStream(var fs: TFileStream): Boolean;
+var i: LongInt;
+begin
+  //try to save inherited data from TNation
+  Result:= inherited SaveToStream(fs);
+  //If that failed, exit.
+  if (not Result) then Exit;
+  //save bits from Indian nation
+  // -- tech level
+  Result:= Result and (fs.Write(m_TechLevel, sizeof(TTechLevel))=sizeof(TTechLevel));
+  // -- contacts
+  for i:= cMinEuropean to cMaxEuropean do
+  begin
+    Result:= Result and (fs.Write(m_Contact[i], sizeof(Boolean))=sizeof(Boolean));
+  end;//for
+end;//func
+
+function TIndianNation.LoadFromStream(var fs: TFileStream): Boolean;
+var i: LongInt;
+begin
+  //try to load inherited data from TNation
+  Result:= inherited LoadFromStream(fs);
+  //If that failed, exit.
+  if (not Result) then Exit;
+  //load bits from Indian nation
+  // -- tech level
+  Result:= Result and (fs.Read(m_TechLevel, sizeof(TTechLevel))=sizeof(TTechLevel));
+  // -- contacts
+  for i:= cMinEuropean to cMaxEuropean do
+  begin
+    Result:= Result and (fs.Read(m_Contact[i], sizeof(Boolean))=sizeof(Boolean));
+  end;//for
 end;//func
 
 end.

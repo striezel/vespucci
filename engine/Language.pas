@@ -25,7 +25,7 @@ interface
 
 uses
   Goods, Units, Terrain, Nation, Colony {building type}, FoundingFathers,
-  SysUtils;
+  IndianNation, SysUtils;
 
 type
   { enumeration type to represent a menu category }
@@ -38,7 +38,7 @@ type
                   osNewWorld, osMoves, osEmpty, osNothing, osNoChanges, osTax,
                   osGold, osCost, osSaving, osEarnings, osName, osProgress, osUndefined);
   TEuroPortString = (epsManageHeading, epsNotOnShip, epsGoOnShip, epsArm, epsDisarm, epsGiveHorses, epsNoHorses, epsGiveTools, epsNoTools, epsTrainHeading, epsBuyHeading);
-  TReportType = (rtNone, rtCongress, rtJob, rtEconomy, rtColony, rtFleet, rtForeign, rtScore);
+  TReportType = (rtNone, rtCongress, rtJob, rtEconomy, rtColony, rtFleet, rtForeign, rtIndian, rtScore);
   TColonyString = (csRenameQuestion, csRenameLabel, csAbandonYes, csAbandonNo, csAbandonQuestion);
   TColonyUnitString = (cusOptions, cusCancelOrders, cusOnBoard, cusFortify);
   TBuildingString = (bsUnderConstruction, bsSelectNext, bsNotify, bsMaxThree);
@@ -56,7 +56,9 @@ type
                         rlsJobReport,
                         //continental congress
                         rlsCongress, rlsNextCongress, rlsRebelAttitude,
-                        rlsLoyalAttitude, rlsExpeditionForces, rlsFoundingFathers);
+                        rlsLoyalAttitude, rlsExpeditionForces, rlsFoundingFathers,
+                        //Indians
+                        rlsIndianReport, rlsIndianExterminated);
   TNotifyString = (nsJoinedCongress);
   TNewGameString = (ngsNewGame, ngsNewWorld, ngsAmerica, ngsLandmass, ngsLandmassSmall,
                     ngsLandmassMedium, ngsLandmassLarge, ngsTemperature,
@@ -64,6 +66,7 @@ type
                     ngsClimate, ngsClimateDry, ngsClimateNormal, ngsClimateWet,
                     ngsEuropeanPower, ngsEuropeanPowerEngland, ngsEuropeanPowerFrance,
                     ngsEuropeanPowerSpain, ngsEuropeanPowerHolland);
+  TTechLevelString = (tlsLevelName, tlsOneSettlementName, tlsMultipleSettlementName);
 
 
   { ********
@@ -127,6 +130,8 @@ type
       Notifications: array[TNotifyString] of string;
       //strings for new game messages/ map generation choices
       NewGame: array[TNewGameString] of string;
+      //strings for Indian tech levels
+      TechLevelStrings: array[TTechLevel] of array[TTechLevelString] of string;
 
       //names of founding fathers
       FoundingFathers: array[TFoundingFathers] of string;
@@ -401,6 +406,14 @@ type
       }
       function GetNewGameString(const which: TNewGameString): string;
 
+      { returns a string related to Indian nations' tech levels
+      
+        parameters:
+            level - the tech level whose string is requested
+            which - indicates the requested string
+      }
+      function GetTechLevelString(const level: TTechLevel; const which: TTechLevelString): string;
+
       { tries to save the language data to the given file and returns true in
         case of success
 
@@ -475,7 +488,8 @@ begin
   MenuOptions[mcReports, 4]:= 'Koloniebericht';
   MenuOptions[mcReports, 5]:= 'Flottenbericht';
   MenuOptions[mcReports, 6]:= 'Außenpolitikbericht';
-  MenuOptions[mcReports, 7]:= 'Kolonialisierungspunkte';
+  MenuOptions[mcReports, 7]:= 'Indianerberater';
+  MenuOptions[mcReports, 8]:= 'Kolonialisierungspunkte';
   // -- Handel
   MenuOptions[mcTrade, 1]:= 'Handelsroute festlegen';
   MenuOptions[mcTrade, 2]:= 'Handelsroute ändern';
@@ -515,7 +529,7 @@ begin
   NationNames[cNationCherokee]:= 'Cherokee';
   NationNames[cNationIroquois]:= 'Irokesen';
   NationNames[cNationSioux]:= 'Sioux';
-  NationNames[cNationApache]:= 'Apache';
+  NationNames[cNationApache]:= 'Apachen';
   //leaders's default names
   LeaderNames[cNationEngland]:= 'Walter Raleigh';
   LeaderNames[cNationFrance]:= 'Jacques Cartier';
@@ -717,13 +731,16 @@ begin
   ReportLabels[rlsSonsOfLiberty]:= 'Söhne der Freiheit';
   // --- job report
   ReportLabels[rlsJobReport]:= 'Arbeitsbericht';
-  //continental congress
+  // --- continental congress
   ReportLabels[rlsCongress]:= 'Kontinentalkongress';
   ReportLabels[rlsNextCongress]:= 'Nächste Sitzung des Kontinentalkongresses';
   ReportLabels[rlsRebelAttitude]:= 'Rebellische Gesinnung';
   ReportLabels[rlsLoyalAttitude]:= 'Loyalistische Gesinnung';
   ReportLabels[rlsExpeditionForces]:= 'Expeditionsstreitkräfte';
   ReportLabels[rlsFoundingFathers]:= 'Gründerväter';
+  // --- indian report
+  ReportLabels[rlsIndianReport]:= 'Indianerberater';
+  ReportLabels[rlsIndianExterminated]:= 'ausgerottet';
   //notifications
   Notifications[nsJoinedCongress]:= 'Gründerväter geben bekannt, dass %s dem '
                                    +'Kontinentalkongress beigetreten ist.';
@@ -748,6 +765,19 @@ begin
   NewGame[ngsEuropeanPowerFrance]:= 'Frankreich (Kooperation)';
   NewGame[ngsEuropeanPowerSpain]:= 'Spanien (Eroberung)';
   NewGame[ngsEuropeanPowerHolland]:= 'Holland (Handel)';
+  //Tech levels
+  TechLevelStrings[tlNomadic, tlsLevelName]:= 'halb-nomadisch';
+  TechLevelStrings[tlNomadic, tlsOneSettlementName]:= 'ein Lager';
+  TechLevelStrings[tlNomadic, tlsMultipleSettlementName]:= 'Lager';
+  TechLevelStrings[tlAgricultural, tlsLevelName]:= 'landwirtschaftlich';
+  TechLevelStrings[tlAgricultural, tlsOneSettlementName]:= 'ein Dorf';
+  TechLevelStrings[tlAgricultural, tlsMultipleSettlementName]:= 'Dörfer';
+  TechLevelStrings[tlDeveloped, tlsLevelName]:= 'weiterentwickelt';
+  TechLevelStrings[tlDeveloped, tlsOneSettlementName]:= 'eine Stadt';
+  TechLevelStrings[tlDeveloped, tlsMultipleSettlementName]:= 'Städte';
+  TechLevelStrings[tlCivilised, tlsLevelName]:= 'zivilisiert';
+  TechLevelStrings[tlCivilised, tlsOneSettlementName]:= 'eine Stadt';
+  TechLevelStrings[tlCivilised, tlsMultipleSettlementName]:= 'Städte';
   //founding fathers
   InitialFoundingFathers;
 
@@ -1142,6 +1172,11 @@ begin
   Result:= NewGame[which];
 end;//func
 
+function TLanguage.GetTechLevelString(const level: TTechLevel; const which: TTechLevelString): string;
+begin
+  Result:= TechLevelStrings[level, which];
+end;//func
+
 function TLanguage.SaveToFile(const FileName: string): Boolean;
 var dat: TextFile;
     i, j: Integer;
@@ -1249,6 +1284,11 @@ begin
   WriteLn(dat, '[BuildingStrings]');
   for i:= Ord(Low(TBuildingString)) to Ord(High(TBuildingString)) do
     WriteLn(dat, BuildingStrings[TBuildingString(i)]);
+  WriteLn(dat);
+  WriteLn(dat, '[TechLevels]');
+  for i:= Ord(Low(TTechLevel)) to Ord(High(TTechLevel)) do
+    for j:= Ord(Low(TTechLevelString)) to Ord(High(TTechLevelString)) do
+      WriteLn(dat, TechLevelStrings[TTechLevel(i), TTechLevelString(j)]);
   CloseFile(dat);
   Result:= True;
 end;//func
@@ -1527,6 +1567,20 @@ begin
           ReadLn(dat, str1);
           str1:= Trim(str1);
           if str1<>'' then BuildingStrings[TBuildingString(i)]:= str1;
+          i:= i+1;
+        end;//while
+      end//if
+      else if str1='[TechLevels]' then
+      begin
+        i:= Ord(Low(TTechLevel));
+        while (i<=Ord(High(TTechLevel))) and not Eof(dat) do
+        begin
+          for j:= Ord(Low(TTechLevelString)) to Ord(High(TTechLevelString)) do
+          begin
+            ReadLn(dat, str1);
+            str1:= Trim(str1);
+            if str1<>'' then TechLevelStrings[TTechLevel(i), TTechLevelString(j)]:= str1;
+          end;//for j
           i:= i+1;
         end;//while
       end;//if
