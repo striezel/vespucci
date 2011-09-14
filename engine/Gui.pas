@@ -234,7 +234,7 @@ const
     );
 
   { caption of game window }
-  cWindowCaption = 'Vespucci v0.01.r200';
+  cWindowCaption = 'Vespucci v0.01.r201';
 
   { text colour (greenish) }
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
@@ -3738,6 +3738,9 @@ begin
         WriteText(dat.GetLang.GetTechLevelString(indian_arr[i].tech_level, tlsOneSettlementName),
                   2.5, rep_offset-0.5)
       else WriteText(dat.GetLang.GetReportString(rlsIndianExterminated), 2.5, rep_offset-0.5);
+      //write attitude
+      if (indian_arr[i].settlements>0) then
+        WriteText(dat.GetLang.GetAttitudeString(indian_arr[i].attitude), (cWindowWidth div 2)*PixelWidth, rep_offset-0.5);
       rep_offset:= rep_offset - 1.5;
     end;//if zero or more settlements
   end;//for

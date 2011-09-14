@@ -29,6 +29,8 @@ uses
 type
   { enumeration type for tech level of an Indian nation }
   TTechLevel = (tlNomadic, tlAgricultural, tlDeveloped, tlCivilised);
+  { enumeration type for attitude of Indians }
+  TIndianAttitude = (iaPleased, iaWorried, iaAnxious, iaAngry, iaBelligerent);
   
   { ********
     **** TIndianNation class
@@ -43,6 +45,8 @@ type
       m_TechLevel: TTechLevel;
       //contact with European Nations
       m_Contact: array[cMinEuropean..cMaxEuropean] of Boolean;
+      //attitude towards Europeans
+      m_Attitude: array[cMinEuropean..cMaxEuropean] of TIndianAttitude;
     public
       { constructor
 
@@ -77,12 +81,27 @@ type
       function HasContactWith(const num_EuroNat: LongInt): Boolean;
 
       { sets the contact status with an European Nation
-      
+
         parameters:
             num_EuroNat - the European nation's ID
             newContact  - the new contact state
       }
       procedure SetContactWith(const num_EuroNat: LongInt; const newContact: Boolean=True);
+
+      { returns this nation's attitude towards an European nation
+
+        parameters:
+            num_EuroNat - the European nation's ID
+      }
+      function GetAttitude(const num_EuroNat: LongInt): TIndianAttitude;
+
+      { sets the nation's attitude towards an European Nation
+
+        parameters:
+            num_EuroNat - the European nation's ID
+            newAttitude - the new attitude
+      }
+      procedure SetAttitude(const num_EuroNat: LongInt; const newAttitude: TIndianAttitude);
 
       { tries to save this nation's data to the given stream and returns true
         in case of success, or false if an error occured
@@ -115,7 +134,10 @@ begin
   if ((m_count<cMinIndian) or (m_count>cMaxIndian)) then
     m_count:= cNationArawak;
   for i:=cMinEuropean to cMaxEuropean do
+  begin
     m_Contact[i]:= false;
+    m_Attitude[i]:= iaPleased;
+  end;//for
   case m_count of
     cNationArawak, cNationCherokee, cNationIroquois: m_TechLevel:= tlAgricultural;
     cNationAztec: m_TechLevel:= tlDeveloped;
@@ -152,6 +174,19 @@ begin
     m_Contact[num_EuroNat]:= newContact;
 end;//proc
 
+function TIndianNation.GetAttitude(const num_EuroNat: LongInt): TIndianAttitude;
+begin
+  if num_EuroNat in [cMinEuropean..cMaxEuropean] then
+    Result:= m_Attitude[num_EuroNat]
+  else Result:= iaPleased;
+end;//func
+
+procedure TIndianNation.SetAttitude(const num_EuroNat: LongInt; const newAttitude: TIndianAttitude);
+begin
+  if num_EuroNat in [cMinEuropean..cMaxEuropean] then
+    m_Attitude[num_EuroNat]:= newAttitude;
+end;//proc
+
 function TIndianNation.SaveToStream(var fs: TFileStream): Boolean;
 var i: LongInt;
 begin
@@ -162,10 +197,11 @@ begin
   //save bits from Indian nation
   // -- tech level
   Result:= Result and (fs.Write(m_TechLevel, sizeof(TTechLevel))=sizeof(TTechLevel));
-  // -- contacts
+  // -- contacts and attitudes
   for i:= cMinEuropean to cMaxEuropean do
   begin
     Result:= Result and (fs.Write(m_Contact[i], sizeof(Boolean))=sizeof(Boolean));
+    Result:= Result and (fs.Write(m_Attitude[i], sizeof(TIndianAttitude))=sizeof(TIndianAttitude));
   end;//for
 end;//func
 
@@ -179,10 +215,11 @@ begin
   //load bits from Indian nation
   // -- tech level
   Result:= Result and (fs.Read(m_TechLevel, sizeof(TTechLevel))=sizeof(TTechLevel));
-  // -- contacts
+  // -- contacts and attitudes
   for i:= cMinEuropean to cMaxEuropean do
   begin
     Result:= Result and (fs.Read(m_Contact[i], sizeof(Boolean))=sizeof(Boolean));
+    Result:= Result and (fs.Read(m_Attitude[i], sizeof(TIndianAttitude))=sizeof(TIndianAttitude));
   end;//for
 end;//func
 
