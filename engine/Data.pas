@@ -96,6 +96,11 @@ type
                    end;//rec
   { array that holds information about unit types/ jobs }
   TWorkArray = array[utCriminal..utDragoon] of Word;
+  { array that holds information for Indian report }
+  TIndianReportArray = array[cMinIndian..cMaxIndian] of record
+                                                          settlements: Integer;
+                                                          tech_level: TTechLevel;
+                                                        end;//rec
 
   { ********
     **** TData class
@@ -344,6 +349,13 @@ type
                     num_nation - integer constant identifying the nation
               }
               function GetWorkArray(const num_nation: Integer): TWorkArray;
+
+              { returns the data for the Indian report
+
+                parameters:
+                    num_nation - integer constant identifying the player's nation
+              }
+              function GetIndianReport(const num_nation: LongInt): TIndianReportArray;
 
               //units in colonies
               { returns all units that are in the field/map square of the given
@@ -1060,6 +1072,28 @@ begin
     if m_Units[i]<>nil then
       if ((m_Units[i].GetNation=num_nation) and (m_Units[i].GetType in [utCriminal..utDragoon])) then
         Result[m_Units[i].GetType]:= Result[m_Units[i].GetType]+1;
+end;//func
+
+function TData.GetIndianReport(const num_nation: LongInt): TIndianReportArray;
+var i: Integer;
+begin
+  { **** TODO: set settlement values for nations that the player hasn't met yet
+    ****       to something below zero, so they don't show up in the report
+    ****       (yet). }
+  //pre-fill array with zeroes
+  for i:=cMinIndian to cMaxIndian do
+  begin
+    Result[i].settlements:= 0;
+    if (GetNation(i)<>nil) then Result[i].tech_level:= (GetNation(i) as TIndianNation).GetTechLevel
+    else Result[i].tech_level:= tlNomadic;
+  end;//for
+  //search through settlements
+  for i:= 0 to Tribe_max do
+    if m_Tribes[i]<>nil then
+      if (m_Tribes[i].GetNation in [cMinIndian..cMaxIndian]) then
+      begin
+        Result[m_Tribes[i].GetNation].settlements:= Result[m_Tribes[i].GetNation].settlements+1;
+      end;//if
 end;//func
 
 function TData.GetAllUnitsInColony(const ACol: TColony): TUnitArr;

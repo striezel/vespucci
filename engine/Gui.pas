@@ -234,7 +234,7 @@ const
     );
 
   { caption of game window }
-  cWindowCaption = 'Vespucci v0.01.r192';
+  cWindowCaption = 'Vespucci v0.01.r200';
 
   { text colour (greenish) }
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
@@ -431,6 +431,9 @@ type
 
       { draws the job report }
       procedure DrawJobReport;
+      
+      { draws the report about Indian nations }
+      procedure DrawIndianReport;
 
       { draws the score report }
       procedure DrawScoreReport;
@@ -1771,7 +1774,8 @@ begin
                 IntToStr(europe.GetPrice(tempGood, True)*tempAmount)+' '+dat.GetLang.GetOthers(osGold))
               +StretchTo60('-'+IntToStr(europe.GetTaxRate)+'% '+dat.GetLang.GetOthers(osTax),
                  IntToStr((europe.GetPrice(tempGood, True)*tempAmount*europe.GetTaxRate) div 100)+' '+dat.GetLang.GetOthers(osGold))
-              +StretchTo60(dat.GetLang.GetOthers(osEarnings)+':', IntToStr(europe.GetPrice(tempGood, True)*tempAmount-((europe.GetPrice(tempGood, True)*tempAmount*europe.GetTaxRate) div 100))+' '+dat.GetLang.GetOthers(osGold)));
+              +StretchTo60(dat.GetLang.GetOthers(osEarnings)+':', IntToStr(europe.GetPrice(tempGood, True)*tempAmount
+                            -((europe.GetPrice(tempGood, True)*tempAmount*europe.GetTaxRate) div 100))+' '+dat.GetLang.GetOthers(osGold)));
               //actually sell it
               europe.SellGood(tempUArr[0].GetCargoGoodBySlot(sx), tempAmount);
             end;//else
@@ -3013,7 +3017,8 @@ begin
         begin
           glColor3f(1.0, 1.0, 1.0);
           glEnable(GL_TEXTURE_2D);
-          if m_GoodTexNames[ShipArr[0].GetCargoGoodBySlot(i)]<>0 then glBindTexture(GL_TEXTURE_2D, m_GoodTexNames[ShipArr[0].GetCargoGoodBySlot(i)])
+          if m_GoodTexNames[ShipArr[0].GetCargoGoodBySlot(i)]<>0 then
+            glBindTexture(GL_TEXTURE_2D, m_GoodTexNames[ShipArr[0].GetCargoGoodBySlot(i)])
           else glBindTexture(GL_TEXTURE_2D, m_ErrorTexName);
           glBegin(GL_QUADS);
             glTexCoord2f(0.0, 0.0);
@@ -3080,7 +3085,8 @@ begin
     //draw list of ships in port
     for i:= 0 to High(PeopleArr) do
     begin
-      if m_UnitTexNames[PeopleArr[i].GetType]<>0 then glBindTexture(GL_TEXTURE_2D, m_UnitTexNames[PeopleArr[i].GetType])
+      if m_UnitTexNames[PeopleArr[i].GetType]<>0 then
+        glBindTexture(GL_TEXTURE_2D, m_UnitTexNames[PeopleArr[i].GetType])
       else glBindTexture(GL_TEXTURE_2D, m_ErrorTexName);
       glBegin(GL_QUADS);
         glColor3f(1.0, 1.0, 1.0);
@@ -3361,6 +3367,7 @@ begin
              end;//rtFleet
     rtColony: DrawColonyReport;
     rtForeign: DrawForeignAffairsReport;
+    rtIndian: DrawIndianReport;
     rtScore: DrawScoreReport;
   end;//case
 end;//proc
@@ -3700,6 +3707,40 @@ begin
     i:= i+1;
     ut:= Succ(ut);
   end;//while
+end;//proc
+
+procedure TGui.DrawIndianReport;
+var i, j: Integer;
+    indian_arr: TIndianReportArray;
+    rep_offset: Single;
+begin
+  i:= (cWindowWidth-length(dat.GetLang.GetReportString(rlsIndianReport))*8) div 2;
+  glColor3ubv(@cMenuTextColour[0]);
+  WriteText(dat.GetLang.GetReportString(rlsIndianReport), i*PixelWidth, y_Fields-0.25);
+  //list all available indian nations
+  indian_arr:= dat.GetIndianReport(dat.PlayerNation);
+  rep_offset:= y_Fields-0.75;
+  for i:= cMinIndian to cMaxIndian do
+  begin
+    if (indian_arr[i].settlements>=0) then
+    begin
+      //set nation's colour
+      glColor3ubv(@cMenuTextColour[0]);
+      WriteText(dat.GetLang.GetNationName(i)+': ', 2.0, rep_offset);
+      //write nation's level
+      j:= cWindowWidth-length(dat.GetLang.GetTechLevelString(indian_arr[i].tech_level, tlsLevelName))*8 - 16;
+      WriteText(dat.GetLang.GetTechLevelString(indian_arr[i].tech_level, tlsLevelName), j*PixelWidth, rep_offset);
+      //write number of settlements
+      if (indian_arr[i].settlements>1) then
+        WriteText(IntToStr(indian_arr[i].settlements)+' '+dat.GetLang.GetTechLevelString(indian_arr[i].tech_level, tlsMultipleSettlementName),
+                  2.5, rep_offset-0.5)
+      else if (indian_arr[i].settlements=1) then
+        WriteText(dat.GetLang.GetTechLevelString(indian_arr[i].tech_level, tlsOneSettlementName),
+                  2.5, rep_offset-0.5)
+      else WriteText(dat.GetLang.GetReportString(rlsIndianExterminated), 2.5, rep_offset-0.5);
+      rep_offset:= rep_offset - 1.5;
+    end;//if zero or more settlements
+  end;//for
 end;//proc
 
 procedure TGui.DrawScoreReport;
@@ -4535,6 +4576,10 @@ begin
                           report_pages:= 1;
                         end;
                      7: begin
+                          report:= rtIndian;
+                          report_pages:= 1;
+                        end;
+                     8: begin
                           report:= rtScore;
                           report_pages:= 1;
                         end;
