@@ -1285,6 +1285,12 @@ begin
                        //Spawn frigate at the rightmost field in the middle of the map, it's the best guess here.
                        NewUnit(utFrigate, num_Nation, cMap_X-1, cMap_Y div 2).SetLocation(ulAmerica);
                    end;//case ffJones
+          //Pocahontas improves relations to Indians.
+          ffPocahontas: begin
+                          for i:= cMinIndian to cMaxIndian do
+                            if (GetNation(i)<>nil) then
+                              (GetNation(i) as TIndianNation).SetAttitude(num_Nation, iaPleased);
+                        end;//case ffPocahontas
         end;//case
         { To Do:
           ======
