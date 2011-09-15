@@ -1,7 +1,7 @@
 { ***************************************************************************
 
     This file is part of Vespucci.
-    Copyright (C) 2008, 2009, 2010  Thoronador
+    Copyright (C) 2008, 2009, 2010, 2011  Thoronador
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@ unit Tribe;
 interface
 
 uses
-  Settlement, Nation, Units;
+  Settlement, Nation, Units, Classes;
 
 const
   { Constant array that holds the lociations of indian tribes that are present
@@ -87,6 +87,28 @@ type
             same tribe.
       }
       procedure Teach(var AUnit: TUnit);
+
+      { tries to save the tribe to a stream and returns true in case of success
+
+        parameters:
+            fs - the file stream the tribe has to be saved to
+
+        remarks:
+            The file stream already has to be openend and has to be ready for
+            writing.
+      }
+      function SaveToStream(var fs: TFileStream): Boolean;
+
+      { tries to load a tribe from a stream and returns true in case of success
+
+        parameters:
+            fs - the file stream the tribe has to be loaded from
+
+        remarks:
+            The file stream already has to be openend and has to be ready for
+            reading.
+      }
+      function LoadFromStream(var fs: TFileStream): Boolean;
     private
       m_KnownFor: TUnitType;
       m_HasTought: array[cMinEuropean..cMaxEuropean] of Boolean;
@@ -138,5 +160,63 @@ begin
     end;//else
   end;//if
 end;//proc
+
+function TTribe.SaveToStream(var fs: TFileStream): Boolean;
+var i: Integer;
+begin
+  if fs=nil then
+  begin
+    Result:= False;
+    Exit;
+  end;//if
+  //write stuff inherited from TSettlement
+  Result:= (fs.Write(m_Nation, sizeof(LongInt))=sizeof(LongInt));
+  Result:= Result and (fs.Write(PosX, sizeof(LongInt))=sizeof(LongInt));
+  Result:= Result and (fs.Write(PosY, sizeof(LongInt))=sizeof(LongInt));
+  //write TTribe stuff
+  //write special unit type
+  Result:= Result and (fs.Write(m_KnownFor, sizeof(TUnitType))=sizeof(TUnitType));
+  //write teaching status
+  for i:= cMinEuropean to cMaxEuropean do
+    Result:= Result and (fs.Write(m_HasTought[i], sizeof(Boolean))=sizeof(Boolean));
+end;//func
+
+function TTribe.LoadFromStream(var fs: TFileStream): Boolean;
+var i, j: LongInt;
+begin
+  if fs=nil then
+  begin
+    Result:= False;
+    Exit;
+  end;//if
+  //read stuff inherited from TSettlement
+  Result:= (fs.Read(i, sizeof(LongInt))=sizeof(LongInt));
+  if not Result then
+  begin
+    WriteLn('TTribe.LoadFromStream: Error: could not read nation index.');
+    Exit;
+  end;//if
+  if not (i in [cMinIndian..cMaxIndian]) then
+  begin
+    WriteLn('TTribe.LoadFromStream: Error: invalid nation index.');
+    Exit;
+  end;//if
+  ChangeNation(i);
+  Result:= Result and (fs.Read(i, sizeof(LongInt))=sizeof(LongInt));
+  Result:= Result and (fs.Read(j, sizeof(LongInt))=sizeof(LongInt));
+  if not Result then
+  begin
+    WriteLn('TTribe.LoadFromStream: Error: could not read position.');
+    Exit;
+  end;//if
+  Result:= Result and (i>=0) and (j>=0);
+  SetPosition(i, j);
+  //read TTribe stuff
+  //read special unit type
+  Result:= Result and (fs.Read(m_KnownFor, sizeof(TUnitType))=sizeof(TUnitType));
+  //write teaching status
+  for i:= cMinEuropean to cMaxEuropean do
+    Result:= Result and (fs.Read(m_HasTought[i], sizeof(Boolean))=sizeof(Boolean));
+end;//func
 
 end.
