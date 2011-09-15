@@ -1829,8 +1829,8 @@ begin
       data<n>.vdd - simple data
       map<n>.vmd - map itself
       units<n>.vud - all units
-      colony<n>.vcd - all colonies
-      nations<n>.vnd - european nations
+      colony<n>.vcd - all colonies and tribes
+      nations<n>.vnd - European and Indian nations
   }
   if m_Map=nil then
   begin
@@ -1918,20 +1918,36 @@ begin
   end;//if
 
   //colonies
+  // -- determine number of valid colonies
   temp:= 0;
   for i:=0 to Colony_max do
     if m_Colonies[i]<>nil then temp:= temp+1;
+  // -- try to open file
   try
     fs:= TFileStream.Create(GetPathBase+save_path +'colony'+IntToStr(n)+'.vcd', fmCreate or fmShareDenyNone);
   except
     if fs<>nil then fs.Free;
+    err:= 'TData.SaveData: Could not create colony file "'+GetPathBase+save_path +'colony'+IntToStr(n)+'.vcd';
     Result:= False;
     Exit;
   end;//tryxcept
+  // -- write file header
   Result:= Result and (fs.Write(cColonyFileHeader[1], sizeof(cColonyFileHeader))=sizeof(cColonyFileHeader));
+  // -- write number of colonies in file
   Result:= Result and (fs.Write(temp, sizeof(Integer))=sizeof(Integer));
+  // -- write colonies
   for i:= 0 to Colony_max do
     if m_Colonies[i]<>nil then Result:= Result and m_Colonies[i].SaveToStream(fs);
+  //tribes go into the same file, too
+  // -- determine number of valid tribes
+  temp:= 0;
+  for i:=0 to Tribe_max do
+    if m_Tribes[i]<>nil then temp:= temp+1;
+  // -- write number of tribes in file
+  Result:= Result and (fs.Write(temp, sizeof(Integer))=sizeof(Integer));
+  // -- write tribes
+  for i:= 0 to Tribe_max do
+    if m_Tribes[i]<>nil then Result:= Result and m_Tribes[i].SaveToStream(fs);
   fs.Free;
   fs:= nil;
   if not Result then
@@ -1945,11 +1961,12 @@ begin
     fs:= TFileStream.Create(GetPathBase+save_path +'nations'+IntToStr(n)+'.vnd', fmCreate or fmShareDenyNone);
   except
     if fs<>nil then fs.Free;
+    err:= 'TData.SaveData: Could not create nations file "'+GetPathBase+save_path +'nations'+IntToStr(n)+'.vnd';
     Result:= False;
     Exit;
   end;//tryxcept
 
-  for i:= cMinEuropean to cMaxEuropean do
+  for i:= cMinNations to cMaxNations do
     Result:= Result and Nations[i].SaveToStream(fs);
   fs.Free;
   fs:= nil;
@@ -1965,6 +1982,7 @@ var fs: TFileStream;
     temp_nat: TNation;
     temp_unit: TUnit;
     temp_colony: TColony;
+    temp_tribe: TTribe;
 begin
   Result:= False;
   DeInitTribes;
@@ -1978,8 +1996,8 @@ begin
       data<n>.vdd - simple data
       map<n>.vmd - map itself
       units<n>.vud - all units
-      colony<n>.vcd - all colonies
-      nations<n>.vnd - european nations
+      colony<n>.vcd - all colonies and tribes
+      nations<n>.vnd - European and Indian nations
   }
   if not (FileExists(GetPathBase+save_path+'data'+IntToStr(n)+'.vdd') and
          FileExists(GetPathBase+save_path+'map'+IntToStr(n)+'.vmd') and
@@ -2013,7 +2031,7 @@ begin
   Result:= Result and (fs.Read(Year, sizeof(Year))=sizeof(Year));
   Result:= Result and (fs.Read(Autumn, sizeof(Autumn))=sizeof(Autumn));
   Result:= Result and (fs.Read(player_nation, sizeof(player_nation))=sizeof(player_nation));
-  if player_nation<0 then
+  if not (player_nation in [cMinEuropean..cMaxEuropean]) then
   begin
     err:= 'TData.LoadData: got invalid nation count from data file.';
     Result:= False;
@@ -2039,7 +2057,7 @@ begin
     err:= 'TData.LoadData: Error while reading data file "'+GetPathBase+save_path +'data'+IntToStr(n)+'.vdd';
     Exit;
   end;//if
-  for i:= cMinNations to cMaxIndian do
+  for i:= cMinNations to cMaxNations do
     if Nations[i]<>nil then
     begin
       Nations[i].Destroy;
@@ -2115,8 +2133,9 @@ begin
     Exit;
   end;//if
 
-  //load colonies
+  //load colonies and tribes
   DeInitColonies;
+  DeInitTribes;
   try
     fs:= TFileStream.Create(GetPathBase+save_path +'colony'+IntToStr(n)+'.vcd', fmOpenRead or fmShareDenyNone);
   except
@@ -2142,18 +2161,33 @@ begin
     err:= 'TData.LoadData: got invalid colony count.';
     Exit;
   end;//if
-
+  // -- read colonies
   for i:= 1 to temp do
   begin
     temp_colony:= NewColony(1,1, cNationEngland, 'new colony '+IntToStr(i));
     Result:= Result and LoadColonyFromStream(temp_colony, fs);
+  end;//for
+  // -- read tribe count
+  Result:= Result and (fs.Read(temp, sizeof(Integer))=sizeof(Integer));
+  if ((temp<0) or (not Result)) then
+  begin
+    fs.Free;
+    Result:= False;
+    err:= 'TData.LoadData: got invalid tribe count.';
+    Exit;
+  end;//if
+  // -- read tribes
+  for i:= 1 to temp do
+  begin
+    temp_tribe:= NewTribe(1,1, cNationArawak, utFarmer);
+    Result:= Result and temp_tribe.LoadFromStream(fs);
   end;//for
   fs.Free;
   fs:= nil;
 
   if not Result then
   begin
-    err:= 'TData.LoadData: error while loading colonies.';
+    err:= 'TData.LoadData: error while loading colonies and tribes.';
     Exit;
   end;//if
 
@@ -2173,7 +2207,7 @@ begin
     Result:= False;
     Exit;
   end;//tryxcept
-  for i:= cMinEuropean to cMaxEuropean do
+  for i:= cMinNations to cMaxNations do
   begin
     Result:= Result and Nations[i].LoadFromStream(fs);
     Result:= Result and (Nations[i].GetCount=i);
