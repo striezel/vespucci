@@ -99,6 +99,15 @@ type
       }
       function GetAttitudeLevel(const NumNation: LongInt): Byte;
 
+      { sets an integer representing this tribe's attitude towards the
+        given European Nation. Lower values mean friendlier attitude.
+
+        parameters:
+            NumNation - ID of the European Nation
+            new_level - the new value for the attitude level
+      }
+      procedure SetAttitudeLevel(const NumNation: LongInt; const new_level: Byte);
+
       { tries to save the tribe to a stream and returns true in case of success
 
         parameters:
@@ -187,6 +196,12 @@ begin
     Result:= m_AttitudeLevel[NumNation]
   else Result:= 0; //assume best
 end;//func
+
+procedure TTribe.SetAttitudeLevel(const NumNation: LongInt; const new_level: Byte);
+begin
+  if NumNation in [cMinEuropean..cMaxEuropean] then
+    m_AttitudeLevel[NumNation]:= new_level;
+end;//proc
 
 function TTribe.SaveToStream(var fs: TFileStream): Boolean;
 var i: Integer;
