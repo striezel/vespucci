@@ -88,6 +88,17 @@ type
       }
       procedure Teach(var AUnit: TUnit);
 
+      { returns true, if this tribe represents a capital of the Indians }
+      function IsCapital: Boolean;
+
+      { returns an integer representing this tribe's attitude towards the
+        given European Nation. Lower values mean friendlier attitude.
+
+        parameters:
+            NumNation - ID of the European Nation
+      }
+      function GetAttitudeLevel(const NumNation: LongInt): Byte;
+
       { tries to save the tribe to a stream and returns true in case of success
 
         parameters:
@@ -97,7 +108,7 @@ type
             The file stream already has to be openend and has to be ready for
             writing.
       }
-      function SaveToStream(var fs: TFileStream): Boolean;
+      function SaveToStream(var fs: TFileStream): Boolean; override;
 
       { tries to load a tribe from a stream and returns true in case of success
 
@@ -108,10 +119,14 @@ type
             The file stream already has to be openend and has to be ready for
             reading.
       }
-      function LoadFromStream(var fs: TFileStream): Boolean;
+      function LoadFromStream(var fs: TFileStream): Boolean; override;
     private
       m_KnownFor: TUnitType;
       m_HasTought: array[cMinEuropean..cMaxEuropean] of Boolean;
+      //capital flag
+      m_Capital: Boolean;
+      //attitude level - basically used for internal calculations
+      m_AttitudeLevel: array[cMinEuropean..cMaxEuropean] of Byte;
   end;//class
 
 implementation
@@ -161,62 +176,69 @@ begin
   end;//if
 end;//proc
 
+function TTribe.IsCapital: Boolean;
+begin
+  Result:= m_Capital;
+end;//func
+
+function TTribe.GetAttitudeLevel(const NumNation: LongInt): Byte;
+begin
+  if NumNation in [cMinEuropean..cMaxEuropean] then
+    Result:= m_AttitudeLevel[NumNation]
+  else Result:= 0; //assume best
+end;//func
+
 function TTribe.SaveToStream(var fs: TFileStream): Boolean;
 var i: Integer;
 begin
-  if fs=nil then
+  //write inherited data
+  Result:= inherited SaveToStream(fs);
+  if not Result then
   begin
-    Result:= False;
+    WriteLn('TTribe.SaveToStream: Error: could not write inherited data.');
     Exit;
   end;//if
-  //write stuff inherited from TSettlement
-  Result:= (fs.Write(m_Nation, sizeof(LongInt))=sizeof(LongInt));
-  Result:= Result and (fs.Write(PosX, sizeof(LongInt))=sizeof(LongInt));
-  Result:= Result and (fs.Write(PosY, sizeof(LongInt))=sizeof(LongInt));
   //write TTribe stuff
   //write special unit type
   Result:= Result and (fs.Write(m_KnownFor, sizeof(TUnitType))=sizeof(TUnitType));
   //write teaching status
   for i:= cMinEuropean to cMaxEuropean do
     Result:= Result and (fs.Write(m_HasTought[i], sizeof(Boolean))=sizeof(Boolean));
+  //write capital status
+  Result:= Result and (fs.Write(m_Capital, sizeof(Boolean))=sizeof(Boolean));
+  //write attitude levels
+  for i:= cMinEuropean to cMaxEuropean do
+    Result:= Result and (fs.Write(m_AttitudeLevel[i], sizeof(Byte))=sizeof(Byte));
 end;//func
 
 function TTribe.LoadFromStream(var fs: TFileStream): Boolean;
 var i, j: LongInt;
 begin
-  if fs=nil then
+  //read inherited data
+  Result:= inherited LoadFromStream(fs);
+  if not Result then
+  begin
+    WriteLn('TTribe.LoadFromStream: Error: could not read inherited data.');
+    Exit;
+  end;//if
+  //check nation index
+  if not (m_Nation in [cMinIndian..cMaxIndian]) then
   begin
     Result:= False;
+    WriteLn('TTribe.LoadFromStream: Error: got invalid nation index.');
     Exit;
   end;//if
-  //read stuff inherited from TSettlement
-  Result:= (fs.Read(i, sizeof(LongInt))=sizeof(LongInt));
-  if not Result then
-  begin
-    WriteLn('TTribe.LoadFromStream: Error: could not read nation index.');
-    Exit;
-  end;//if
-  if not (i in [cMinIndian..cMaxIndian]) then
-  begin
-    WriteLn('TTribe.LoadFromStream: Error: invalid nation index.');
-    Exit;
-  end;//if
-  ChangeNation(i);
-  Result:= Result and (fs.Read(i, sizeof(LongInt))=sizeof(LongInt));
-  Result:= Result and (fs.Read(j, sizeof(LongInt))=sizeof(LongInt));
-  if not Result then
-  begin
-    WriteLn('TTribe.LoadFromStream: Error: could not read position.');
-    Exit;
-  end;//if
-  Result:= Result and (i>=0) and (j>=0);
-  SetPosition(i, j);
   //read TTribe stuff
   //read special unit type
   Result:= Result and (fs.Read(m_KnownFor, sizeof(TUnitType))=sizeof(TUnitType));
   //write teaching status
   for i:= cMinEuropean to cMaxEuropean do
     Result:= Result and (fs.Read(m_HasTought[i], sizeof(Boolean))=sizeof(Boolean));
+  //read capital status
+  Result:= Result and (fs.Read(m_Capital, sizeof(Boolean))=sizeof(Boolean));
+  //read attitude levels
+  for i:= cMinEuropean to cMaxEuropean do
+    Result:= Result and (fs.Read(m_AttitudeLevel[i], sizeof(Byte))=sizeof(Byte));
 end;//func
 
 end.
