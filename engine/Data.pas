@@ -1287,9 +1287,14 @@ begin
                    end;//case ffJones
           //Pocahontas improves relations to Indians.
           ffPocahontas: begin
+                          //reset indian attitude to pleased (best one possible)
                           for i:= cMinIndian to cMaxIndian do
                             if (GetNation(i)<>nil) then
                               (GetNation(i) as TIndianNation).SetAttitude(num_Nation, iaPleased);
+                          //reset the tribes' attitude, too
+                          for i:= 0 to Tribe_max do
+                            if m_Tribes[i]<>nil then
+                              m_Tribes[i].SetAttitudeLevel(num_Nation, 0);
                         end;//case ffPocahontas
         end;//case
         { To Do:
