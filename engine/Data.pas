@@ -2291,13 +2291,20 @@ begin
     Result:= False;
     Exit;
   end;//if
-  Result:= (fs.Read(i, sizeof(Integer))=sizeof(Integer));
+  Result:= (fs.Read(i, sizeof(LongInt))=sizeof(LongInt));
+  //check nation index
+  if not (i in [cMinEuropean..cMaxEuropean]) then
+  begin
+    Result:= False;
+    WriteLn('TData.LoadColonyFromStream: Error: got invalid nation index.');
+    Exit;
+  end;//if
   AColony.ChangeNation(i);
-  Result:= Result and (fs.Read(f_x, sizeof(Integer))=sizeof(Integer));
-  Result:= Result and (fs.Read(f_y, sizeof(Integer))=sizeof(Integer));
+  Result:= Result and (fs.Read(f_x, sizeof(LongInt))=sizeof(LongInt));
+  Result:= Result and (fs.Read(f_y, sizeof(LongInt))=sizeof(LongInt));
   AColony.SetPosition(f_x, f_y);
   //name
-  Result:= Result and (fs.Read(i, sizeof(Integer))=sizeof(Integer));
+  Result:= Result and (fs.Read(i, sizeof(LongInt))=sizeof(LongInt));
   if (not Result) or ((i<1)) then
   begin
     Result:= False;

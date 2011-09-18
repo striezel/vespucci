@@ -190,7 +190,7 @@ type
             inefficent), but for AI stuff only.
       }
       function GetFieldProduction(const AMap: TMap; const gt: TGoodType; const HasHudson: Boolean): Integer;
-      
+
       { returns the of the field that would be the best to produce a certain good
 
         parameters:
@@ -338,7 +338,7 @@ type
             The file stream already has to be openend and has to be ready for
             writing.
       }
-      function SaveToStream(var fs: TFileStream): Boolean;
+      function SaveToStream(var fs: TFileStream): Boolean; override;
 
     protected
       { returns the amount of goods that is currently prodcued in a certain
@@ -994,14 +994,14 @@ var i,j: LongInt;
     field_count, temp_b: Byte;
     bt: TBuildingType;
 begin
-  if fs=nil then
+  //write inherited data
+  Result:= inherited SaveToStream(fs);
+  if not Result then
   begin
-    Result:= False;
+    WriteLn('TColony.SaveToStream: Error: could not write inherited data.');
     Exit;
   end;//if
-  Result:= (fs.Write(m_Nation, sizeof(LongInt))=sizeof(LongInt));
-  Result:= Result and (fs.Write(PosX, sizeof(LongInt))=sizeof(LongInt));
-  Result:= Result and (fs.Write(PosY, sizeof(LongInt))=sizeof(LongInt));
+  //write colony data
   //name
   i:= length(m_Name);
   Result:= Result and (fs.Write(i, sizeof(LongInt))=sizeof(LongInt));

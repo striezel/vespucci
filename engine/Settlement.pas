@@ -1,7 +1,7 @@
 { ***************************************************************************
 
     This file is part of Vespucci.
-    Copyright (C) 2008, 2009, 2010  Dirk Stolle
+    Copyright (C) 2008, 2009, 2010, 2011  Dirk Stolle
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -23,6 +23,9 @@ unit Settlement;
 
 interface
 
+uses
+  Classes, Nation;
+
 type
   { ********
     **** TSettlement class
@@ -40,7 +43,7 @@ type
             X, Y    - x- and y-compoment of settlement's position
             ANation - nation that founded the settlement
       *}
-      constructor Create(const X, Y: Integer; const ANation: LongInt);
+      constructor Create(const X, Y: LongInt; const ANation: LongInt);
 
       { destructor }
       destructor Destroy; override;
@@ -56,9 +59,9 @@ type
       procedure ChangeNation(const new_nation: LongInt);
 
       { returns the x-component of settlement's position }
-      function GetPosX: Integer;
+      function GetPosX: LongInt;
       { returns the x-component of settlement's position }
-      function GetPosY: Integer;
+      function GetPosY: LongInt;
 
       { sets a new map position for the settlement
 
@@ -70,8 +73,34 @@ type
             then the procedure behaves as if they had the value of 1.
       }
       procedure SetPosition(const x,y: LongInt);
+
+      { tries to save the settlement to a stream and returns true in case of
+        success
+
+        parameters:
+            fs - the file stream the settlement has to be saved to
+
+        remarks:
+            The file stream already has to be openend and has to be ready for
+            writing.
+      }
+      function SaveToStream(var fs: TFileStream): Boolean; virtual;
+
+      { tries to load a settlement from a stream and returns true in case of
+        success
+
+        parameters:
+            fs - the file stream the settlement has to be loaded from
+
+        remarks:
+            The file stream already has to be openend and has to be ready for
+            reading.
+      }
+      function LoadFromStream(var fs: TFileStream): Boolean; virtual;
     protected
+      //index of the nations that owns the settlement
       m_Nation: LongInt;
+      //settlement's position
       PosX, PosY: LongInt;
   end;//class
 
@@ -117,5 +146,53 @@ begin
   if x>0 then PosX:= x else PosX:= 1;
   if y>0 then PosY:= y else PosY:= 1;
 end;//proc
+
+function TSettlement.SaveToStream(var fs: TFileStream): Boolean;
+begin
+  if fs=nil then
+  begin
+    Result:= False;
+    Exit;
+  end;//if
+  //write nation ID
+  Result:= (fs.Write(m_Nation, sizeof(LongInt))=sizeof(LongInt));
+  //write position
+  Result:= Result and (fs.Write(PosX, sizeof(LongInt))=sizeof(LongInt));
+  Result:= Result and (fs.Write(PosY, sizeof(LongInt))=sizeof(LongInt));
+end;//func
+
+function TSettlement.LoadFromStream(var fs: TFileStream): Boolean;
+var i, j: LongInt;
+begin
+  if fs=nil then
+  begin
+    Result:= False;
+    Exit;
+  end;//if
+  //read nation ID
+  i:= -1;
+  Result:= (fs.Read(i, sizeof(LongInt))=sizeof(LongInt));
+  if not Result then
+  begin
+    WriteLn('TSettlement.LoadFromStream: Error: could not read nation index.');
+    Exit;
+  end;//if
+  if not (i in [cMinNations..cMaxNations]) then
+  begin
+    Result:= False;
+    WriteLn('TSettlement.LoadFromStream: Error: invalid nation index.');
+    Exit;
+  end;//if
+  ChangeNation(i);
+  Result:= Result and (fs.Read(i, sizeof(LongInt))=sizeof(LongInt));
+  Result:= Result and (fs.Read(j, sizeof(LongInt))=sizeof(LongInt));
+  if not Result then
+  begin
+    WriteLn('TSettlement.LoadFromStream: Error: could not read position.');
+    Exit;
+  end;//if
+  Result:= Result and (i>=0) and (j>=0);
+  SetPosition(i, j);
+end;//func
 
 end.
