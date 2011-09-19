@@ -25,7 +25,7 @@ interface
 
 uses
   Nation, EuropeanNation, IndianNation, Language, Units, Colony, Tribe, Map,
-  Goods, FoundingFathers, Classes, SysUtils, Helper;
+  Goods, FoundingFathers, Settlement, Classes, SysUtils, Helper;
 
 const
 {$IFDEF Win32}
@@ -123,12 +123,9 @@ type
               //the units
               m_Units: array of TUnit;
               Unit_max: Integer;
-              //the colonies
-              m_Colonies: array of TColony;
-              Colony_max: Integer;
-              //the tribes
-              m_Tribes: array of TTribe;
-              Tribe_max: Integer;
+              //the colonies and tribes
+              m_Settlements: array of TSettlement;
+              Settlement_max: Integer;
               //map
               m_Map: TMap;
               //language
@@ -161,11 +158,8 @@ type
               { sets all tribes that are initially at the America map }
               procedure InitTribes_America;
 
-              { deletes all colonies }
-              procedure DeInitColonies;
-
-              { deletes all tribes }
-              procedure DeInitTribes;
+              { deletes all colonies and tribes }
+              procedure DeInitSettlements;
 
               { deletes all units }
               procedure DeInitUnits;
@@ -418,7 +412,16 @@ type
                     x,y - coordinates of the map square
               }
               function GetTribeInXY(const x,y: Byte): TTribe;
-              //general (settlements)
+
+              //general (settlements)              
+              { returns the settlement at map location (x;y), if any. If no
+                settlement is found, nil is returned.
+
+                parameters:
+                    x,y - coordinates of the map square
+              }
+              function GetSettlementInXY(const x, y: Byte): TSettlement;
+
               { returns true, if the given coordinates and adjacent squares do
                 not hold a settlement yet, and thus this coordinates can be used
                 to build a settlement
@@ -553,12 +556,9 @@ begin
   //units
   SetLength(m_Units, 0);
   Unit_max:= -1;
-  //colonies
-  SetLength(m_Colonies, 0);
-  Colony_max:= -1;
-  //tribes
-  SetLength(m_Tribes, 0);
-  Tribe_max:= -1;
+  //colonies and tribes
+  SetLength(m_Settlements, 0);
+  Settlement_max:= -1;
   InitializeMap;
 end;//construc
 
@@ -567,8 +567,7 @@ var i: Integer;
 begin
   for i:= cMinNations to cMaxIndian do
     if Nations[i]<>nil then Nations[i].Destroy;
-  DeInitColonies;
-  DeInitTribes;
+  DeInitSettlements;
   DeInitUnits;
   lang.Destroy;
   m_Map.Destroy;
@@ -623,30 +622,17 @@ begin
   m_Map.GenerateSpecials;
 end;//proc
 
-procedure TData.DeInitColonies;
+procedure TData.DeInitSettlements;
 var i: Integer;
 begin
-  for i:= Colony_max downto 0 do
-    if m_Colonies[i]<>nil then
+  for i:= Settlement_max downto 0 do
+    if m_Settlements[i]<>nil then
     begin
-      m_Colonies[i].Destroy;
-      m_Colonies[i]:= nil;
+      m_Settlements[i].Destroy;
+      m_Settlements[i]:= nil;
     end;
-  SetLength(m_Colonies, 0);
-  Colony_max:= -1;
-end;//proc
-
-procedure TData.DeInitTribes;
-var i: Integer;
-begin
-  for i:= Tribe_max downto 0 do
-    if m_Tribes[i]<>nil then
-    begin
-      m_Tribes[i].Destroy;
-      m_Tribes[i]:= nil;
-    end;
-  SetLength(m_Tribes, 0);
-  Tribe_max:= -1;
+  SetLength(m_Settlements, 0);
+  Settlement_max:= -1;
 end;//proc
 
 procedure TData.DeInitUnits;
@@ -728,10 +714,8 @@ begin
   InitializeNations;
   //units
   DeInitUnits;
-  //colonies
-  DeInitColonies;
-  //tribes
-  DeInitTribes;
+  //colonies and tribes
+  DeInitSettlements;
   //map
   if m_Map<>nil then
   begin
@@ -1017,12 +1001,12 @@ begin
   if not (num_nation in [cMinEuropean..cMaxEuropean]) then Exit;
   // ---- colonies
   sum:= 0;
-  for i:= 0 to Colony_max do
+  for i:= 0 to Settlement_max do
   begin
-    if (m_Colonies[i].GetNation=num_nation) then
+    if (m_Settlements[i].GetNation=num_nation) and (m_Settlements[i] is TColony) then
     begin
       Result.Colonies:= Result.Colonies+1;
-      sum:= sum + m_Colonies[i].GetInhabitants;
+      sum:= sum + (m_Settlements[i] as TColony).GetInhabitants;
     end;//if
   end;//for
   if Result.Colonies>0 then Result.Average:= sum div Result.Colonies
@@ -1096,11 +1080,11 @@ begin
     end;//else
   end;//for
   //search through settlements
-  for i:= 0 to Tribe_max do
-    if m_Tribes[i]<>nil then
-      if (m_Tribes[i].GetNation in [cMinIndian..cMaxIndian]) then
+  for i:= 0 to Settlement_max do
+    if m_Settlements[i]<>nil then
+      if (m_Settlements[i].GetNation in [cMinIndian..cMaxIndian]) and (m_Settlements[i] is TTribe) then
       begin
-        Result[m_Tribes[i].GetNation].settlements:= Result[m_Tribes[i].GetNation].settlements+1;
+        Result[m_Settlements[i].GetNation].settlements:= Result[m_Settlements[i].GetNation].settlements+1;
       end;//if
 end;//func
 
@@ -1123,28 +1107,27 @@ end;//func
 function TData.NewColony(const x,y: Byte; const num_Nation: Integer; const AName: ShortString): TColony;
 var i: Integer;
 begin
-  if (Colony_max+1>High(m_Colonies)) then
+  if (Settlement_max+1>High(m_Settlements)) then
   begin
-    SetLength(m_Colonies, High(m_Colonies)+5);
-    //"initialize" new colonies
-    for i:=Colony_max+1 to High(m_Colonies) do
-      m_Colonies[i]:= nil;
+    SetLength(m_Settlements, High(m_Settlements)+5);
+    //"initialize" new colonies/settlements
+    for i:=Settlement_max+1 to High(m_Settlements) do
+      m_Settlements[i]:= nil;
   end;//if
-  m_Colonies[Colony_max+1]:= TColony.Create(x, y, num_nation, AName);
-  Colony_max:= Colony_max+1;
-
-  Result:= m_Colonies[Colony_max];
+  m_Settlements[Settlement_max+1]:= TColony.Create(x, y, num_nation, AName);
+  Settlement_max:= Settlement_max+1;
+  Result:= m_Settlements[Settlement_max] as TColony;
 end;//func
 
 function TData.GetColonyInXY(const x,y: Byte): TColony;
 var i: Integer;
 begin
   Result:= nil;
-  for i:= 0 to Colony_max do
-    if m_Colonies[i]<>nil then
-      if ((m_Colonies[i].GetPosX=x) and (m_Colonies[i].GetPosY=y)) then
+  for i:= 0 to Settlement_max do
+    if m_Settlements[i]<>nil then
+      if ((m_Settlements[i].GetPosX=x) and (m_Settlements[i].GetPosY=y) and (m_Settlements[i] is TColony)) then
       begin
-        Result:= m_Colonies[i];
+        Result:= m_Settlements[i] as TColony;
         break;
       end;//if
 end;//func
@@ -1153,13 +1136,13 @@ function TData.GetColonyList(const num_nation: Integer): TColonyArr;
 var i: Integer;
 begin
   SetLength(Result, 0);
-  for i:= 0 to Colony_max do
-    if m_Colonies[i]<>nil then
+  for i:= 0 to Settlement_max do
+    if m_Settlements[i]<>nil then
     begin
-      if (m_Colonies[i].GetNation=num_nation) then
+      if (m_Settlements[i].GetNation=num_nation) then
       begin
           SetLength(Result, length(Result)+1);
-          Result[High(Result)]:= m_Colonies[i];
+          Result[High(Result)]:= m_Settlements[i] as TColony;
       end;//if
     end;//if <>nil
 end;//func
@@ -1168,15 +1151,16 @@ function TData.DeleteColony(const x,y: Byte): Boolean;
 var i: Integer;
 begin
   Result:= False;
-  for i:= 0 to Colony_max do
-    if m_Colonies[i]<>nil then
-      if ((m_Colonies[i].GetPosX=x) and (m_Colonies[i].GetPosY=y)) then
+  for i:= 0 to Settlement_max do
+    if m_Settlements[i]<>nil then
+      if ((m_Settlements[i].GetPosX=x) and (m_Settlements[i].GetPosY=y)
+          and (m_Settlements[i] is TColony)) then
       begin
-        m_Colonies[i].Destroy;
-        m_Colonies[i]:= nil;
-        m_Colonies[i]:= m_Colonies[Colony_max];
-        m_Colonies[Colony_max]:= nil;
-        Colony_max:= Colony_max-1;
+        m_Settlements[i].Destroy;
+        m_Settlements[i]:= nil;
+        m_Settlements[i]:= m_Settlements[Settlement_max];
+        m_Settlements[Settlement_max]:= nil;
+        Settlement_max:= Settlement_max-1;
         Result:= True;
         break;
       end;//if
@@ -1185,27 +1169,41 @@ end;//func
 function TData.NewTribe(const x,y: Byte; const num_Nation: Integer; const Teaches: TUnitType): TTribe;
 var i: Integer;
 begin
-  if (Tribe_max+1>High(m_Tribes)) then
+  if (Settlement_max+1>High(m_Settlements)) then
   begin
-    SetLength(m_Tribes, High(m_Tribes)+5);
+    SetLength(m_Settlements, High(m_Settlements)+5);
     //"initialize" new tribes
-    for i:=Tribe_max+1 to High(m_Tribes) do
-      m_Tribes[i]:= nil;
+    for i:=Settlement_max+1 to High(m_Settlements) do
+      m_Settlements[i]:= nil;
   end;//if
-  m_Tribes[Tribe_max+1]:= TTribe.Create(x, y, num_nation, Teaches);
-  Tribe_max:= Tribe_max+1;
-  Result:= m_Tribes[Tribe_max];
+  m_Settlements[Settlement_max+1]:= TTribe.Create(x, y, num_nation, Teaches);
+  Settlement_max:= Settlement_max+1;
+  Result:= m_Settlements[Settlement_max] as TTribe;
 end;//func
 
 function TData.GetTribeInXY(const x,y: Byte): TTribe;
 var i: Integer;
 begin
   Result:= nil;
-  for i:= 0 to Tribe_max do
-    if m_Tribes[i]<>nil then
-      if ((m_Tribes[i].GetPosX=x) and (m_Tribes[i].GetPosY=y)) then
+  for i:= 0 to Settlement_max do
+    if m_Settlements[i]<>nil then
+      if ((m_Settlements[i].GetPosX=x) and (m_Settlements[i].GetPosY=y)
+          and (m_Settlements[i] is TTribe)) then
       begin
-        Result:= m_Tribes[i];
+        Result:= m_Settlements[i] as TTribe;
+        break;
+      end;//if
+end;//func
+
+function TData.GetSettlementInXY(const x, y: Byte): TSettlement;
+var i: Integer;
+begin
+  Result:= nil;
+  for i:= 0 to Settlement_max do
+    if m_Settlements[i]<>nil then
+      if ((m_Settlements[i].GetPosX=x) and (m_Settlements[i].GetPosY=y)) then
+      begin
+        Result:= m_Settlements[i];
         break;
       end;//if
 end;//func
@@ -1243,22 +1241,22 @@ begin
     ENat:= GetNation(num_Nation) as TEuropeanNation;
     if not Autumn then //only in spring we produce, to avoid production twice a year
     begin
-      for i:= 0 to Colony_max do
-        if m_Colonies[i]<>nil then
-          if (m_Colonies[i].GetNation=num_Nation) then
+      for i:= 0 to Settlement_max do
+        if m_Settlements[i]<>nil then
+          if (m_Settlements[i].GetNation=num_Nation) and (m_Settlements[i] is TColony) then
           begin
             bells:= 0;
-            m_Colonies[i].NewRound(m_Map, ENat.HasFoundingFather(ffHudson),
-                                   ENat.HasFoundingFather(ffJefferson),
-                                   ENat.HasFoundingFather(ffPenn), bells);
+            (m_Settlements[i] as TColony).NewRound(m_Map, ENat.HasFoundingFather(ffHudson),
+                                                   ENat.HasFoundingFather(ffJefferson),
+                                                   ENat.HasFoundingFather(ffPenn), bells);
             ENat.AddLibertyBells(bells);
             //following should be implemented in TColony and not here
-            if m_Colonies[i].GetStore(gtFood)>=200 then
+            if (m_Settlements[i] as TColony).GetStore(gtFood)>=200 then
             begin
               //time for new inhabitant
-              m_Colonies[i].RemoveFromStore(gtFood, 200);
+              (m_Settlements[i] as TColony).RemoveFromStore(gtFood, 200);
               //creates new unit and sets its location to America
-              NewUnit(utColonist, num_nation, m_Colonies[i].GetPosX, m_Colonies[i].GetPosY).SetLocation(ulAmerica);
+              NewUnit(utColonist, num_nation, m_Settlements[i].GetPosX, m_Settlements[i].GetPosY).SetLocation(ulAmerica);
             end;//if
           end;//if
       //check if there are enough liberty bells for the next founding father
@@ -1292,9 +1290,9 @@ begin
                             if (GetNation(i)<>nil) then
                               (GetNation(i) as TIndianNation).SetAttitude(num_Nation, iaPleased);
                           //reset the tribes' attitude, too
-                          for i:= 0 to Tribe_max do
-                            if m_Tribes[i]<>nil then
-                              m_Tribes[i].SetAttitudeLevel(num_Nation, 0);
+                          for i:= 0 to Settlement_max do
+                            if (m_Settlements[i]<>nil) and (m_Settlements[i] is TTribe) then
+                              (m_Settlements[i] as TTribe).SetAttitudeLevel(num_Nation, 0);
                         end;//case ffPocahontas
         end;//case
         { To Do:
@@ -1925,8 +1923,8 @@ begin
   //colonies
   // -- determine number of valid colonies
   temp:= 0;
-  for i:=0 to Colony_max do
-    if m_Colonies[i]<>nil then temp:= temp+1;
+  for i:=0 to Settlement_max do
+    if (m_Settlements[i]<>nil) and (m_Settlements[i] is TColony) then temp:= temp+1;
   // -- try to open file
   try
     fs:= TFileStream.Create(GetPathBase+save_path +'colony'+IntToStr(n)+'.vcd', fmCreate or fmShareDenyNone);
@@ -1941,18 +1939,18 @@ begin
   // -- write number of colonies in file
   Result:= Result and (fs.Write(temp, sizeof(Integer))=sizeof(Integer));
   // -- write colonies
-  for i:= 0 to Colony_max do
-    if m_Colonies[i]<>nil then Result:= Result and m_Colonies[i].SaveToStream(fs);
+  for i:= 0 to Settlement_max do
+    if (m_Settlements[i]<>nil) and (m_Settlements[i] is TColony) then Result:= Result and m_Settlements[i].SaveToStream(fs);
   //tribes go into the same file, too
   // -- determine number of valid tribes
   temp:= 0;
-  for i:=0 to Tribe_max do
-    if m_Tribes[i]<>nil then temp:= temp+1;
+  for i:=0 to Settlement_max do
+    if (m_Settlements[i]<>nil) and (m_Settlements[i] is TTribe) then temp:= temp+1;
   // -- write number of tribes in file
   Result:= Result and (fs.Write(temp, sizeof(Integer))=sizeof(Integer));
   // -- write tribes
-  for i:= 0 to Tribe_max do
-    if m_Tribes[i]<>nil then Result:= Result and m_Tribes[i].SaveToStream(fs);
+  for i:= 0 to Settlement_max do
+    if (m_Settlements[i]<>nil) and (m_Settlements[i] is TTribe) then Result:= Result and m_Settlements[i].SaveToStream(fs);
   fs.Free;
   fs:= nil;
   if not Result then
@@ -1990,7 +1988,7 @@ var fs: TFileStream;
     temp_tribe: TTribe;
 begin
   Result:= False;
-  DeInitTribes;
+  DeInitSettlements;
   if m_Map=nil then InitializeMap;
   if not DirectoryExists(GetPathBase+save_path) then
   begin
@@ -2139,8 +2137,7 @@ begin
   end;//if
 
   //load colonies and tribes
-  DeInitColonies;
-  DeInitTribes;
+  DeInitSettlements;
   try
     fs:= TFileStream.Create(GetPathBase+save_path +'colony'+IntToStr(n)+'.vcd', fmOpenRead or fmShareDenyNone);
   except
