@@ -219,6 +219,30 @@ type
       }
       function IsTouchingLand(const x, y: Byte): Boolean;
 
+      { determines, whether a land tile has at least one water neighbour and
+        returns true in that case
+
+        parameters:
+            x, y - coordinates of the square
+      }
+      function IsAdjacentToWater(const x,y: Byte): Boolean;
+
+      { determines, whether a land tile has at least one hill/mountain neighbour
+        square and returns true in that case
+
+        parameters:
+            x, y - coordinates of the square
+      }
+      function IsAdjacentToMountains(const x,y: Byte): Boolean;
+
+      { determines, whether a land tile has at least one neighbour square with
+        forest and returns true in that case
+
+        parameters:
+            x, y - coordinates of the square
+      }
+      function IsAdjacentToForest(const x,y: Byte): Boolean;
+
       { this procedure reaveals surrounding tiles around a unit (or that is what
         it's made for)
 
@@ -750,6 +774,60 @@ begin
     end;//for
   //maybe we should check for tile[x,y] being land and exempt it from examination
   // or at least react in some way...
+end;//func
+
+function TMap.IsAdjacentToWater(const x,y: Byte): Boolean;
+var i, j: Integer;
+begin
+  Result:= False;
+  //don't go for non-filled maps
+  if not filled then Exit;
+  //return false for (x,y) being water
+  if IsValidMapPosition(x,y) then
+    if tiles[x,y].IsWater then Exit;
+  //loop through surrounding tiles
+  for i:= x-1 to x+1 do
+    for j:= y-1 to y+1 do
+      if (i in [0..cMap_X-1]) and (j in [0..cMap_Y-1]) then
+        if tiles[i,j].IsWater and ((i<>0) or (j<>0)) then
+        begin
+          Result:= True;
+          Exit;
+        end;//if
+end;//func
+
+function TMap.IsAdjacentToMountains(const x,y: Byte): Boolean;
+var i, j: Integer;
+begin
+  Result:= False;
+  //don't go for non-filled maps or invalid squares
+  if not filled or not IsValidMapPosition(x,y) then Exit;
+  //loop through surrounding tiles
+  for i:= x-1 to x+1 do
+    for j:= y-1 to y+1 do
+      if (i in [0..cMap_X-1]) and (j in [0..cMap_Y-1]) then
+        if (tiles[i,j].GetType in [ttHills, ttMountains]) and ((i<>0) or (j<>0)) then
+        begin
+          Result:= True;
+          Exit;
+        end;//if
+end;//func
+
+function TMap.IsAdjacentToForest(const x,y: Byte): Boolean;
+var i, j: Integer;
+begin
+  Result:= False;
+  //don't go for non-filled maps or invalid squares
+  if not filled or not IsValidMapPosition(x,y) then Exit;
+  //loop through surrounding tiles
+  for i:= x-1 to x+1 do
+    for j:= y-1 to y+1 do
+      if (i in [0..cMap_X-1]) and (j in [0..cMap_Y-1]) then
+        if tiles[i,j].HasForest and ((i<>0) or (j<>0)) then
+        begin
+          Result:= True;
+          Exit;
+        end;//if
 end;//func
 
 procedure TMap.DiscoverSurroundingTiles(const x,y: Byte; const cNation: Byte; const two_squares: Boolean);
