@@ -169,10 +169,24 @@ type
 
               { deletes all nations }
               procedure DeInitNations;
-              
-              { returns evaluation of map squares for AI-controlled colonies }
-              function GetColonySiteEvaluation: TColonySiteEvaluationGrid;
             public
+              { returns evaluation of map squares for AI-controlled colonies
+
+                parameters:
+                    OnlyNearWater - if true, only squares adjacent to water
+                                    squares will be considered as acceptable
+                                    for a new colony
+
+                return value:
+                    Returns an array that holds values for all map squares that
+                    indicates how good the square would be for a new colony.
+                    Negative values indicate that the square cannot be used for
+                    building a new colony. Values larger than or equal to zero
+                    show that this square is suitable. Higher values indicate
+                    better squares.
+              }
+              function GetColonySiteEvaluation(const OnlyNearWater: Boolean): TColonySiteEvaluationGrid;
+
               { constructor
 
                 parameters:
@@ -669,26 +683,33 @@ begin
   //array Nations has fixed size, no adjustment needed
 end;//proc
 
-function TData.GetColonySiteEvaluation: TColonySiteEvaluationGrid;
+function TData.GetColonySiteEvaluation(const OnlyNearWater: Boolean): TColonySiteEvaluationGrid;
+const cWorst: ShortInt = -128;
 var i, j, k: Integer;
 begin
   for i:= 0 to cMap_X-1 do
-    for j:= 0 to cMap_Y do
+    for j:= 0 to cMap_Y-1 do
     begin
       //impossible to build colonies in water
-      if m_Map.tiles[i,j].IsWater then Result[i,j]:= -1
+      if m_Map.tiles[i,j].IsWater then Result[i,j]:= cWorst
       else begin
         //mountains/hills are not allowed either
-        if m_Map.tiles[i,j].GetType in [ttMountains, ttHills] then Result[i,j]:= -1
+        if m_Map.tiles[i,j].GetType in [ttMountains, ttHills] then Result[i,j]:= cWorst
         else begin
           { Adjacent water square gives a big bonus, because that allows
             transportation via ships. }
           if m_Map.IsAdjacentToWater(i,j) then Result[i,j]:= 5
-          else Result[i,j]:= 0;
-          //forest square is needed for lumberjacks and construction of buildings
-          if m_Map.IsAdjacentToForest(i,j) then Result[i,j]:= Result[i,j]+2;
-          //hills are needed for ore and construction of buildings
-          if m_Map.IsAdjacentToMountains(i,j) then Result[i,j]:= Result[i,j]+1;
+          else begin
+            if OnlyNearWater then Result[i,j]:= cWorst
+            else Result[i,j]:= 0;
+          end;
+          if Result[i,j]<>cWorst then
+          begin
+            //forest square is needed for lumberjacks and construction of buildings
+            if m_Map.IsAdjacentToForest(i,j) then Result[i,j]:= Result[i,j]+2;
+            //hills are needed for ore and construction of buildings
+            if m_Map.IsAdjacentToMountains(i,j) then Result[i,j]:= Result[i,j]+1;
+          end;//if Result not cWorst  
         end;//else
       end;//else
     end;//for
@@ -697,20 +718,31 @@ begin
     if m_Settlements[i]<>nil then
     begin
       //the square of the settlement itself cannot be used anymore
-      Result[m_Settlements[i].GetPosX, m_Settlements[i].GetPosY]:= -1;
+      if m_Map.IsValidMapPosition(m_Settlements[i].GetPosX, m_Settlements[i].GetPosY) then
+        Result[m_Settlements[i].GetPosX, m_Settlements[i].GetPosY]:= cWorst;
       //surrounding squares cannot be used in case of European colony
       if m_Settlements[i] is TColony then
       begin
-        for j:= m_Settlements[i].GetPosX-1 to m_Settlements[i].GetPosX+1 do
-          for k:= m_Settlements[i].GetPosY-1 to m_Settlements[i].GetPosY+1 do
-            Result[j,k]:= -1;
+        for j:= m_Settlements[i].GetPosX-2 to m_Settlements[i].GetPosX+2 do
+          for k:= m_Settlements[i].GetPosY-2 to m_Settlements[i].GetPosY+2 do
+            if m_Map.IsValidMapPosition(j,k) then
+              Result[j,k]:= cWorst;
       end;//if
     end;//if
-  { ****************
-    **** TODO: check units for TFindLandForColonyTasks and make sure we are not
-    ****       going for a square that another ship/colonist is already going
-    ****       to.
-    **************** }
+  { Check units for TFindLandForColonyTasks and make sure we are not going for
+    a square that another ship/colonist is already going to.}
+  for i:=0 to Unit_max do
+    if m_Units[i]<>nil then
+      if m_Units[i].GetTask<>nil then
+        if m_Units[i].GetTask is TFindLandForColonyTask then
+          if m_Map.IsValidMapPosition((m_Units[i].GetTask as TFindLandForColonyTask).DestinationX , (m_Units[i].GetTask as TFindLandForColonyTask).DestinationY) then
+          begin
+            //mark all fields within a two-square radius as "occupied" in order to disallow colonies to close to another
+            for j:= (m_Units[i].GetTask as TFindLandForColonyTask).DestinationX-2 to (m_Units[i].GetTask as TFindLandForColonyTask).DestinationX+2 do
+              for k:= (m_Units[i].GetTask as TFindLandForColonyTask).DestinationY-2 to (m_Units[i].GetTask as TFindLandForColonyTask).DestinationY+2 do
+                if m_Map.IsValidMapPosition(j,k) then
+                  Result[j,k]:= cWorst;
+          end;//if
 end;//func
 
 function TData.GetYear: LongInt;

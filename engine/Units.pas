@@ -750,10 +750,10 @@ type
     **** TODO: make sure it always succeeds
     *******
   }
-  TFindLandForColonyTask = class(TTask)
+  TFindLandForColonyTask = class(TGoToTask)
     protected
-      m_Map: TMap;
       m_Data: Pointer;
+      m_BuildWhenDone: Boolean;
     public
       { constructor
 
@@ -1715,10 +1715,105 @@ end;//func
 // **** TFindLandForColonyTask methods ****
 
 constructor TFindLandForColonyTask.Create(const target_unit: TUnit; const AMap: TMap; const dat: Pointer);
+var grid: TColonySiteEvaluationGrid;
+    i, step: Integer;
+    found: Boolean;
+    target_coords_x, target_coords_y: Integer;
+    path: TCoordArr;
 begin
-  inherited Create(target_unit);
+  target:= target_unit;
   m_Map:= AMap;
   m_Data:= dat;
+  //get grid
+  grid:= TData(m_Data).GetColonySiteEvaluation(true);
+  //find best tile
+  found:= false;
+  step:= 1;
+  while not found and (step<cMap_Y) do begin
+    //check top row
+    for i:= target_unit.GetPosX-step to target_unit.GetPosX+step do
+      if m_Map.IsValidMapPosition(i, target_unit.GetPosY-step) then
+        //check, if it has a high enough value
+        if grid[i, target_unit.GetPosY-step]>=8 then
+          //check if there would be a path to it
+          if FindPath(target_unit.GetPosX, target_unit.GetPosY, i, target_unit.GetPosY-step,
+                      true, m_Map, path, i, target_unit.GetPosY-step) then
+          begin
+            //found a path to that square
+            found:= true;
+            target_coords_x:= i;
+            target_coords_y:= target_unit.GetPosY-step;
+            break;
+          end;//if
+    if found then break;
+    //check bottom row
+    for i:= target_unit.GetPosX-step to target_unit.GetPosX+step do
+      if m_Map.IsValidMapPosition(i, target_unit.GetPosY+step) then
+        //check, if it has a high enough value
+        if grid[i, target_unit.GetPosY+step]>=8 then
+          //check if there would be a path to it
+          if FindPath(target_unit.GetPosX, target_unit.GetPosY, i, target_unit.GetPosY+step,
+                      true, m_Map, path, i, target_unit.GetPosY+step) then
+          begin
+            //found a path to that square
+            found:= true;
+            target_coords_x:= i;
+            target_coords_y:= target_unit.GetPosY+step;
+            break;
+          end;//if
+    if found then break;
+    //check left row
+    for i:= target_unit.GetPosY-step+1 to target_unit.GetPosY+step-1 do
+      if m_Map.IsValidMapPosition(target_unit.GetPosX-step, i) then
+        //check, if it has a high enough value
+        if grid[target_unit.GetPosX-step, i]>=8 then
+          //check if there would be a path to it
+          if FindPath(target_unit.GetPosX, target_unit.GetPosY, target_unit.GetPosX-step, i,
+                      true, m_Map, path, target_unit.GetPosX-step, i) then
+          begin
+            //found a path to that square
+            found:= true;
+            target_coords_x:= target_unit.GetPosX-step;
+            target_coords_y:= i;
+            break;
+          end;//if
+    if found then break;
+    //check right row
+    for i:= target_unit.GetPosY-step+1 to target_unit.GetPosY+step-1 do
+      if m_Map.IsValidMapPosition(target_unit.GetPosX+step, i) then
+        //check, if it has a high enough value
+        if grid[target_unit.GetPosX+step, i]>=8 then
+          //check if there would be a path to it
+          if FindPath(target_unit.GetPosX, target_unit.GetPosY, target_unit.GetPosX+step, i,
+                      true, m_Map, path, target_unit.GetPosX+step, i) then
+          begin
+            //found a path to that square
+            found:= true;
+            target_coords_x:= target_unit.GetPosX+step;
+            target_coords_y:= i;
+            break;
+          end;//if
+    step:= step+1;
+  end;//while
+
+  // -- set data for goto task
+  //found something?
+  if found then
+  begin
+    m_X:= target_coords_x;
+    m_Y:= target_coords_y;
+    m_Path:= path;
+    m_BuildWhenDone:= true;
+  end//if
+  else begin
+    //nothing found
+    m_X:= target_unit.GetPosX;
+    m_Y:= target_unit.GetPosY;
+    SetLength(m_Path, 0);
+    m_BuildWhenDone:= false;
+  end;//else
+  spec_X:= target_coords_x;
+  spec_Y:= target_coords_y;
 end;//construc
 
 destructor TFindLandForColonyTask.Destroy;
@@ -1731,14 +1826,13 @@ function TFindLandForColonyTask.Done: Boolean;
 begin
   if ((not target.IsShip) or (target.EmbarkedPassengers=0)) then Result:= true
   else begin
-    if (m_Map.IsTouchingLand(target.GetPosX,target.GetPosY)) then
-      Result:= true
-    else Result:= false;
+      Result:= (inherited Done) or not m_BuildWhenDone; //We are done, if the
+      //GoToTask is done or no colony will be build anyway.
   end;//else
 end;//func
 
 function TFindLandForColonyTask.Execute: Boolean;
-var MovesBefore, j, i: LongInt;
+var tries: LongInt;
     founder: TUnit;
 begin
   if (target.EmbarkedPassengers=0) then
@@ -1746,49 +1840,31 @@ begin
     Result:= false;
     exit;
   end;//if
-  while (target.MovesLeft>=1) and
-        (not m_Map.IsTouchingLand(target.GetPosX,target.GetPosY)) do
+  //execute the GoToTask
+  Result:= inherited Execute;
+  //Are we at the destination?
+  if (target.GetPosX=m_X) and (target.GetPosY=m_Y) then
   begin
-    MovesBefore:= target.MovesLeft;
-    target.Move(dirW, m_Map, m_Data);
-    if (MovesBefore=target.MovesLeft) then target.Move(dirSW, m_Map, m_Data);
-    if (MovesBefore=target.MovesLeft) then target.Move(dirNW, m_Map, m_Data);
-    if (MovesBefore=target.MovesLeft) then target.Move(dirS, m_Map, m_Data);
-    if (MovesBefore=target.MovesLeft) then target.Move(dirN, m_Map, m_Data);
-  end;//while
-  //unit ran out of moves or is near land -> check and disembark, if neccessary
-  if (m_Map.IsTouchingLand(target.GetPosX,target.GetPosY)) then
-  begin
-    for i:=target.GetPosX-1 to target.GetPosX+1 do
-      for j:= target.GetPosY-1 to target.GetPosY+1 do
+    founder:= target.GetFirstEmbarkedPassenger;
+    if (target.UnloadUnit(founder.GetType, m_X, m_Y, m_Map)) then
+    begin
+      //build new colony and set the founder into the upper, left field
+      (TData(m_Data).NewColony(m_X, m_Y, founder.GetNation,
+        TData(m_Data).GetLang.GetColonyNames(founder.GetNation,
+        length(TData(m_Data).GetColonyList(founder.GetNation))))).SetUnitInField(-1, -1, founder);
+      //create road in colony square
+      m_Map.tiles[m_X,m_Y].CreateRoad;
+      //try to unload other units, too
+      tries:= 0;
+      while (target.GetFirstEmbarkedPassenger<>nil) and (tries<6) do
       begin
-        if (m_Map.IsValidMapPosition(i, j)) then
-        begin
-          if (not m_Map.tiles[i,j].IsWater) then
-          begin
-            founder:= target.GetFirstEmbarkedPassenger;
-            if (target.UnloadUnit(founder.GetType, i, j, m_Map)) then
-            begin
-              //build new colony and set the founder into the upper, left field
-              (TData(m_Data).NewColony(i,j, founder.GetNation,
-                 TData(m_Data).GetLang.GetColonyNames(founder.GetNation,
-                       length(TData(m_Data).GetColonyList(founder.GetNation))))).SetUnitInField(-1, -1, founder);
-              //create road in colony square
-              m_Map.tiles[i,j].CreateRoad;
-              //try to unload other units, too
-              MovesBefore:= 0;
-              while (target.GetFirstEmbarkedPassenger<>nil) and (MovesBefore<6) do
-              begin
-                target.UnloadUnit(target.GetFirstEmbarkedPassenger.GetType, i, j, m_Map);
-                MovesBefore:= MovesBefore +1;
-              end;//while
-              Result:= true;
-              exit;
-            end;//if
-          end;//if
-        end;//if valid position
-      end;
-  end;//if near land
+        target.UnloadUnit(target.GetFirstEmbarkedPassenger.GetType, m_X, m_Y, m_Map);
+        tries:= tries +1;
+      end;//while
+      Result:= true;
+      exit;
+    end;//if
+  end;//if at destination location
   Result:= true;
 end;//func
 
