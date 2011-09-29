@@ -227,7 +227,7 @@ begin
 end;//func
 
 function TTribe.LoadFromStream(var fs: TFileStream): Boolean;
-var i, j: LongInt;
+var i: LongInt;
 begin
   //read inherited data
   Result:= inherited LoadFromStream(fs);
