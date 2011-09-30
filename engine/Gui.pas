@@ -234,7 +234,7 @@ const
     );
 
   { caption of game window }
-  cWindowCaption = 'Vespucci v0.01.r210';
+  cWindowCaption = 'Vespucci v0.01.r211';
 
   { text colour (greenish) }
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
@@ -4451,8 +4451,9 @@ begin
                    end;//load
                 4: begin//quit?
                      temp_cb:= TExitCallback.Create;
-                     /// TODO: localize via Language class
-                     msg.AddMessageOptions('Vespucci beenden?', ToShortStrArr('Nein', 'Ja'), temp_cb);
+                     msg.AddMessageOptions(dat.GetLang.GetOthers(osQuitGame),
+                           ToShortStrArr(dat.GetLang.GetOthers(osNo), dat.GetLang.GetOthers(osYes)),
+                           temp_cb);
                    end;//3 of mcGame
               end;//case
             end;//mcGame
@@ -4501,6 +4502,7 @@ begin
                          else if focused.IsShip or (focused.GetType in [utRegular, utDragoon, utScout, utConvoy]) then
                            msg.AddMessageSimple(dat.GetLang.GetPioneer(psWrongUnit))
                          else if focused.GetToolAmount<20 then msg.AddMessageSimple(dat.GetLang.GetPioneer(psNoTools))
+                         else if focused.GetTask<>nil then msg.AddMessageSimple(dat.GetLang.GetPioneer(psBusy))
                          else begin
                            //do the real work now :)
                            tempTask:= TClearTask.Create(focused, focused.GetPosX, focused.GetPosY, dat.GetMap);
@@ -4517,6 +4519,7 @@ begin
                          else if focused.IsShip or (focused.GetType in [utRegular, utDragoon, utScout, utConvoy]) then
                            msg.AddMessageSimple(dat.GetLang.GetPioneer(psWrongUnit))
                          else if focused.GetToolAmount<20 then msg.AddMessageSimple(dat.GetLang.GetPioneer(psNoTools))
+                         else if focused.GetTask<>nil then msg.AddMessageSimple(dat.GetLang.GetPioneer(psBusy))
                          else begin
                            //do the real work now :)
                            tempTask:= TPloughTask.Create(focused, focused.GetPosX, focused.GetPosY, dat.GetMap);
@@ -4531,6 +4534,7 @@ begin
                          else if focused.IsShip or (focused.GetType in [utRegular, utDragoon, utScout, utConvoy]) then
                            msg.AddMessageSimple(dat.GetLang.GetPioneer(psWrongUnit))
                          else if focused.GetToolAmount<20 then msg.AddMessageSimple(dat.GetLang.GetPioneer(psNoTools))
+                         else if focused.GetTask<>nil then msg.AddMessageSimple(dat.GetLang.GetPioneer(psBusy))
                          else begin
                            //do the real work now :)
                            tempTask:= TRoadTask.Create(focused, focused.GetPosX, focused.GetPosY, dat.GetMap);

@@ -36,13 +36,14 @@ type
   TTransferString = (tsBoycotted, tsOutOfGold, tsOutOfSpace);
   TOtherString = (osLocation, osDestination, osFreight, osShip, osHighSea,
                   osNewWorld, osMoves, osEmpty, osNothing, osNoChanges, osTax,
-                  osGold, osCost, osSaving, osEarnings, osName, osProgress, osUndefined);
+                  osGold, osCost, osSaving, osEarnings, osName, osProgress,
+                  osQuitGame, osYes, osNo, osUndefined);
   TEuroPortString = (epsManageHeading, epsNotOnShip, epsGoOnShip, epsArm, epsDisarm, epsGiveHorses, epsNoHorses, epsGiveTools, epsNoTools, epsTrainHeading, epsBuyHeading);
   TReportType = (rtNone, rtCongress, rtJob, rtEconomy, rtColony, rtFleet, rtForeign, rtIndian, rtScore);
   TColonyString = (csRenameQuestion, csRenameLabel, csAbandonYes, csAbandonNo, csAbandonQuestion);
   TColonyUnitString = (cusOptions, cusCancelOrders, cusOnBoard, cusFortify);
   TBuildingString = (bsUnderConstruction, bsSelectNext, bsNotify, bsMaxThree);
-  TPioneerString = (psNoTools, psHasRoad, psIsPloughed, psIsCleared, psNeedsClearing, psWrongUnit);
+  TPioneerString = (psNoTools, psHasRoad, psIsPloughed, psIsCleared, psNeedsClearing, psBusy, psWrongUnit);
   TReportLabelString = (//report for colonization score
                         rlsColonizationScore, rlsCitizens, rlsContinentalCongress,
                         rlsVillagesBurned, rlsTotalScore,
@@ -637,6 +638,9 @@ begin
   Others[osEarnings]:= 'Gewinn';
   Others[osName]:= 'Name';
   Others[osProgress]:= 'Fortschritt';
+  Others[osQuitGame]:= 'Vespucci beenden?';
+  Others[osYes]:= 'Ja';
+  Others[osNo]:= 'Nein';
   Others[osUndefined]:= 'Nicht definiert';
   //save/ load messages
   SaveLoad[slsLoadChoose]:= 'Wählen Sie den zu ladenden Spielstand.';
@@ -713,6 +717,7 @@ begin
   Pioneers[psIsCleared]:= 'Dieses Gelände ist schon gerodet, Eure Exzellenz.';
   Pioneers[psNeedsClearing]:= 'Das Gebiet muss erst gerodet werden, bevor wir es pflügen   '
                              +'können, Eure Exzellenz.';
+  Pioneers[psBusy]:= 'Diese Einheit hat bereits Befehle erhalten, Eure Exzellenz.';
   Pioneers[psWrongUnit]:= 'Nur Siedler oder Pioniere, welche mit Werkzeugen ausgerüstet'
                          +' sind, können diese Aktion durchführen, Eure Exzellenz.';
 
