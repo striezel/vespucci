@@ -234,7 +234,7 @@ const
     );
 
   { caption of game window }
-  cWindowCaption = 'Vespucci v0.01.r201';
+  cWindowCaption = 'Vespucci v0.01.r210';
 
   { text colour (greenish) }
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
@@ -3722,9 +3722,9 @@ begin
   rep_offset:= y_Fields-0.75;
   for i:= cMinIndian to cMaxIndian do
   begin
-    if (indian_arr[i].settlements>=0) then
+    if (indian_arr[i].settlements>=0) and indian_arr[i].spawned then
     begin
-      //set nation's colour
+      //set text colour to menu text colour
       glColor3ubv(@cMenuTextColour[0]);
       WriteText(dat.GetLang.GetNationName(i)+': ', 2.0, rep_offset);
       //write nation's level
@@ -3742,8 +3742,17 @@ begin
       if (indian_arr[i].settlements>0) then
         WriteText(dat.GetLang.GetAttitudeString(indian_arr[i].attitude), (cWindowWidth div 2)*PixelWidth, rep_offset-0.5);
       rep_offset:= rep_offset - 1.5;
-    end;//if zero or more settlements
+    end;//if zero or more settlements and spawned
   end;//for
+  //Did we have some data to show?
+  if rep_offset=y_Fields-0.75 then
+  begin
+    //set text colour to menu text colour
+    glColor3ubv(@cMenuTextColour[0]);
+    i:= (cWindowWidth-length(dat.GetLang.GetReportString(rlsIndianNoData))*8) div 2;
+    //show player that there is no data for him/her yet
+    WriteText(dat.GetLang.GetReportString(rlsIndianNoData), i*PixelWidth, rep_offset -2.0);
+  end;//if
 end;//proc
 
 procedure TGui.DrawScoreReport;

@@ -58,7 +58,7 @@ type
                         rlsCongress, rlsNextCongress, rlsRebelAttitude,
                         rlsLoyalAttitude, rlsExpeditionForces, rlsFoundingFathers,
                         //Indians
-                        rlsIndianReport, rlsIndianExterminated);
+                        rlsIndianReport, rlsIndianExterminated, rlsIndianNoData);
   TNotifyString = (nsJoinedCongress);
   TNewGameString = (ngsNewGame, ngsNewWorld, ngsAmerica, ngsLandmass, ngsLandmassSmall,
                     ngsLandmassMedium, ngsLandmassLarge, ngsTemperature,
@@ -750,6 +750,7 @@ begin
   // --- indian report
   ReportLabels[rlsIndianReport]:= 'Indianerberater';
   ReportLabels[rlsIndianExterminated]:= 'ausgerottet';
+  ReportLabels[rlsIndianNoData]:= 'Sie haben noch keinen Kontakt zu den Ureinwohnern.';
   //notifications
   Notifications[nsJoinedCongress]:= 'Gründerväter geben bekannt, dass %s dem '
                                    +'Kontinentalkongress beigetreten ist.';
