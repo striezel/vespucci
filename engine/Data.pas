@@ -101,6 +101,7 @@ type
                                                           settlements: Integer;
                                                           tech_level: TTechLevel;
                                                           attitude: TIndianAttitude;
+                                                          spawned: Boolean;
                                                         end;//rec
 
   //field to hold evaluation of map squares for colonies (used by AI)
@@ -620,6 +621,10 @@ begin
   for i:= 0 to High(cTribeLocationsAmerica) do
   begin
     NewTribe(cTribeLocationsAmerica[i].x, cTribeLocationsAmerica[i].y, cTribeLocationsAmerica[i].Nation, utSugarPlanter);
+    //set Indian nation's spawn state to true
+    if GetNation(cTribeLocationsAmerica[i].Nation)<>nil then
+      if GetNation(cTribeLocationsAmerica[i].Nation) is TIndianNation then
+        (GetNation(cTribeLocationsAmerica[i].Nation) as TIndianNation).SetSpawnStatus(true);
   end;//for
 end;//proc
 
@@ -1158,10 +1163,12 @@ begin
     begin
       Result[i].tech_level:= (GetNation(i) as TIndianNation).GetTechLevel;
       Result[i].attitude:= (GetNation(i) as TIndianNation).GetAttitude(num_nation);
+      Result[i].spawned:= (GetNation(i) as TIndianNation).GetSpawnStatus;
     end//if
     else begin
       Result[i].tech_level:= tlNomadic;
       Result[i].attitude:= iaPleased;
+      Result[i].spawned:= false;
     end;//else
   end;//for
   //search through settlements

@@ -47,6 +47,9 @@ type
       m_Contact: array[cMinEuropean..cMaxEuropean] of Boolean;
       //attitude towards Europeans
       m_Attitude: array[cMinEuropean..cMaxEuropean] of TIndianAttitude;
+      //boolean that indicates whether this nation was present at the start of
+      // the game (not necessarily all Indian Nations are spawned each game)
+      m_Spawned: Boolean;
     public
       { constructor
 
@@ -103,6 +106,17 @@ type
       }
       procedure SetAttitude(const num_EuroNat: LongInt; const newAttitude: TIndianAttitude);
 
+      { returns true, if this nation spawned at the start of the current game.
+        The default value right after contructor call is false. }
+      function GetSpawnStatus: Boolean;
+
+      { sets the nation's spawn status
+
+        parameters:
+            new_stat - the new status value
+      }
+      procedure SetSpawnStatus(const new_stat: Boolean);
+
       { tries to save this nation's data to the given stream and returns true
         in case of success, or false if an error occured
 
@@ -144,6 +158,7 @@ begin
     cNationInca: m_TechLevel:= tlCivilised;
   else m_TechLevel:= tlNomadic; //Tupi, Sioux, and Apache
   end;//case
+  m_Spawned:= false;
 end;//construc
 
 function TIndianNation.IsIndian: Boolean;
@@ -187,6 +202,16 @@ begin
     m_Attitude[num_EuroNat]:= newAttitude;
 end;//proc
 
+function TIndianNation.GetSpawnStatus: Boolean;
+begin
+  Result:= m_Spawned;
+end;//func
+
+procedure TIndianNation.SetSpawnStatus(const new_stat: Boolean);
+begin
+  m_Spawned:= new_stat;
+end;//proc
+
 function TIndianNation.SaveToStream(var fs: TFileStream): Boolean;
 var i: LongInt;
 begin
@@ -203,6 +228,8 @@ begin
     Result:= Result and (fs.Write(m_Contact[i], sizeof(Boolean))=sizeof(Boolean));
     Result:= Result and (fs.Write(m_Attitude[i], sizeof(TIndianAttitude))=sizeof(TIndianAttitude));
   end;//for
+  // -- spawning status
+  Result:= Result and (fs.Write(m_Spawned, sizeof(Boolean))=sizeof(Boolean));
 end;//func
 
 function TIndianNation.LoadFromStream(var fs: TFileStream): Boolean;
@@ -221,6 +248,8 @@ begin
     Result:= Result and (fs.Read(m_Contact[i], sizeof(Boolean))=sizeof(Boolean));
     Result:= Result and (fs.Read(m_Attitude[i], sizeof(TIndianAttitude))=sizeof(TIndianAttitude));
   end;//for
+  // -- spawning status
+  Result:= Result and (fs.Read(m_Spawned, sizeof(Boolean))=sizeof(Boolean));
 end;//func
 
 end.
