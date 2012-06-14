@@ -1,7 +1,7 @@
 { ***************************************************************************
 
     This file is part of Vespucci.
-    Copyright (C) 2008, 2011  Dirk Stolle
+    Copyright (C) 2008, 2011, 2012  Dirk Stolle
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -33,9 +33,10 @@ const
 
 type
   TSaveCallback = class(TBasicCallback)
-    public
+    protected
       AData: TData;
 
+    public
       { function to handle the callback, i.e. perform all necessary steps after
         the player has made his/her choice. Should return true on success, false
         on failure
@@ -44,15 +45,19 @@ type
             Derived classes have to implement their own version of that function.
       }
       function Handle: Boolean; override;
+
+      { function to return the callback's type }
+      function GetType: Integer; override;
 
       constructor Create(const dat: TData);
   end;//class
   PSaveCallback = ^TSaveCallback;
 
   TLoadCallback = class(TBasicCallback)
-    public
+    protected
       AData: TData;
 
+    public
       { function to handle the callback, i.e. perform all necessary steps after
         the player has made his/her choice. Should return true on success, false
         on failure
@@ -62,11 +67,16 @@ type
       }
       function Handle: Boolean; override;
 
+      { function to return the callback's type }
+      function GetType: Integer; override;
+
       constructor Create(const dat: TData);
   end;//class
   PLoadCallback = ^TLoadCallback;
 
 implementation
+
+{ **** TSaveCallback functions **** }
 
 function TSaveCallback.Handle: Boolean;
   var err_str: string;
@@ -84,11 +94,17 @@ begin
   WriteLn('SaveGame errors: '+err_str);
 end;//func
 
+function TSaveCallback.GetType: Integer;
+begin
+  Result:= CBT_SAVE_GAME;
+end;//func
+
 constructor TSaveCallback.Create(const dat: TData);
 begin
-  _type:= CBT_SAVE_GAME;
   AData:= dat;
 end;//construc
+
+{ **** TLoadCallback functions **** }
 
 function TLoadCallback.Handle: Boolean;
 var err_str: string;
@@ -102,9 +118,13 @@ begin
   WriteLn('LoadGame errors: '+err_str);
 end;//func
 
+function TLoadCallback.GetType: Integer;
+begin
+  Result:= CBT_LOAD_GAME;
+end;//func
+
 constructor TLoadCallback.Create(const dat: TData);
 begin
-  _type:= CBT_LOAD_GAME;
   AData:= dat;
 end;//construc
 

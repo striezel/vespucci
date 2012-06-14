@@ -1,7 +1,7 @@
 { ***************************************************************************
 
     This file is part of Vespucci.
-    Copyright (C) 2011  Dirk Stolle
+    Copyright (C) 2011, 2012  Dirk Stolle
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -34,7 +34,6 @@ type
     public
       option: Integer;
       inputText: ShortString;
-      _type: LongInt;
 
       { function to handle the callback, i.e. perform all necessary steps after
         the player has made his/her choice. Should return true on success, false
@@ -44,6 +43,13 @@ type
             Derived classes have to implement their own version of that function.
       }
       function Handle: Boolean; virtual; abstract;
+
+       { function to return the callback's type
+
+        remarks:
+            Derived classes have to implement their own version of that function.
+      }
+      function GetType: Integer; virtual; abstract;
   end;//class
 
   //pointer type

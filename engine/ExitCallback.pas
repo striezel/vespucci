@@ -1,7 +1,7 @@
 { ***************************************************************************
 
     This file is part of Vespucci.
-    Copyright (C) 2008, 2011  Dirk Stolle
+    Copyright (C) 2008, 2011, 2012  Dirk Stolle
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -43,6 +43,9 @@ type
       }
       function Handle: Boolean; override;
 
+      { function to return the callback's type }
+      function GetType: Integer; override;
+
       constructor Create;
   end;//class
   PExitCallback = ^TExitCallback;
@@ -55,9 +58,14 @@ begin
   if option=1 then halt;
 end;//func
 
+function TExitCallback.GetType: Integer;
+begin
+  Result:= CBT_EXIT;
+end;
+
 constructor TExitCallback.Create;
 begin
-  _type:= CBT_EXIT;
+  //empty
 end;//construc
 
 end.

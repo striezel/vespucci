@@ -1,7 +1,7 @@
 { ***************************************************************************
 
     This file is part of Vespucci.
-    Copyright (C) 2008, 2009, 2011  Dirk Stolle
+    Copyright (C) 2008, 2009, 2011, 2012  Dirk Stolle
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -35,9 +35,10 @@ const
 type
 
   TRenameColonyCallback = class(TBasicCallback)
-    public
+    protected
       AColony: TColony;
 
+    public
       { function to handle the callback, i.e. perform all necessary steps after
         the player has made his/her choice. Should return true on success, false
         on failure
@@ -46,6 +47,9 @@ type
             Derived classes have to implement their own version of that function.
       }
       function Handle: Boolean; override;
+
+      { function to return the callback's type }
+      function GetType: Integer; override;
 
       constructor Create(const col: TColony);
   end;//class
@@ -53,9 +57,10 @@ type
 
 
   TColonyUnitCallback = class(TBasicCallback)
-    public
+    protected
       AUnit: TUnit;
 
+    public
       { function to handle the callback, i.e. perform all necessary steps after
         the player has made his/her choice. Should return true on success, false
         on failure
@@ -64,6 +69,9 @@ type
             Derived classes have to implement their own version of that function.
       }
       function Handle: Boolean; override;
+
+      { function to return the callback's type }
+      function GetType: Integer; override;
 
       constructor Create(const u: TUnit);
   end;//class
@@ -71,9 +79,10 @@ type
 
 
   TConstructionCallback = class(TBasicCallback)
-    public
+    protected
       AColony: TColony;
 
+    public
       { function to handle the callback, i.e. perform all necessary steps after
         the player has made his/her choice. Should return true on success, false
         on failure
@@ -82,6 +91,9 @@ type
             Derived classes have to implement their own version of that function.
       }
       function Handle: Boolean; override;
+
+      { function to return the callback's type }
+      function GetType: Integer; override;
 
       constructor Create(const col: TColony);
   end;//class
@@ -102,9 +114,13 @@ begin
   Result:= True;
 end;//func
 
+function TRenameColonyCallback.GetType: Integer;
+begin
+  Result:= CBT_RENAME_COLONY;
+end;//func
+
 constructor TRenameColonyCallback.Create(const col: TColony);
 begin
-  _type:= CBT_RENAME_COLONY;
   AColony:= col;
 end;//construc
 
@@ -132,9 +148,13 @@ begin
   end;//case
 end;//func
 
+function TColonyUnitCallback.GetType: Integer;
+begin
+  Result:= CBT_COLONY_UNIT;
+end;//func
+
 constructor TColonyUnitCallback.Create(const u: TUnit);
 begin
-  _type:= CBT_COLONY_UNIT;
   AUnit:= u;
 end;//construc
 
@@ -167,9 +187,13 @@ begin
   end;//else-branch
 end;//func
 
+function TConstructionCallback.GetType: Integer;
+begin
+  Result:= CBT_CONSTRUCTION;
+end;//func
+
 constructor TConstructionCallback.Create(const col: TColony);
 begin
-  _type:= CBT_CONSTRUCTION;
   AColony:= col;
 end;//construc
 

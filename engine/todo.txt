@@ -1,0 +1,36 @@
+To do:
+======
+
+(This file lists some random things that still need to be done to improve and/or
+ complete the game. You can possibly consider this as a list of missing features
+ and known bugs.
+ The list itself is highly incomplete(!) and issues are listed in no particular
+ order.)
+
+Units:
+------
+  * don't allow player to move units of other nations
+  * allow units on costal land to move back to adjacent ship
+  * implement combat
+
+Trade:
+------
+  * implement possibility to trade with Indians
+  *     "          "      "    "    "   other Europeans in new world
+  * implement trading routes
+
+GUI:
+----
+  * better layered graphics (i.e. make some real use of depth buffer)
+  * show undiscovered land as black squares
+
+Language:
+---------
+  * provide English language file
+  * allow player to chose the desired language
+
+AI:
+---
+  * implement diplomacy for computer players
+  * implement combat strategies for computer players
+  * let AI make use of trading routes, where possible
