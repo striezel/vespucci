@@ -1,7 +1,7 @@
 { ***************************************************************************
 
     This file is part of Vespucci.
-    Copyright (C) 2008, 2010, 2011  Thoronador
+    Copyright (C) 2008, 2010, 2011, 2012  Thoronador
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -35,10 +35,11 @@ const
 type
 
   TEuroPortUnitCallback = class(TBasicCallback)
-    public
+    protected
       AUnit: TUnit;
       EuroNat: TEuropeanNation;
 
+    public
       { function to handle the callback, i.e. perform all necessary steps after
         the player has made his/her choice. Should return true on success, false
         on failure
@@ -47,6 +48,9 @@ type
             Derived classes have to implement their own version of that function.
       }
       function Handle: Boolean; override;
+
+      { function to return the callback's type }
+      function GetType: Integer; override;
 
       constructor Create(const u: TUnit; const eNat: TEuropeanNation);
   end;//class
@@ -54,10 +58,11 @@ type
 
 
   TEuroPortBuyCallback = class(TBasicCallback)
-    public
+    protected
       AData: TData;
       EuroNat: TEuropeanNation;
 
+    public
       { function to handle the callback, i.e. perform all necessary steps after
         the player has made his/her choice. Should return true on success, false
         on failure
@@ -66,6 +71,9 @@ type
             Derived classes have to implement their own version of that function.
       }
       function Handle: Boolean; override;
+
+      { function to return the callback's type }
+      function GetType: Integer; override;
 
       constructor Create(const dat: TData; const eNat: TEuropeanNation);
   end;//class
@@ -73,10 +81,11 @@ type
 
 
   TEuroPortTrainCallback = class(TBasicCallback)
-    public
+    protected
       AData: TData;
       EuroNat: TEuropeanNation;
 
+    public
       { function to handle the callback, i.e. perform all necessary steps after
         the player has made his/her choice. Should return true on success, false
         on failure
@@ -85,6 +94,9 @@ type
             Derived classes have to implement their own version of that function.
       }
       function Handle: Boolean; override;
+
+      { function to return the callback's type }
+      function GetType: Integer; override;
 
       constructor Create(const dat: TData; const eNat: TEuropeanNation);
   end;//class
@@ -160,9 +172,13 @@ begin
   Result:= True;
 end;//func
 
+function TEuroPortUnitCallback.GetType: Integer;
+begin
+  Result:= CBT_EURO_PORT_UNIT;
+end;//func
+
 constructor TEuroPortUnitCallback.Create(const u: TUnit; const eNat: TEuropeanNation);
 begin
-  _type:= CBT_EURO_PORT_UNIT;
   AUnit:= u;
   EuroNat:= eNat;
 end;//construc
@@ -218,9 +234,13 @@ begin
   end;//if
 end;//func
 
+function TEuroPortBuyCallback.GetType: Integer;
+begin
+  Result:= CBT_EURO_PORT_BUY;
+end;//func
+
 constructor TEuroPortBuyCallback.Create(const dat: TData; const eNat: TEuropeanNation);
 begin
-  _type:= CBT_EURO_PORT_BUY;
   AData:= dat;
   EuroNat:= eNat;
 end;//construc
@@ -267,9 +287,13 @@ begin
   end;//if
 end;//func
 
+function TEuroPortTrainCallback.GetType: Integer;
+begin
+  Result:= CBT_EURO_PORT_TRAIN;
+end;//func
+
 constructor TEuroPortTrainCallback.Create(const dat: TData; const eNat: TEuropeanNation);
 begin
-  _type:= CBT_EURO_PORT_TRAIN;
   AData:= dat;
   EuroNat:= eNat;
 end;//construc

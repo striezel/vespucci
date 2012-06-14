@@ -234,7 +234,7 @@ const
     );
 
   { caption of game window }
-  cWindowCaption = 'Vespucci v0.01.r211';
+  cWindowCaption = 'Vespucci v0.01.r214';
 
   { text colour (greenish) }
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
@@ -1240,7 +1240,6 @@ begin
     end
     else begin
       temp_cb:= TExitCallback.Create;
-      temp_cb._type:= CBT_EXIT;
       msg.AddMessageOptions('Vespucci beenden?', ToShortStrArr('Nein', 'Ja'), temp_cb);
     end;//else
   end;//if KEY_ESCAPE
@@ -1282,11 +1281,6 @@ begin
                    temp_cb:= TBuildColonyCallback.Create(focused.GetPosX, focused.GetPosY,
                               focused, dat);
                    temp_cb.inputText:= '';
-                   temp_cb._type:= CBT_BUILD_COLONY;
-                   {temp_cb.BuildColony.x:= focused.GetPosX;
-                   temp_cb.BuildColony.y:= focused.GetPosY;
-                   temp_cb.BuildColony.founder:= focused;
-                   temp_cb.BuildColony.AData:= dat;}
                    msg.AddMessageInput(dat.GetLang.GetBuildColony(0), dat.GetLang.GetBuildColony(1),
                        dat.GetLang.GetColonyNames(focused.GetNation,
                        length(dat.GetColonyList(focused.GetNation))), temp_cb);
@@ -1398,10 +1392,11 @@ begin
           else if (focused.EmbarkedPassengers>0) then
           begin
             //check for landfall
-            temp_cb:= TLandfallCallback.Create(focused, temp_x, temp_y, temp_Map);
             tempUnit:= focused.GetFirstEmbarkedPassenger;
-            if tempUnit<>nil then (temp_cb as TLandfallCallback).UType:= tempUnit.GetType
-            else (temp_cb as TLandfallCallback).UType:= utGalleon;
+            if tempUnit<>nil then
+              temp_cb:= TLandfallCallback.Create(focused, tempUnit.GetType, temp_x, temp_y, temp_Map)
+            else
+              temp_cb:= TLandfallCallback.Create(focused, utGalleon, temp_x, temp_y, temp_Map);
             msg.AddMessageOptions(dat.GetLang.GetLandfall(0), ToShortStrArr(dat.GetLang.GetLandfall(1), dat.GetLang.GetLandfall(2)), temp_cb);
           end //if passengers>0
           else focused.Move(direc, temp_Map, dat);
@@ -1884,7 +1879,6 @@ begin
           end;//with
           temp_cbr:= TEuroPortUnitCallback.Create(tempUArr[pos_x], europe);
           temp_cbr.option:=0;
-          temp_cbr._type:= CBT_EURO_PORT_UNIT;
           temp_cbr.inputText:= '';
           msg.AddMessageOptions(dat.GetLang.GetEuroPort(epsManageHeading), str_arr, temp_cbr);
           Exit;
@@ -1909,7 +1903,6 @@ begin
 
              temp_cbr:= TEuroPortBuyCallback.Create(dat, europe);
              temp_cbr.option:=0;
-             temp_cbr._type:= CBT_EURO_PORT_BUY;
              temp_cbr.inputText:= '';
              msg.AddMessageOptions(dat.GetLang.GetEuroPort(epsBuyHeading), str_arr, temp_cbr);
            end;//case ButtonAtMouse=1 ("Buy Ship")
@@ -1926,7 +1919,6 @@ begin
                end;//if
              temp_cbr:= TEuroPortTrainCallback.Create(dat, europe);
              temp_cbr.option:= 0;
-             temp_cbr._type:= CBT_EURO_PORT_TRAIN;
              temp_cbr.inputText:= '';
              msg.AddMessageOptions(dat.GetLang.GetEuroPort(epsTrainHeading),
                                str_arr, temp_cbr);
@@ -4363,8 +4355,8 @@ begin
     msg.cbRec.option:= msg.selected_option;
     msg.cbRec.inputText:= msg.inputText;
     //check whether we need callbacks
-    if (((msg.cbRec._type in [CBT_LOAD_GAME, CBT_SAVE_GAME]) and (msg.selected_option=0))
-       or ((msg.cbRec._type=CBT_LOAD_GAME) and (dat.GetSaveInfo(msg.selected_option)='('+dat.GetLang.GetOthers(osEmpty)+')'))) then
+    if (((msg.cbRec.GetType in [CBT_LOAD_GAME, CBT_SAVE_GAME]) and (msg.selected_option=0))
+       or ((msg.cbRec.GetType=CBT_LOAD_GAME) and (dat.GetSaveInfo(msg.selected_option)='('+dat.GetLang.GetOthers(osEmpty)+')'))) then
     begin
       //skip callbacks
       WriteLn('DEBUG: TGui.GetNextMessage: skipping callbacks');
@@ -4372,22 +4364,24 @@ begin
     else begin
       //handle callbacks
       WriteLn('DEBUG: TGui.GetNextMessage: handling callback');
-      WriteLn('DEBUG: TGui.GetNextMessage: callback type is ', msg.cbRec._type);
+      WriteLn('DEBUG: TGui.GetNextMessage: callback type is ', msg.cbRec.GetType);
       if (msg.cbRec<>nil) then
         local_bool:= msg.cbRec.Handle
       else local_bool:= true;
       WriteLn('DEBUG: TGui.GetNextMessage: local bool is ', local_bool);
 
-      case msg.cbRec._type of
+      case msg.cbRec.GetType of
         CBT_LOAD_GAME: begin
                          if not local_bool then
                          begin
                            msg.AddMessageSimple(dat.GetLang.GetSaveLoad(slsLoadError));
+                           focused:= nil;
                            Wooden_Mode:= True;
                          end//if
                          else begin
                            Wooden_Mode:= False;
                            msg.AddMessageSimple(dat.GetLang.GetSaveLoad(slsLoadSuccess));
+                           focused:= nil;
                          end;//else
                        end;// CBT_LOAD_GAME
         CBT_SAVE_GAME: begin
@@ -4967,6 +4961,7 @@ end;//func
 
 procedure TGui.CheckFoundingFatherMessage;
 var temp_cb: TFoundingSelectCallback;
+    selection: TFoundingFatherArray;
     EuroNat: TEuropeanNation;
     str_arr: TShortStrArr;
     i: Integer;
@@ -4977,20 +4972,21 @@ begin
   begin
     if length(dat.GetColonyList(dat.PlayerNation))>0 then
     begin
-      temp_cb:= TFoundingSelectCallback.Create(EuroNat, EuroNat.GetFoundingFatherSelection);
-      temp_cb._type:= CBT_SELECT_FOUNDING_FATHER;
+      selection:= EuroNat.GetFoundingFatherSelection;
+      temp_cb:= TFoundingSelectCallback.Create(EuroNat, selection);
       temp_cb.option:= 0;
       //strings und so
       SetLength(str_arr, 0);
       for i:= 0 to 4 do
       begin
-        if temp_cb.Choices[i]<>ffNone then
+        if selection[i]<>ffNone then
         begin
           SetLength(str_arr, length(str_arr)+1);
-          str_arr[High(str_arr)]:= dat.GetLang.GetFoundingFatherName(temp_cb.Choices[i])
-              +' ('+dat.GetLang.GetFoundingFatherTypeName(GetFoundingFatherType(temp_cb.Choices[i]))+')';
+          str_arr[High(str_arr)]:= dat.GetLang.GetFoundingFatherName(selection[i])
+              +' ('+dat.GetLang.GetFoundingFatherTypeName(GetFoundingFatherType(selection[i]))+')';
         end;//if
       end;//for
+      //TODO: localize message string
       msg.AddMessageOptions('Which founding father shall join the continental congress   next?',
                           str_arr, temp_cb);
     end;//if has colonies

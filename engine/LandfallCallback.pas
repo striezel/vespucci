@@ -1,7 +1,7 @@
 { ***************************************************************************
 
     This file is part of Vespucci.
-    Copyright (C) 2008, 2011  Thoronador
+    Copyright (C) 2008, 2011, 2012  Thoronador
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -32,12 +32,13 @@ const
 
 type
   TLandfallCallback = class(TBasicCallback)
-    public
+    protected
       Ship: TUnit;
       UType: TUnitType;
       x,y: Byte;
       AMap: TMap;
 
+    public
       { function to handle the callback, i.e. perform all necessary steps after
         the player has made his/her choice. Should return true on success, false
         on failure
@@ -47,7 +48,10 @@ type
       }
       function Handle: Boolean; override;
 
-      constructor Create(AShip: TUnit; const posX, posY: Byte; theMap: TMap);
+      { function to return the callback's type }
+      function GetType: Integer; override;
+
+      constructor Create(AShip: TUnit; const passengerType: TUnitType; const posX, posY: Byte; theMap: TMap);
   end;//class
   PLandfallCallback = ^TLandfallCallback;
 
@@ -59,10 +63,15 @@ begin
   else Result:= False;
 end;//func
 
-constructor TLandfallCallback.Create(AShip: TUnit; const posX, posY: Byte; theMap: TMap);
+function TLandfallCallback.GetType: Integer;
 begin
-  _type:= CBT_LANDFALL;
+  Result:= CBT_LANDFALL;
+end;//func
+
+constructor TLandfallCallback.Create(AShip: TUnit; const passengerType: TUnitType; const posX, posY: Byte; theMap: TMap);
+begin
   Ship:= AShip;
+  UType:= passengerType;
   x:= posX;
   y:= posY;
   AMap:= theMap;

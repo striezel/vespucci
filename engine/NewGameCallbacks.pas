@@ -1,7 +1,7 @@
 { ***************************************************************************
 
     This file is part of Vespucci.
-    Copyright (C) 2011  Thoronador
+    Copyright (C) 2011, 2012  Thoronador
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -49,6 +49,9 @@ type
       }
       function Handle: Boolean; override;
 
+      { function to return the callback's type }
+      function GetType: Integer; override;
+
       constructor Create(const dat: TData);
   end;//class
 
@@ -65,6 +68,9 @@ type
             Derived classes have to implement their own version of that function.
       }
       function Handle: Boolean; override;
+
+      { function to return the callback's type }
+      function GetType: Integer; override;
 
       constructor Create(const dat: TData; const America: Boolean);
   end;//class
@@ -83,6 +89,9 @@ type
       }
       function Handle: Boolean; override;
 
+      { function to return the callback's type }
+      function GetType: Integer; override;
+
       constructor Create(const dat: TData; const America: Boolean; const Landmass: Single);
   end;//class
 
@@ -99,6 +108,9 @@ type
             Derived classes have to implement their own version of that function.
       }
       function Handle: Boolean; override;
+
+      { function to return the callback's type }
+      function GetType: Integer; override;
 
       constructor Create(const dat: TData; const America: Boolean; const Landmass: Single; const temp: TTemperatureType);
   end;//class
@@ -117,6 +129,9 @@ type
       }
       function Handle: Boolean; override;
 
+      { function to return the callback's type }
+      function GetType: Integer; override;
+
       constructor Create(const dat: TData; const America: Boolean; const Landmass: Single; const temp: TTemperatureType; const Climate: TClimateType);
   end;//class
 
@@ -133,6 +148,9 @@ type
             Derived classes have to implement their own version of that function.
       }
       function Handle: Boolean; override;
+
+      { function to return the callback's type }
+      function GetType: Integer; override;
 
       constructor Create(const dat: TData; const America: Boolean; const Landmass: Single; const temp: TTemperatureType; const Climate: TClimateType; const Nat: Integer);
   end;//class
@@ -167,9 +185,13 @@ begin
   end;//else branch
 end;//func
 
+function TNewGameCallback.GetType: Integer;
+begin
+  Result:= CBT_NEW_GAME;
+end;//func
+
 constructor TNewGameCallback.Create(const dat: TData);
 begin
-  _type:= CBT_NEW_GAME;
   AData:= dat;
 end;//construc
 
@@ -177,7 +199,6 @@ end;//construc
 
 constructor TLandmassSelectionCallback.Create(const dat: TData; const America: Boolean);
 begin
-  _type:= CBT_LANDMASS_SELECTION;
   AData:= dat;
   m_America:= America;
 end;//construc
@@ -201,11 +222,15 @@ begin
           AData.GetLang.GetNewGameString(ngsTemperatureWarm)), temp_cb);
 end;//func
 
+function TLandmassSelectionCallback.GetType: Integer;
+begin
+  Result:= CBT_LANDMASS_SELECTION;
+end;//func
+
 { **** TTemperatureSelectionCallback functions **** }
 
 constructor TTemperatureSelectionCallback.Create(const dat: TData; const America: Boolean; const Landmass: Single);
 begin
-  _type:= CBT_TEMPERATURE_SELECTION;
   AData:= dat;
   m_America:= America;
   m_Landmass:= Landmass;
@@ -230,11 +255,15 @@ begin
           AData.GetLang.GetNewGameString(ngsClimateWet)), temp_cb);
 end;//func
 
+function TTemperatureSelectionCallback.GetType: Integer;
+begin
+  Result:= CBT_TEMPERATURE_SELECTION;
+end;//func
+
 { **** TClimateSelectionCallback functions **** }
 
 constructor TClimateSelectionCallback.Create(const dat: TData; const America: Boolean; const Landmass: Single; const temp: TTemperatureType);
 begin
-  _type:= CBT_CLIMATE_SELECTION;
   AData:= dat;
   m_America:= America;
   m_Landmass:= Landmass;
@@ -261,11 +290,15 @@ begin
   Result:= true; //always successful
 end;//func
 
+function TClimateSelectionCallback.GetType: Integer;
+begin
+  Result:= CBT_CLIMATE_SELECTION;
+end;//func
+
 { **** TNationSelectionCallback functions **** }
 
 constructor TNationSelectionCallback.Create(const dat: TData; const America: Boolean; const Landmass: Single; const temp: TTemperatureType; const Climate: TClimateType);
 begin
-  _type:= CBT_NATION_SELECTION;
   AData:= dat;
   m_America:= America;
   m_Landmass:= Landmass;
@@ -291,11 +324,15 @@ begin
   msg.AddMessageInput('Enter your name:', 'Name:', AData.GetLang.GetDefaultLeaderName(nat), temp_cb);
 end;//func
 
+function TNationSelectionCallback.GetType: Integer;
+begin
+  Result:= CBT_NATION_SELECTION;
+end;//func
+
 { **** TPlayerNameSelectionCallback functions **** }
 
 constructor TPlayerNameSelectionCallback.Create(const dat: TData; const America: Boolean; const Landmass: Single; const temp: TTemperatureType; const Climate: TClimateType; const Nat: Integer);
 begin
-  _type:= CBT_PLAYER_NAME_SELECTION;
   AData:= dat;
   m_America:= America;
   m_Landmass:= Landmass;
@@ -315,6 +352,11 @@ begin
   AData.StartNewGame(m_America, m_Nation, m_Landmass, m_Temperature, m_Climate);
   (AData.GetNation(m_Nation) as TEuropeanNation).ChangeLeaderName(inputText);
   Result:= true; //always successful
+end;//func
+
+function TPlayerNameSelectionCallback.GetType: Integer;
+begin
+  Result:= CBT_PLAYER_NAME_SELECTION;
 end;//func
 
 end.

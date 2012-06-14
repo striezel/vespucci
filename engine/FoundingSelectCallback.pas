@@ -1,7 +1,7 @@
 { ***************************************************************************
 
     This file is part of Vespucci.
-    Copyright (C) 2010, 2011  Thoronador
+    Copyright (C) 2010, 2011, 2012  Thoronador
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -32,10 +32,11 @@ const
 
 type
   TFoundingSelectCallback = class(TBasicCallback)
-    public
+    protected
       ENat: TEuropeanNation;
       Choices: TFoundingFatherArray;
 
+    public
       { function to handle the callback, i.e. perform all necessary steps after
         the player has made his/her choice. Should return true on success, false
         on failure
@@ -44,6 +45,9 @@ type
             Derived classes have to implement their own version of that function.
       }
       function Handle: Boolean; override;
+
+      { function to return the callback's type }
+      function GetType: Integer; override;
 
       constructor Create(const EuroNat: TEuropeanNation; const who: TFoundingFatherArray);
   end;//class
@@ -63,9 +67,13 @@ begin
   Result:= True;
 end;//func
 
+function TFoundingSelectCallback.GetType: Integer;
+begin
+  Result:= CBT_SELECT_FOUNDING_FATHER;
+end;//func
+
 constructor TFoundingSelectCallback.Create(const EuroNat: TEuropeanNation; const who: TFoundingFatherArray);
 begin
-  _type:= CBT_SELECT_FOUNDING_FATHER;
   ENat:= EuroNat;
   Choices:= who;
 end;//construc

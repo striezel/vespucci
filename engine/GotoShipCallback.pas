@@ -1,7 +1,7 @@
 { ***************************************************************************
 
     This file is part of Vespucci.
-    Copyright (C) 2008, 2011  Thoronador
+    Copyright (C) 2008, 2011, 2012  Thoronador
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -33,10 +33,11 @@ const
 type
 
   TGotoShipCallback = class(TBasicCallback)
-    public
+    protected
       Ship: TUnit;
       AData: TData;
 
+    public
       { function to handle the callback, i.e. perform all necessary steps after
         the player has made his/her choice. Should return true on success, false
         on failure
@@ -45,6 +46,9 @@ type
             Derived classes have to implement their own version of that function.
       }
       function Handle: Boolean; override;
+
+      { function to return the callback's type }
+      function GetType: Integer; override;
 
       constructor Create(const vessel: TUnit; const dat: TData);
   end;//class
@@ -72,9 +76,14 @@ begin
   end;//else
 end;//func
 
+
+function TGotoShipCallback.GetType: Integer;
+begin
+  Result:= CBT_GOTO_SHIP;
+end;//func
+
 constructor TGotoShipCallback.Create(const vessel: TUnit; const dat: TData);
 begin
-  _type:= CBT_GOTO_SHIP;
   Ship:= vessel;
   AData:= dat;
 end;//construc
