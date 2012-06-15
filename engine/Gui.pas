@@ -1,7 +1,7 @@
 { ***************************************************************************
 
     This file is part of Vespucci.
-    Copyright (C) 2008, 2009, 2010, 2011  Dirk Stolle
+    Copyright (C) 2008, 2009, 2010, 2011, 2012  Dirk Stolle
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -234,7 +234,7 @@ const
     );
 
   { caption of game window }
-  cWindowCaption = 'Vespucci v0.01.r214';
+  cWindowCaption = 'Vespucci v0.01.r215';
 
   { text colour (greenish) }
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
@@ -2661,6 +2661,7 @@ begin
 
   end;//else, i.e. not ColonyBuildingPage
 
+
   {$IFDEF DEBUG_CODE}
     WriteLn('Leaving TGui.DrawColonyView');
   {$ENDIF}
@@ -4381,7 +4382,8 @@ begin
                          else begin
                            Wooden_Mode:= False;
                            msg.AddMessageSimple(dat.GetLang.GetSaveLoad(slsLoadSuccess));
-                           focused:= nil;
+                           focused:= dat.GetFirstLazyUnit(dat.PlayerNation);
+                           if focused<>nil then CenterOn(focused.GetPosX, focused.GetPosY);
                          end;//else
                        end;// CBT_LOAD_GAME
         CBT_SAVE_GAME: begin
