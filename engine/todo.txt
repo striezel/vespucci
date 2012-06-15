@@ -9,7 +9,6 @@ To do:
 
 Units:
 ------
-  * don't allow player to move units of other nations
   * allow units on costal land to move back to adjacent ship
   * implement combat
 
@@ -23,6 +22,7 @@ GUI:
 ----
   * better layered graphics (i.e. make some real use of depth buffer)
   * show undiscovered land as black squares
+  * clicks on minimap should cause main map to center on that location
 
 Language:
 ---------

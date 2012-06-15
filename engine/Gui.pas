@@ -234,7 +234,7 @@ const
     );
 
   { caption of game window }
-  cWindowCaption = 'Vespucci v0.01.r215';
+  cWindowCaption = 'Vespucci v0.01.r216';
 
   { text colour (greenish) }
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
@@ -1269,39 +1269,46 @@ begin
       'B': //build colony
            if focused<>nil then
            begin
-             temp_Map:= dat.GetMap;
-             if (focused.IsShip or temp_Map.tiles[focused.GetPosX, focused.GetPosY].IsWater) then
-               msg.AddMessageSimple(dat.GetLang.GetBuildColony(2))
-             else begin
-               if temp_Map.tiles[focused.GetPosX, focused.GetPosY].GetType=ttMountains then
-                 msg.AddMessageSimple(dat.GetLang.GetBuildColony(4))
+             if focused.GetNation=dat.PlayerNation then
+             begin
+               temp_Map:= dat.GetMap;
+               if (focused.IsShip or temp_Map.tiles[focused.GetPosX, focused.GetPosY].IsWater) then
+                 msg.AddMessageSimple(dat.GetLang.GetBuildColony(2))
                else begin
-                 if dat.FreeForSettlement(focused.GetPosX, focused.GetPosY) then
-                 begin
-                   temp_cb:= TBuildColonyCallback.Create(focused.GetPosX, focused.GetPosY,
-                              focused, dat);
-                   temp_cb.inputText:= '';
-                   msg.AddMessageInput(dat.GetLang.GetBuildColony(0), dat.GetLang.GetBuildColony(1),
-                       dat.GetLang.GetColonyNames(focused.GetNation,
-                       length(dat.GetColonyList(focused.GetNation))), temp_cb);
-                   focused:= nil;
-                 end
-                 else
-                   msg.AddMessageSimple(dat.GetLang.GetBuildColony(3));
-               end;//else
-             end;//if
-           end;//if
+                 if temp_Map.tiles[focused.GetPosX, focused.GetPosY].GetType=ttMountains then
+                   msg.AddMessageSimple(dat.GetLang.GetBuildColony(4))
+                 else begin
+                   if dat.FreeForSettlement(focused.GetPosX, focused.GetPosY) then
+                   begin
+                     temp_cb:= TBuildColonyCallback.Create(focused.GetPosX, focused.GetPosY,
+                                focused, dat);
+                     temp_cb.inputText:= '';
+                     msg.AddMessageInput(dat.GetLang.GetBuildColony(0), dat.GetLang.GetBuildColony(1),
+                         dat.GetLang.GetColonyNames(focused.GetNation,
+                         length(dat.GetColonyList(focused.GetNation))), temp_cb);
+                     focused:= nil;
+                   end
+                   else
+                     msg.AddMessageSimple(dat.GetLang.GetBuildColony(3));
+                 end;//else (i.e. not mountains)
+               end;//else (i.e. not ship or water)
+             end;//if player's nation
+           end;//if focused<>nil
            //end of 'B'
       'F': //fortify
            if focused<>nil then
            begin
-             if focused.GetState=usFortified then focused.SetState(usNormal)
-             else focused.SetState(usFortified);
+             if focused.GetNation=dat.PlayerNation then
+             begin
+               if focused.GetState=usFortified then focused.SetState(usNormal)
+               else focused.SetState(usFortified);
+             end;//if player's nation
            end;//if, fortify
       'S': ;//sentry
       'C': begin
-             if focused<>nil then CenterOn(focused.GetPosX, focused.GetPosY)
-             else CenterOn(25, 35);//just for testing, yet
+             //Centering the map on a unit does not change the unit's state, so
+             //  we don't need to check whether it belongs to the player.
+             if focused<>nil then CenterOn(focused.GetPosX, focused.GetPosY);
            end;
     end;//case
   end;//if not Special
@@ -1338,80 +1345,83 @@ begin
   end//if
   else begin
     //we have a focused unit, so move it
-    direc:= dirNone;
-    case Key of
-      KEY_NUMPAD1: direc:=dirSW;
-      GLUT_KEY_DOWN, KEY_NUMPAD2: direc:= dirS; {Move down}
-      KEY_NUMPAD3: direc:= dirSE;
-      GLUT_KEY_LEFT, KEY_NUMPAD4: direc:= dirW; {Move left}
-      GLUT_KEY_RIGHT, KEY_NUMPAD6: direc:= dirE; {Move right}
-      KEY_NUMPAD7: direc:= dirNW;
-      GLUT_KEY_UP, KEY_NUMPAD8: direc:= dirN; {Move unit up}
-      KEY_NUMPAD9: direc:= dirNE;
-      KEY_SPACE: begin
-                   focused.MovesLeft:= 0;
-                   tempUnit:= dat.GetFirstLazyUnit(dat.PlayerNation);
-                   if tempUnit<>nil then
-                   begin
-                     focused:= tempUnit;
-                     CenterOn(focused.GetPosX, focused.GetPosY);
-                   end//if
-                   else begin
-                     //no units left, start new round
-                     dat.ProcessNationsAfterPlayer;
-                     dat.ProcessNationsBeforePlayer;
-                     dat.NewRound(dat.PlayerNation);
-                     focused:= dat.GetFirstLazyUnit(dat.PlayerNation);
-                     CheckFoundingFatherMessage;
-                   end;//else
-                 end;//KEY_SPACE
-    end;//case
-    //should move now
-    if direc<>dirNone then
+    if focused.GetNation=dat.PlayerNation then
     begin
-      temp_x:= focused.GetPosX;
-      temp_y:= focused.GetPosY;
-      ApplyDir(temp_x, temp_y, direc);
-      temp_Map:= dat.GetMap;
-      if (focused.IsShip) then
+      direc:= dirNone;
+      case Key of
+        KEY_NUMPAD1: direc:=dirSW;
+        GLUT_KEY_DOWN, KEY_NUMPAD2: direc:= dirS; {Move down}
+        KEY_NUMPAD3: direc:= dirSE;
+        GLUT_KEY_LEFT, KEY_NUMPAD4: direc:= dirW; {Move left}
+        GLUT_KEY_RIGHT, KEY_NUMPAD6: direc:= dirE; {Move right}
+        KEY_NUMPAD7: direc:= dirNW;
+        GLUT_KEY_UP, KEY_NUMPAD8: direc:= dirN; {Move unit up}
+        KEY_NUMPAD9: direc:= dirNE;
+        KEY_SPACE: begin
+                     focused.MovesLeft:= 0;
+                     tempUnit:= dat.GetFirstLazyUnit(dat.PlayerNation);
+                     if tempUnit<>nil then
+                     begin
+                       focused:= tempUnit;
+                       CenterOn(focused.GetPosX, focused.GetPosY);
+                     end//if
+                     else begin
+                       //no units left, start new round
+                       dat.ProcessNationsAfterPlayer;
+                       dat.ProcessNationsBeforePlayer;
+                       dat.NewRound(dat.PlayerNation);
+                       focused:= dat.GetFirstLazyUnit(dat.PlayerNation);
+                       CheckFoundingFatherMessage;
+                     end;//else
+                   end;//KEY_SPACE
+      end;//case
+      //should move now
+      if direc<>dirNone then
       begin
-        if (not temp_Map.tiles[temp_x, temp_y].IsWater) then
+        temp_x:= focused.GetPosX;
+        temp_y:= focused.GetPosY;
+        ApplyDir(temp_x, temp_y, direc);
+        temp_Map:= dat.GetMap;
+        if (focused.IsShip) then
         begin
-          temp_col:= dat.GetColonyInXY(temp_x, temp_y);
-          if (temp_col<>nil) then
+          if (not temp_Map.tiles[temp_x, temp_y].IsWater) then
           begin
-            if (temp_col.GetNation=focused.GetNation) and (focused.MovesLeft>0) then
+            temp_col:= dat.GetColonyInXY(temp_x, temp_y);
+            if (temp_col<>nil) then
             begin
-              //ship enters colony
-              focused.WarpToXY(temp_x, temp_y, temp_Map);
-              focused.DropAllPassengers;
-              focused.MovesLeft:= focused.MovesLeft-1;
-            end
+              if (temp_col.GetNation=focused.GetNation) and (focused.MovesLeft>0) then
+              begin
+                //ship enters colony
+                focused.WarpToXY(temp_x, temp_y, temp_Map);
+                focused.DropAllPassengers;
+                focused.MovesLeft:= focused.MovesLeft-1;
+              end
+              else focused.Move(direc, temp_Map, dat);
+            end//if temp_col<>nil
+            else if (focused.EmbarkedPassengers>0) then
+            begin
+              //check for landfall
+              tempUnit:= focused.GetFirstEmbarkedPassenger;
+              if tempUnit<>nil then
+                temp_cb:= TLandfallCallback.Create(focused, tempUnit.GetType, temp_x, temp_y, temp_Map)
+              else
+                temp_cb:= TLandfallCallback.Create(focused, utGalleon, temp_x, temp_y, temp_Map);
+              msg.AddMessageOptions(dat.GetLang.GetLandfall(0), ToShortStrArr(dat.GetLang.GetLandfall(1), dat.GetLang.GetLandfall(2)), temp_cb);
+            end //if passengers>0
             else focused.Move(direc, temp_Map, dat);
-          end//if temp_col<>nil
-          else if (focused.EmbarkedPassengers>0) then
-          begin
-            //check for landfall
-            tempUnit:= focused.GetFirstEmbarkedPassenger;
-            if tempUnit<>nil then
-              temp_cb:= TLandfallCallback.Create(focused, tempUnit.GetType, temp_x, temp_y, temp_Map)
-            else
-              temp_cb:= TLandfallCallback.Create(focused, utGalleon, temp_x, temp_y, temp_Map);
-            msg.AddMessageOptions(dat.GetLang.GetLandfall(0), ToShortStrArr(dat.GetLang.GetLandfall(1), dat.GetLang.GetLandfall(2)), temp_cb);
-          end //if passengers>0
+          end//if not water
           else focused.Move(direc, temp_Map, dat);
-        end//if not water
+        end//if IsShip
         else focused.Move(direc, temp_Map, dat);
-      end//if IsShip
-      else focused.Move(direc, temp_Map, dat);
-    end;//if
-    //check if unit moved out of sight, and center on it, if neccessary
-    if focused<>nil then
-    begin
-      if ((focused.GetPosX<=OffsetX) or (focused.GetPosY<=OffsetY) or
-          (focused.GetPosX>=OffsetX+x_Fields-1) or (focused.GetPosY>=OffsetY+y_Fields-1)) then
-        CenterOn(focused.GetPosX, focused.GetPosY);
-    end;//if
+      end;//if direc<>dirNone
+      //check if unit moved out of sight, and center on it, if neccessary
+      if focused<>nil then
+      begin
+        if ((focused.GetPosX<=OffsetX) or (focused.GetPosY<=OffsetY) or
+            (focused.GetPosX>=OffsetX+x_Fields-1) or (focused.GetPosY>=OffsetY+y_Fields-1)) then
+          CenterOn(focused.GetPosX, focused.GetPosY);
+      end;//if
+    end;//if player's unit
   end;//else
   {$IFDEF DEBUG_CODE}
     WriteLn('Leaving TGui.KeyFunc');
@@ -4468,94 +4478,110 @@ begin
                   case selected of
                     1: //fortify
                        if focused<>nil then
-                         if focused.GetState=usFortified then focused.SetState(usNormal)
-                         else focused.SetState(usFortified);
+                         if focused.GetNation=dat.PlayerNation then
+                           if focused.GetState=usFortified then focused.SetState(usNormal)
+                           else focused.SetState(usFortified);
                     2: //goto
                        if focused<>nil then
                        begin
-                         if focused.IsShip then
+                         if focused.GetNation=dat.PlayerNation then
                          begin
-                           col_arr:= dat.GetColonyList(focused.GetNation);
-                           SetLength(str_arr, 1);
-                           str_arr[0]:= dat.GetLang.GetOthers(osNoChanges);
-                           for i:= 0 to High(col_arr) do
-                             if col_arr[i].AdjacentWater(dat.GetMap) then
-                             begin
-                               SetLength(str_arr, length(str_arr)+1);
-                               str_arr[High(str_arr)]:= col_arr[i].GetName;
-                             end;//if
-                           temp_cb:= TGotoShipCallback.Create(focused, dat);
-                           temp_cb.option:= 0;
-                           ///TODO: adjust language in message string
-                           msg.AddMessageOptions('Choose a destination location:', str_arr, temp_cb);
-                         end;//if
+                           if focused.IsShip then
+                           begin
+                             col_arr:= dat.GetColonyList(focused.GetNation);
+                             SetLength(str_arr, 1);
+                             str_arr[0]:= dat.GetLang.GetOthers(osNoChanges);
+                             for i:= 0 to High(col_arr) do
+                               if col_arr[i].AdjacentWater(dat.GetMap) then
+                               begin
+                                 SetLength(str_arr, length(str_arr)+1);
+                                 str_arr[High(str_arr)]:= col_arr[i].GetName;
+                               end;//if
+                             temp_cb:= TGotoShipCallback.Create(focused, dat);
+                             temp_cb.option:= 0;
+                             ///TODO: adjust language in message string
+                             msg.AddMessageOptions('Choose a destination location:', str_arr, temp_cb);
+                           end;//if
+                         end;//if player's nation
                        end;//if; mcOrders,2, goto
                     3: //clear forest
                        if focused<>nil then
                        begin
-                         if not dat.GetMap.tiles[focused.GetPosX, focused.GetPosY].HasForest then
-                           msg.AddMessageSimple(dat.GetLang.GetPioneer(psIsCleared))
-                         else if focused.IsShip or (focused.GetType in [utRegular, utDragoon, utScout, utConvoy]) then
-                           msg.AddMessageSimple(dat.GetLang.GetPioneer(psWrongUnit))
-                         else if focused.GetToolAmount<20 then msg.AddMessageSimple(dat.GetLang.GetPioneer(psNoTools))
-                         else if focused.GetTask<>nil then msg.AddMessageSimple(dat.GetLang.GetPioneer(psBusy))
-                         else begin
-                           //do the real work now :)
-                           tempTask:= TClearTask.Create(focused, focused.GetPosX, focused.GetPosY, dat.GetMap);
-                           focused.SetTask(tempTask);
-                         end;//else
+                         if focused.GetNation=dat.PlayerNation then
+                         begin
+                           if not dat.GetMap.tiles[focused.GetPosX, focused.GetPosY].HasForest then
+                             msg.AddMessageSimple(dat.GetLang.GetPioneer(psIsCleared))
+                           else if focused.IsShip or (focused.GetType in [utRegular, utDragoon, utScout, utConvoy]) then
+                             msg.AddMessageSimple(dat.GetLang.GetPioneer(psWrongUnit))
+                           else if focused.GetToolAmount<20 then msg.AddMessageSimple(dat.GetLang.GetPioneer(psNoTools))
+                           else if focused.GetTask<>nil then msg.AddMessageSimple(dat.GetLang.GetPioneer(psBusy))
+                           else begin
+                             //do the real work now :)
+                             tempTask:= TClearTask.Create(focused, focused.GetPosX, focused.GetPosY, dat.GetMap);
+                             focused.SetTask(tempTask);
+                           end;//else
+                         end;//if player's nation
                        end;//if //3 of orders (clear forest)
                     4: //plough fields
                        if focused<>nil then
                        begin
-                         if dat.GetMap.tiles[focused.GetPosX, focused.GetPosY].IsPloughed then
-                           msg.AddMessageSimple(dat.GetLang.GetPioneer(psIsPloughed))
-                         else if dat.GetMap.tiles[focused.GetPosX, focused.GetPosY].HasForest then
-                           msg.AddMessageSimple(dat.GetLang.GetPioneer(psNeedsClearing))
-                         else if focused.IsShip or (focused.GetType in [utRegular, utDragoon, utScout, utConvoy]) then
-                           msg.AddMessageSimple(dat.GetLang.GetPioneer(psWrongUnit))
-                         else if focused.GetToolAmount<20 then msg.AddMessageSimple(dat.GetLang.GetPioneer(psNoTools))
-                         else if focused.GetTask<>nil then msg.AddMessageSimple(dat.GetLang.GetPioneer(psBusy))
-                         else begin
-                           //do the real work now :)
-                           tempTask:= TPloughTask.Create(focused, focused.GetPosX, focused.GetPosY, dat.GetMap);
-                           focused.SetTask(tempTask);
-                         end;//else
+                         if focused.GetNation=dat.PlayerNation then
+                         begin
+                           if dat.GetMap.tiles[focused.GetPosX, focused.GetPosY].IsPloughed then
+                             msg.AddMessageSimple(dat.GetLang.GetPioneer(psIsPloughed))
+                           else if dat.GetMap.tiles[focused.GetPosX, focused.GetPosY].HasForest then
+                             msg.AddMessageSimple(dat.GetLang.GetPioneer(psNeedsClearing))
+                           else if focused.IsShip or (focused.GetType in [utRegular, utDragoon, utScout, utConvoy]) then
+                             msg.AddMessageSimple(dat.GetLang.GetPioneer(psWrongUnit))
+                           else if focused.GetToolAmount<20 then msg.AddMessageSimple(dat.GetLang.GetPioneer(psNoTools))
+                           else if focused.GetTask<>nil then msg.AddMessageSimple(dat.GetLang.GetPioneer(psBusy))
+                           else begin
+                             //do the real work now :)
+                             tempTask:= TPloughTask.Create(focused, focused.GetPosX, focused.GetPosY, dat.GetMap);
+                             focused.SetTask(tempTask);
+                           end;//else
+                         end;//if player's nation
                        end;//if //4 of mcOrders (plough fields)
                     5: //construct road
                        if focused<>nil then
                        begin
-                         if dat.GetMap.tiles[focused.GetPosX,focused.GetPosY].HasRoad then
-                           msg.AddMessageSimple(dat.GetLang.GetPioneer(psHasRoad))
-                         else if focused.IsShip or (focused.GetType in [utRegular, utDragoon, utScout, utConvoy]) then
-                           msg.AddMessageSimple(dat.GetLang.GetPioneer(psWrongUnit))
-                         else if focused.GetToolAmount<20 then msg.AddMessageSimple(dat.GetLang.GetPioneer(psNoTools))
-                         else if focused.GetTask<>nil then msg.AddMessageSimple(dat.GetLang.GetPioneer(psBusy))
-                         else begin
-                           //do the real work now :)
-                           tempTask:= TRoadTask.Create(focused, focused.GetPosX, focused.GetPosY, dat.GetMap);
-                           focused.SetTask(tempTask);
-                         end;//else
+                         if focused.GetNation=dat.PlayerNation then
+                         begin
+                           if dat.GetMap.tiles[focused.GetPosX,focused.GetPosY].HasRoad then
+                             msg.AddMessageSimple(dat.GetLang.GetPioneer(psHasRoad))
+                           else if focused.IsShip or (focused.GetType in [utRegular, utDragoon, utScout, utConvoy]) then
+                             msg.AddMessageSimple(dat.GetLang.GetPioneer(psWrongUnit))
+                           else if focused.GetToolAmount<20 then msg.AddMessageSimple(dat.GetLang.GetPioneer(psNoTools))
+                           else if focused.GetTask<>nil then msg.AddMessageSimple(dat.GetLang.GetPioneer(psBusy))
+                           else begin
+                             //do the real work now :)
+                             tempTask:= TRoadTask.Create(focused, focused.GetPosX, focused.GetPosY, dat.GetMap);
+                             focused.SetTask(tempTask);
+                           end;//else
+                         end;//if player's nation
                        end;//if //5 of mcOrders (create road)
                     6: //no orders
                        if focused<>nil then
                        begin
-                         focused.MovesLeft:= 0;
-                         tempUnit:= dat.GetFirstLazyUnit(dat.PlayerNation);
-                         if tempUnit<>nil then
+                         if focused.GetNation=dat.PlayerNation then
                          begin
-                           focused:= tempUnit;
-                           CenterOn(focused.GetPosX, focused.GetPosY);
-                         end//if
-                         else begin
-                           //no units left, start new round
-                           dat.ProcessNationsAfterPlayer;
-                           dat.ProcessNationsBeforePlayer;
-                           dat.NewRound(dat.PlayerNation);
-                           focused:= dat.GetFirstLazyUnit(dat.PlayerNation);
-                           CheckFoundingFatherMessage;
-                         end;//else
-                       end; //6 of mcOrders
+                           focused.MovesLeft:= 0;
+                           tempUnit:= dat.GetFirstLazyUnit(dat.PlayerNation);
+                           if tempUnit<>nil then
+                           begin
+                             focused:= tempUnit;
+                             CenterOn(focused.GetPosX, focused.GetPosY);
+                           end//if
+                           else begin
+                             //no units left, start new round
+                             dat.ProcessNationsAfterPlayer;
+                             dat.ProcessNationsBeforePlayer;
+                             dat.NewRound(dat.PlayerNation);
+                             focused:= dat.GetFirstLazyUnit(dat.PlayerNation);
+                             CheckFoundingFatherMessage;
+                           end;//else
+                         end;//if player's nation
+                       end; //6 of mcOrders (no orders)
                   end;//case
                 end;//if not in "wooden" mode
               end;//mcOrders
