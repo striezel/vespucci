@@ -1,0 +1,14 @@
+language: cpp
+compiler:
+  - gcc
+branches:
+  only:
+    - master
+    - travis-ci
+before_install:
+  - sudo apt-get install fp-compiler fp-units-gfx -y
+script:
+  - cd ./engine
+  - fpc -S2 vespucci.dpr
+notifications:
+  email: false
