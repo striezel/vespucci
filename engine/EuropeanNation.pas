@@ -448,7 +448,7 @@ begin
     m_SpawnY:= -1;
   end;
 end;//proc
-      
+
 function TEuropeanNation.GetSpawnpointX: LongInt;
 begin
   Result:= m_SpawnX;

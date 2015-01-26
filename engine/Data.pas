@@ -714,7 +714,7 @@ begin
             if m_Map.IsAdjacentToForest(i,j) then Result[i,j]:= Result[i,j]+2;
             //hills are needed for ore and construction of buildings
             if m_Map.IsAdjacentToMountains(i,j) then Result[i,j]:= Result[i,j]+1;
-          end;//if Result not cWorst  
+          end;//if Result not cWorst
         end;//else
       end;//else
     end;//for

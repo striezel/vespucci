@@ -31,7 +31,7 @@ type
   TTechLevel = (tlNomadic, tlAgricultural, tlDeveloped, tlCivilised);
   { enumeration type for attitude of Indians }
   TIndianAttitude = (iaPleased, iaWorried, iaAnxious, iaAngry, iaBelligerent);
-  
+
   { ********
     **** TIndianNation class
     ****
