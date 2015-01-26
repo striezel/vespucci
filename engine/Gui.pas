@@ -431,7 +431,7 @@ type
 
       { draws the job report }
       procedure DrawJobReport;
-      
+
       { draws the report about Indian nations }
       procedure DrawIndianReport;
 
