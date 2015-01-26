@@ -1,7 +1,7 @@
 { ***************************************************************************
 
     This file is part of Vespucci.
-    Copyright (C) 2008, 2009, 2010, 2011  Dirk Stolle
+    Copyright (C) 2008, 2009, 2010, 2011, 2015  Dirk Stolle
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -294,6 +294,9 @@ type
 
 implementation
 
+uses
+  DebugWriter;
+
 function h2(const mx, my, r: Byte; const h: Single; const x, y: Byte): Single;
 var dist: Single;
 begin
@@ -464,7 +467,9 @@ begin
   while (currentLandMass/((cMap_X-1)*(cMap_Y-1))<LandMass) do
   begin
     count:= count +1;
+    {$IFDEF DEBUG_CODE}
     WriteLn('Info: Generation cycle count: ', count, 'Land: ', currentLandMass);
+    {$ENDIF}
     //now set the hill's radius
     radius:= 3+Random(7);
     //...and its location
@@ -490,7 +495,9 @@ begin
       until (h_y>radius) and (h_y<cMap_Y-radius);
     end;//if
 
+    {$IFDEF DEBUG_CODE}
     WriteLn('    x: ', h_x, ', y: ', h_y, ', r: ',radius);
+    {$ENDIF}
     for i:= h_x-radius to h_x+radius do
       for j:= h_y-radius to h_y+radius do
       begin

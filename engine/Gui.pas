@@ -1,7 +1,7 @@
 { ***************************************************************************
 
     This file is part of Vespucci.
-    Copyright (C) 2008, 2009, 2010, 2011, 2012  Dirk Stolle
+    Copyright (C) 2008, 2009, 2010, 2011, 2012, 2015  Dirk Stolle
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -234,7 +234,7 @@ const
     );
 
   { caption of game window }
-  cWindowCaption = 'Vespucci v0.01.r216';
+  cWindowCaption = 'Vespucci v0.01.r217';
 
   { text colour (greenish) }
   cMenuTextColour : array [0..2] of Byte = (20, 108, 16);
@@ -285,8 +285,6 @@ type
     **** TODO:
     **** =====
     ****
-    **** - Player should only be able to select units and colonies of his/her
-    ****   own nation and not those of others, too.
     **** - When new round is started, units of other nations should be updated,
     ****   too, and not only the player's units.
     **** - A lot more.
@@ -832,6 +830,9 @@ type
 
 implementation
 
+uses
+  DebugWriter;
+
 function MouseYToGLCoord(const my: Longint): Single;
 begin
 
@@ -853,9 +854,7 @@ var i, j: Integer;
     err_str: string;
     Ship: TUnit;
 begin
-  {$IFDEF DEBUG_CODE}
-    WriteLn('Entered TGui.Create');
-  {$ENDIF}
+  WriteDebugLn('Entered TGui.Create');
   inherited Create;
   mouse.x:= 0;
   mouse.y:= 0;
@@ -878,7 +877,7 @@ begin
     dat.SpawnEuropeanNation(j, cSpawnpointsAmerica[i].x, cSpawnpointsAmerica[i].y);
     bits:= bits or (1 shl i);
   end;//for
-  WriteLn('First ships created.');
+  WriteDebugLn('First ships created.');
 
   menu_cat:= mcNone;
   selected_menu_option:= 1;
@@ -1096,17 +1095,13 @@ begin
          +'  Viele Sachen sind noch nicht implementiert, Vespucci be-  '
          +'  findet sich gerade am Anfang der Entwicklungsphase.');
   Wooden_Mode:= False;
-  {$IFDEF DEBUG_CODE}
-    WriteLn('Leaving TGui.Create');
-  {$ENDIF}
+  WriteDebugLn('Leaving TGui.Create');
 end;//constructor
 
 destructor TGui.Destroy;
 var i, j: Integer;
 begin
-  {$IFDEF DEBUG_CODE}
-    WriteLn('Entered TGui.Destroy');
-  {$ENDIF}
+  WriteDebugLn('Entered TGui.Destroy');
   GLUTCallbacksToNil;
   dat.Destroy;
   //free textures
@@ -1129,9 +1124,7 @@ begin
       glDeleteTextures(1, @m_TribeTexNames[i]);
   glDeleteTextures(1, @m_ErrorTexName);
   inherited Destroy;
-  {$IFDEF DEBUG_CODE}
-    WriteLn('Leaving TGui.Destroy');
-  {$ENDIF}
+  WriteDebugLn('Leaving TGui.Destroy');
 end;//destructor
 
 procedure TGui.GLUTCallbacksToNil;
@@ -1154,9 +1147,7 @@ var tempUnit: TUnit;
     direc: TDirection;
     temp_col: TColony;
 begin
-  {$IFDEF DEBUG_CODE}
-    WriteLn('Entered TGui.KeyFunc');
-  {$ENDIF}
+  WriteDebugLn('Entered TGui.KeyFunc');
   //react on message
   if msg.txt<>'' then
   begin
@@ -1423,9 +1414,7 @@ begin
       end;//if
     end;//if player's unit
   end;//else
-  {$IFDEF DEBUG_CODE}
-    WriteLn('Leaving TGui.KeyFunc');
-  {$ENDIF}
+  WriteDebugLn('Leaving TGui.KeyFunc');
 end;//proc
 
 procedure TGui.MouseFunc(const button, state, x,y: LongInt);
@@ -1441,9 +1430,7 @@ var pos_x, pos_y: Integer;
     bx, by: Single;
     bType, bType2: TBuildingType;
 begin
-  {$IFDEF DEBUG_CODE}
-    WriteLn('Entered TGui.MouseFunc');
-  {$ENDIF}
+  WriteDebugLn('Entered TGui.MouseFunc');
 
   //general stuff
   if ((button=GLUT_LEFT) and (state=GLUT_UP)) then mouse.down:= False
@@ -1499,7 +1486,6 @@ begin
       //check for pressing the red "E" in colony view
       if ((x>608) and (y>cWindowHeight-50)) then
       begin
-        //WriteLn('Debug: x: ',x, '; y: ', y, #13#10, 'out of colony now');
         cur_colony:= nil;
         glutPostRedisplay;
         Exit;
@@ -1642,9 +1628,7 @@ begin
       end;//if
 
     end;//else if button=LEFT and state=UP
-    {$IFDEF DEBUG_CODE}
-    WriteLn('Exiting TGui.MouseFunc');
-    {$ENDIF}
+    WriteDebugLn('Exiting TGui.MouseFunc');
     Exit;
   end;//if colony (units' page)
 
@@ -1734,9 +1718,7 @@ begin
         msg.AddMessageOptions(dat.GetLang.GetBuildingString(bsSelectNext), str_arr, temp_cbr);
       end;//construction bar
     end;//if (left button up)
-    {$IFDEF DEBUG_CODE}
-    WriteLn('Exiting TGui.MouseFunc');
-    {$ENDIF}
+    WriteDebugLn('Exiting TGui.MouseFunc');
     Exit;
   end;//if at colony's building page
 
@@ -1757,10 +1739,11 @@ begin
       //from ship to port
       sx:= GetCargoBoxAtMouse(mouse.down_x, mouse.down_y);
       tempGood:= GetGoodAtMouse;
-      //WriteLn('Debug: Cargo to port: sx: ', sx, '; Good: ', dat.GetLang.GetGoodName(tempGood));
       if ((sx<>-1) and (tempGood<>gtCross)) then
       begin
-        WriteLn('Trying to clear cargo...');
+        {$IFDEF DEBUG_CODE}
+        WriteDebugLn('Trying to clear cargo...');
+        {$ENDIF}
         tempUArr:= dat.GetAllShipsInEurope(europe.GetCount);
         if length(tempUArr)>0 then //at least one ship present?
           if tempUArr[0].GetCargoAmountBySlot(sx)>0 then
@@ -1789,10 +1772,11 @@ begin
       //from port to ship
       sx:= GetCargoBoxAtMouse;
       tempGood:= GetGoodAtMouse(mouse.down_x, mouse.down_y);
-      // WriteLn('Debug: Cargo to ship: sx: ', sx, '; Good: ', dat.GetLang.GetGoodName(tempGood));
       if ((sx<>-1) and (tempGood<>gtCross)) then
       begin
-        WriteLn('Trying to load cargo...');
+        {$IFDEF DEBUG_CODE}
+        WriteDebugLn('Trying to load cargo...');
+        {$ENDIF}
         tempUArr:= dat.GetAllShipsInEurope(europe.GetCount);
         if length(tempUArr)>0 then //at least one ship present?
         begin
@@ -1820,10 +1804,11 @@ begin
 
       //check for moving ship from "to new world box" to "expected soon box"
       pos_x:= GetToNewWorldAtMouse(mouse.down_x, mouse.down_y);
-      //WriteLn('Debug: New World at mouse: pos_x: ', pos_x);
       if (pos_x<>-1) and IsMouseInExpectedSoon then
       begin
-        WriteLn('Trying to send back to europe...');
+        {$IFDEF DEBUG_CODE}
+        WriteDebugLn('Trying to send back to europe...');
+        {$ENDIF}
         tempUArr:= dat.GetAllShipsGoingToNewWorld(europe.GetCount);
         if pos_x<=High(tempUArr) then tempUArr[pos_x].CallBackToEurope;
         Exit;
@@ -1831,10 +1816,9 @@ begin
 
       //check for moving ship from "expected soon box" to "to new world box"
       pos_x:= GetExpectedSoonAtMouse(mouse.down_x, mouse.down_y);
-      //WriteLn('Debug: Expected Soon at mouse: pos_x: ', pos_x);
       if (pos_x<>-1) and IsMouseInToNewWorld then
       begin
-        WriteLn('Trying to send back to new world...');
+        WriteDebugLn('Trying to send back to new world...');
         tempUArr:= dat.GetAllShipsGoingToEurope(europe.GetCount);
         if pos_x<=High(tempUArr) then tempUArr[pos_x].CallBackToNewWorld;
         Exit;
@@ -1842,10 +1826,9 @@ begin
 
       //check for moving ship from port to "new world box"
       pos_x:= GetShipAtMouse(mouse.down_x, mouse.down_y);
-      //WriteLn('Debug: Ship at mouse: pos_x: ', pos_x);
       if (pos_x<>-1) and IsMouseInToNewWorld then
       begin
-        WriteLn('Trying to send a ship to new world...');
+        WriteDebugLn('Trying to send a ship to new world...');
         tempUArr:= dat.GetAllShipsInEurope(europe.GetCount);
         if pos_x<=High(tempUArr) then
         begin
@@ -1938,7 +1921,7 @@ begin
 
     end;//else if (button=LEFT) and (state=UP)
     {$IFDEF DEBUG_CODE}
-    WriteLn('Exiting TGui.MouseFunc');
+    WriteDebugLn('Exiting TGui.MouseFunc');
     {$ENDIF}
     Exit;
   end;//europe
@@ -1951,7 +1934,7 @@ begin
       if report_pages<=0 then report:= rtNone;
     end;//if
     {$IFDEF DEBUG_CODE}
-    WriteLn('Exiting TGui.MouseFunc');
+    WriteDebugLn('Exiting TGui.MouseFunc');
     {$ENDIF}
     Exit;
   end;//report
@@ -1997,7 +1980,9 @@ begin
         if cur_colony.GetNation<>dat.PlayerNation then
         begin
           cur_colony:= nil;
+          {$IFDEF DEBUG_CODE}
           WriteLn('Debug: x: ',x, '; y: ', y, #13#10, 'out of colony now');
+          {$ENDIF}
         end;
       end//if colony<>nil
       else begin
@@ -2015,7 +2000,7 @@ begin
     end;//else
   end;//if
   {$IFDEF DEBUG_CODE}
-    WriteLn('Leaving TGui.MouseFunc');
+  WriteDebugLn('Leaving TGui.MouseFunc');
   {$ENDIF}
 end;//proc
 
@@ -2028,29 +2013,29 @@ end;//func
 procedure TGui.Resize(Width, Height: LongInt);
 begin
   {$IFDEF DEBUG_CODE}
-    WriteLn('Entered TGui.Resize');
+  WriteDebugLn('Entered TGui.Resize');
   {$ENDIF}
   if ((Width<>cWindowWidth) or (Height<>cWindowHeight)) then
     glutReshapeWindow(cWindowWidth, cWindowHeight);
   {$IFDEF DEBUG_CODE}
-    WriteLn('Leaving TGui.Resize');
+  WriteDebugLn('Leaving TGui.Resize');
   {$ENDIF}
 end;//proc
 
 procedure TGui.Start;
 begin
   {$IFDEF DEBUG_CODE}
-    WriteLn('Entered TGui.Start');
+  WriteDebugLn('Entered TGui.Start');
+  WriteDebugLn('glEnable-like stuff');
   {$ENDIF}
-  WriteLn('glEnable-like stuff');
-   // Enable backface culling
+  // Enable backface culling
   glEnable(GL_CULL_FACE);
   // Set up depth buffer
   //glEnable(GL_DEPTH_TEST);
   //glDepthFunc(GL_LESS);
   glAlphaFunc(GL_GREATER, 0.2);
   //Starting
-  WriteLn('glutMainLoop');
+  WriteDebugLn('glutMainLoop');
   glutMainLoop;
 end;//proc Start
 
@@ -2063,7 +2048,7 @@ var i, j: Integer;
     tex: GLuint;
 begin
   {$IFDEF DEBUG_CODE}
-    WriteLn('Entered TGui.Draw');
+  WriteDebugLn('Entered TGui.Draw');
   {$ENDIF}
   glLoadIdentity;
   glViewport(0,0, cWindowWidth, cWindowHeight);
@@ -2389,7 +2374,7 @@ begin
   DrawMessage;
   glutSwapBuffers();
   {$IFDEF DEBUG_CODE}
-    WriteLn('Leaving TGui.Draw');
+  WriteDebugLn('Leaving TGui.Draw');
   {$ENDIF}
 end;//TGui.Draw
 
@@ -2403,7 +2388,7 @@ var i,j: ShortInt;
     h, t: Word;
 begin
   {$IFDEF DEBUG_CODE}
-    WriteLn('Entered TGui.DrawColonyView');
+  WriteDebugLn('Entered TGui.DrawColonyView');
   {$ENDIF}
   //draw border
   glBegin(GL_QUADS);
@@ -2429,7 +2414,7 @@ begin
       if m_TerrainTexNames[local_Map.tiles[i+cur_colony.GetPosX,j+cur_colony.GetPosY].m_Type]=0 then
       begin
         {$IFDEF DEBUG_CODE}
-          WriteLn('TGui.DrawColonyView: Trying to draw flat terrain in ',i,',',j);
+        WriteDebugLn('TGui.DrawColonyView: Trying to draw flat terrain in ',i,',',j);
         {$ENDIF}
         glBegin(GL_QUADS);
         case local_Map.tiles[i+cur_colony.GetPosX,j+cur_colony.GetPosY].m_Type of
@@ -2673,7 +2658,7 @@ begin
 
 
   {$IFDEF DEBUG_CODE}
-    WriteLn('Leaving TGui.DrawColonyView');
+  WriteDebugLn('Leaving TGui.DrawColonyView');
   {$ENDIF}
 end;//proc DrawColonyView
 
@@ -3933,7 +3918,7 @@ procedure TGui.DrawMessage;
 var i, msg_lines, msg_opts: Integer;
 begin
   {$IFDEF DEBUG_CODE}
-    WriteLn('Entered TGui.DrawMessage');
+  WriteDebugLn('Entered TGui.DrawMessage');
   {$ENDIF}
   //show message, where neccessary
   if msg.txt<>'' then
@@ -4047,14 +4032,14 @@ begin
     end;//if
   end;//if
   {$IFDEF DEBUG_CODE}
-    WriteLn('Leaving TGui.DrawMessage');
+  WriteDebugLn('Leaving TGui.DrawMessage');
   {$ENDIF}
 end; //TGui.DrawMessage
 
 procedure TGui.CenterOn(const x, y: Integer);
 begin
   {$IFDEF DEBUG_CODE}
-    WriteLn('Entered TGui.CenterOn(',x,',',y,')');
+  WriteLn('Entered TGui.CenterOn(',x,',',y,')');
   {$ENDIF}
   OffSetX:= x-7;
   if OffSetX<0 then OffsetX:= 0
@@ -4073,7 +4058,7 @@ procedure TGui.WriteText(const msg_txt: string; const x, y: Single);
 var i: Integer;
 begin
   {$IFDEF DEBUG_CODE}
-    WriteLn('Entered TGui.WriteText');
+  WriteDebugLn('Entered TGui.WriteText');
   {$ENDIF}
   glRasterPos3f(x, y, 0.2);
   for i:= 1 to length(msg_txt) do
@@ -4082,7 +4067,7 @@ begin
       glutBitmapCharacter(GLUT_BITMAP_8_BY_13, Ord(msg_txt[i]));
     end;
   {$IFDEF DEBUG_CODE}
-    WriteLn('Leaving TGui.WriteText');
+  WriteDebugLn('Leaving TGui.WriteText');
   {$ENDIF}
 end;//proc
 
@@ -4090,7 +4075,7 @@ procedure TGui.WriteHelvetica12(const msg_txt: string; const x, y: Single);
 var i: Integer;
 begin
   {$IFDEF DEBUG_CODE}
-    WriteLn('Entered TGui.WriteHelvetica12');
+  WriteDebugLn('Entered TGui.WriteHelvetica12');
   {$ENDIF}
   glRasterPos3f(x, y, 0.2);
   for i:= 1 to length(msg_txt) do
@@ -4099,7 +4084,7 @@ begin
       glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, Ord(msg_txt[i]));
     end;
   {$IFDEF DEBUG_CODE}
-    WriteLn('Leaving TGui.WriteHelvetica12');
+  WriteDebugLn('Leaving TGui.WriteHelvetica12');
   {$ENDIF}
 end;//proc
 
@@ -4107,7 +4092,7 @@ procedure TGui.WriteTimesRoman24(const msg_txt: string; const x, y: Single);
 var i: Integer;
 begin
   {$IFDEF DEBUG_CODE}
-    WriteLn('Entered TGui.WriteTimes24');
+  WriteDebugLn('Entered TGui.WriteTimes24');
   {$ENDIF}
   glRasterPos3f(x, y, 0.2);
   for i:= 1 to length(msg_txt) do
@@ -4116,7 +4101,7 @@ begin
       glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, Ord(msg_txt[i]));
     end;
   {$IFDEF DEBUG_CODE}
-    WriteLn('Leaving TGui.WriteTimes24');
+  WriteDebugLn('Leaving TGui.WriteTimes24');
   {$ENDIF}
 end;//proc
 
@@ -4133,7 +4118,7 @@ var s: string;
     i: Integer;
 begin
   {$IFDEF DEBUG_CODE}
-    WriteLn('Entered TGui.DrawMenuBar');
+  WriteDebugLn('Entered TGui.DrawMenuBar');
   {$ENDIF}
   glColor3ubv(@cMenuTextColour[0]);
   s:= dat.GetLang.GetMenuLabel(mcGame);
@@ -4141,7 +4126,7 @@ begin
     s:= s+'  '+dat.GetLang.GetMenuLabel(TMenuCategory(i));
   WriteText(s, 0.1, 12.0+5.0*PixelWidth);
   {$IFDEF DEBUG_CODE}
-    WriteLn('Leaving TGui.DrawMenuBar');
+  WriteDebugLn('Leaving TGui.DrawMenuBar');
   {$ENDIF}
 end;//proc
 
@@ -4150,7 +4135,7 @@ var i, j, str_width: Integer;
     price_str: string;
 begin
   {$IFDEF DEBUG_CODE}
-    WriteLn('Entered TGui.DrawGoodsBar');
+  WriteDebugLn('Entered TGui.DrawGoodsBar');
   {$ENDIF}
   //background
   glBegin(GL_QUADS);
@@ -4246,7 +4231,7 @@ begin
     WriteText(price_str, i*PixelWidth, (cGoodBarHeight+1)*PixelWidth -0.5)
   end;//func
   {$IFDEF DEBUG_CODE}
-    WriteLn('Leaving TGui.DrawGoodsBar');
+  WriteDebugLn('Leaving TGui.DrawGoodsBar');
   {$ENDIF}
 end;//proc
 
@@ -4255,7 +4240,7 @@ var s: string;
     temp_nat: TNation;
 begin
   {$IFDEF DEBUG_CODE}
-    WriteLn('Entered TGui.DrawColonyTitleBar');
+  WriteDebugLn('Entered TGui.DrawColonyTitleBar');
   {$ENDIF}
   if cur_colony<>nil then
   begin
@@ -4272,7 +4257,7 @@ begin
     WriteText(s, ((cWindowWidth-8*length(s)) div 2)*PixelWidth, 12.0+5.0*PixelWidth);
   end;//if
   {$IFDEF DEBUG_CODE}
-    WriteLn('Leaving TGui.DrawColonyTitleBar');
+  WriteDebugLn('Leaving TGui.DrawColonyTitleBar');
   {$ENDIF}
 end;//proc
 
@@ -4357,7 +4342,7 @@ procedure TGui.GetNextMessage;
 var local_bool: Boolean;
 begin
   {$IFDEF DEBUG_CODE}
-    WriteLn('Entered TGui.GetNextMessage');
+  WriteDebugLn('Entered TGui.GetNextMessage');
   {$ENDIF}
   //save last selection before anything else
   if ((length(msg.options)>=1) or (msg.inputCaption<>'')) then
@@ -4371,20 +4356,20 @@ begin
     begin
       //skip callbacks
       {$IFDEF DEBUG_CODE}
-      WriteLn('DBG: TGui.GetNextMessage: skipping callbacks');
+      WriteDebugLn('DBG: TGui.GetNextMessage: skipping callbacks');
       {$ENDIF}
     end
     else begin
       //handle callbacks
       {$IFDEF DEBUG_CODE}
-      WriteLn('DBG: TGui.GetNextMessage: handling callback');
-      WriteLn('DBG: TGui.GetNextMessage: callback type is ', msg.cbRec.GetType);
+      WriteDebugLn('DBG: TGui.GetNextMessage: handling callback');
+      WriteDebugLn('DBG: TGui.GetNextMessage: callback type is ', msg.cbRec.GetType);
       {$ENDIF}
       if (msg.cbRec<>nil) then
         local_bool:= msg.cbRec.Handle
       else local_bool:= true;
       {$IFDEF DEBUG_CODE}
-      WriteLn('DBG: TGui.GetNextMessage: local_bool is ', local_bool);
+      WriteDebugLn('DBG: TGui.GetNextMessage: local_bool is ', local_bool);
       {$ENDIF}
 
       case msg.cbRec.GetType of
@@ -4414,7 +4399,7 @@ begin
   //now the main work
   msg.DequeueMessage;
   {$IFDEF DEBUG_CODE}
-    WriteLn('Leaving TGui.GetNextMessage');
+  WriteDebugLn('Leaving TGui.GetNextMessage');
   {$ENDIF}
 end;//proc
 

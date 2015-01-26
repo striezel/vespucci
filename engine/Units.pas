@@ -1,7 +1,7 @@
 { ***************************************************************************
 
     This file is part of Vespucci.
-    Copyright (C) 2008, 2009, 2010, 2011  Dirk Stolle
+    Copyright (C) 2008, 2009, 2010, 2011, 2015  Dirk Stolle
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -822,7 +822,7 @@ type
 
 implementation
 
-uses Colony, Data;
+uses Colony, Data, DebugWriter;
 
 //helper procedure
 procedure ApplyDir(var x,y: Byte; const dir: TDirection);
@@ -917,7 +917,7 @@ begin
   //check for task and execute, if present
   if AI_Task<>nil then
   begin
-    WriteLn('New Round: Exec calling');
+    WriteDebugLn('New Round: Exec calling');
     AI_Task.Execute;
 
     if AI_Task.Done then
@@ -1612,7 +1612,9 @@ function TGoToTask.Execute: Boolean;
 var direc: TDirection;
     x,y: Byte;
 begin
+  {$IFDEF DEBUG_CODE}
   WriteLn('GoTo.Execute called. Path len: ', length(m_Path));
+  {$ENDIF}
   Result:= True;
   while (target.MovesLeft>0) and (length(m_Path)>0) do
   begin
@@ -1621,9 +1623,11 @@ begin
     direc:= GetApplyingDirection(target.GetPosX, target.GetPosY, x,y);
 
     //debug only
-    WriteLn('-GoTo.Execute:');
+    {$IFDEF DEBUG_CODE}
+    WriteDebugLn('-GoTo.Execute:');
     WriteLn('-- from: ',target.GetPosX,',',target.GetPosY,'  to: ',x,',',y);
     WriteLn('-- apply dir.: ', Ord(direc));
+    {$ENDIF}
     //end debug
 
     target.Move(direc, m_Map, nil);

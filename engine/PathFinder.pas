@@ -1,7 +1,7 @@
 { ***************************************************************************
 
     This file is part of Vespucci.
-    Copyright (C) 2008, 2009, 2010  Dirk Stolle
+    Copyright (C) 2008, 2009, 2010, 2015  Dirk Stolle
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -205,6 +205,9 @@ type
 
 implementation
 
+uses
+  DebugWriter;
+
 function Heuristic(const from_x, from_y, to_x, to_y: Byte): Integer;
 begin
   Result:= Min(abs(from_x-to_x), abs(from_y-to_y));
@@ -375,20 +378,20 @@ var open, closed: THeap;
     node, temp: TSearchNode;
     i,j: Integer;
 begin
-  WriteLn('Entered FindPath.');
+  WriteDebugLn('Entered FindPath.');
   SetLength(path, 0);
   Result:= False;
   //check for range
   if ((from_x>=cMap_X) or (target_x>=cMap_X) or (from_y>=cMap_Y) or (target_y>=cMap_Y)) then
   begin
-    WriteLn('--Coordinates out of range!');
+    WriteDebugLn('--Coordinates out of range!');
     Exit;
   end;//if
 
   //check for map
   if AMap=nil then
   begin
-    WriteLn('--No valid map specified.');
+    WriteDebugLn('--No valid map specified.');
     Exit;
   end;//if
 
@@ -396,10 +399,12 @@ begin
   {if (AMap.tiles[from_x, from_y].IsWater xor AMap.tiles[target_x, target_y].IsWater) then Exit;}
   if (AMap.tiles[target_x, target_y].IsWater<>WaterWay) and not ((target_x=SpecialNodeX) and(target_y=SpecialNodeY)) then
   begin
-    WriteLn('--Target failed "water check".');
-    if WaterWay then WriteLn('----WaterWay: True') else WriteLn('----WaterWay: False');
+    WriteDebugLn('--Target failed "water check".');
+    if WaterWay then WriteDebugLn('----WaterWay: True') else WriteDebugLn('----WaterWay: False');
+    {$IFDEF DEBUG_CODE}
     WriteLn('----target:  ', target_x, ',', target_y);
     WriteLn('----special: ', SpecialNodeX, ',', SpecialNodeY);
+    {$ENDIF}
     Exit;
   end;//if
 
@@ -419,7 +424,7 @@ begin
     node:= open.RemoveMin;
     if ((node.x=target_x) and (node.y=target_y)) then
     begin
-      WriteLn('Found path! :)');
+      WriteDebugLn('Found path! :)');
       //Pfad gefunden :)
       Result:= True;
       //add all nodes to path
@@ -464,7 +469,7 @@ begin
 
     closed.AddNode(node);
   until open.Empty;
-  WriteLn('Open list is empty :(');
+  WriteDebugLn('Open list is empty :(');
   open.Destroy;
   closed.Destroy;
   Result:= False;
