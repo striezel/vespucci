@@ -4370,16 +4370,22 @@ begin
        or ((msg.cbRec.GetType=CBT_LOAD_GAME) and (dat.GetSaveInfo(msg.selected_option)='('+dat.GetLang.GetOthers(osEmpty)+')'))) then
     begin
       //skip callbacks
-      WriteLn('DEBUG: TGui.GetNextMessage: skipping callbacks');
+      {$IFDEF DEBUG_CODE}
+      WriteLn('DBG: TGui.GetNextMessage: skipping callbacks');
+      {$ENDIF}
     end
     else begin
       //handle callbacks
-      WriteLn('DEBUG: TGui.GetNextMessage: handling callback');
-      WriteLn('DEBUG: TGui.GetNextMessage: callback type is ', msg.cbRec.GetType);
+      {$IFDEF DEBUG_CODE}
+      WriteLn('DBG: TGui.GetNextMessage: handling callback');
+      WriteLn('DBG: TGui.GetNextMessage: callback type is ', msg.cbRec.GetType);
+      {$ENDIF}
       if (msg.cbRec<>nil) then
         local_bool:= msg.cbRec.Handle
       else local_bool:= true;
-      WriteLn('DEBUG: TGui.GetNextMessage: local bool is ', local_bool);
+      {$IFDEF DEBUG_CODE}
+      WriteLn('DBG: TGui.GetNextMessage: local_bool is ', local_bool);
+      {$ENDIF}
 
       case msg.cbRec.GetType of
         CBT_LOAD_GAME: begin
