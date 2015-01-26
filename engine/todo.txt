@@ -3,7 +3,7 @@ To do:
 
 (This file lists some random things that still need to be done to improve and/or
  complete the game. You can possibly consider this as a list of missing features
- and known bugs.
+ and/or known bugs, although the later are documented in known_bugs.txt.
  The list itself is highly incomplete(!) and issues are listed in no particular
  order.)
 
@@ -17,6 +17,12 @@ Trade:
   * implement possibility to trade with Indians
   *     "          "      "    "    "   other Europeans in new world
   * implement trading routes
+
+Colonies:
+---------
+  * notify player, if a new building was constructed in one of the colonies
+  * notify player, of a produced good cannot be stored due to not having enough
+    room in the warehouse
 
 GUI:
 ----
