@@ -110,7 +110,7 @@ begin
     if ParamStr(Frames)='--help' then
     begin
       ShowHelp;
-      Exit;
+      Halt(0);
     end
     else if ParamStr(Frames)='--no-frames' then ShowFrames:= False
     else if ParamStr(Frames)='--frames' then ShowFrames:= True
@@ -120,7 +120,7 @@ begin
     else begin
       WriteLn('Unrecognised parameter: "',ParamStr(Frames),'"');
       WriteLn('Use "--help" to show possible command line parameters.');
-      Exit;
+      Halt(1);
     end;//else
   Frames:= 0;
 
@@ -138,7 +138,7 @@ begin
   if (glutCreateWindow(cWindowCaption)<=0) then
   begin
     WriteLn('ERROR: Could not create window.');
-    Exit;
+    Halt(1);
   end;
   WriteLn('Creating GUI...');
   TheGUI:= TGui.Create;
