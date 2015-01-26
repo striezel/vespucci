@@ -1,7 +1,7 @@
 { ***************************************************************************
 
     This file is part of Vespucci.
-    Copyright (C) 2008, 2009, 2010, 2011  Thoronador
+    Copyright (C) 2008, 2009, 2010, 2011, 2015  Thoronador
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -71,6 +71,8 @@ const
                          (x: 55; y: 41),
                          (x: 50; y: 55)
                        );
+
+{PlaceDollarSignHereDEFINE DEBUG_CODE 1}
 
 type
   { record type which holds different parts of (player's) score }
@@ -561,7 +563,7 @@ type
 implementation
 
 uses
-  Terrain;
+  Terrain, DebugWriter;
 
 constructor TData.Create(const NumNation_Player: LongInt=cNationEngland);
 var i: Integer;
@@ -635,7 +637,9 @@ begin
   begin
     if m_Map.LoadFromFile(GetPathBase+america_map_path) then
     begin
-      WriteLn('Map "'+GetPathBase+america_map_path+'" successfully loaded.');
+      {$IFDEF DEBUG_CODE}
+      WriteDebugLn('Map "'+GetPathBase+america_map_path+'" successfully loaded.');
+      {$ENDIF}
       InitTribes_America;
     end//if
     else begin
@@ -828,7 +832,9 @@ begin
       SpawnEuropeanNation(j, cSpawnpointsAmerica[i].x, cSpawnpointsAmerica[i].y);
       bits:= bits or (1 shl i);
     end;//for
-    WriteLn('First ships created.');
+    {$IFDEF DEBUG_CODE}
+    WriteDebugLn('First ships created.');
+    {$ENDIF}
   end
   else begin
     //generate map
@@ -846,7 +852,9 @@ begin
       SpawnEuropeanNation(j, cMap_X-1, cSpawnpointsAmerica[i].y);
       bits:= bits or (1 shl i);
     end;//for
-    WriteLn('First ships created.');
+    {$IFDEF DEBUG_CODE}
+    WriteDebugLn('First ships created.');
+    {$ENDIF}
   end;//else branch
   //TODO: complete this procedure
 end;//proc

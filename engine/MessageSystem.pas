@@ -1,7 +1,7 @@
 { ***************************************************************************
 
     This file is part of Vespucci.
-    Copyright (C) 2008, 2010, 2011  Thoronador
+    Copyright (C) 2008, 2010, 2011, 2015  Thoronador
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -129,6 +129,9 @@ var
 
 implementation
 
+uses
+  DebugWriter;
+
 constructor TMessageSystem.Create;
 begin
   inherited Create;
@@ -157,7 +160,7 @@ procedure TMessageSystem.AddMessageSimple(const msg_txt: AnsiString);
 var null_opts: TShortStrArr;
 begin
   {$IFDEF DEBUG_CODE}
-    WriteLn('Entered TMessageSystem.AddMessageSimple');
+  WriteDebugLn('Entered TMessageSystem.AddMessageSimple');
   {$ENDIF}
   if txt='' then
   begin
@@ -173,7 +176,7 @@ begin
     EnqueueNewMessage(msg_txt, null_opts, '', '', nil);
   end;//else
   {$IFDEF DEBUG_CODE}
-    WriteLn('Leaving TMessageSystem.AddMessageSimple');
+  WriteDebugLn('Leaving TMessageSystem.AddMessageSimple');
   {$ENDIF}
 end;//proc
 
@@ -181,7 +184,7 @@ procedure TMessageSystem.AddMessageOptions(const msg_txt: AnsiString; const opts
 var i: Integer;
 begin
   {$IFDEF DEBUG_CODE}
-    WriteLn('Entered TMessageSystem.AddMessageOptions');
+  WriteDebugLn('Entered TMessageSystem.AddMessageOptions');
   {$ENDIF}
   if msg.txt='' then
   begin
@@ -199,7 +202,7 @@ begin
     EnqueueNewMessage(Trim(msg_txt)+cSpace60, opts, '', '', the_cb);
   end;//else
   {$IFDEF DEBUG_CODE}
-    WriteLn('Leaving TMessageSystem.AddMessageOptions');
+  WriteDebugLn('Leaving TMessageSystem.AddMessageOptions');
   {$ENDIF}
 end;//proc
 
@@ -207,7 +210,7 @@ procedure TMessageSystem.AddMessageInput(const msg_txt: AnsiString; const inCapt
 var null_opts: TShortStrArr;
 begin
   {$IFDEF DEBUG_CODE}
-    WriteLn('Entered TMessageSystem.AddMessageInput');
+  WriteDebugLn('Entered TMessageSystem.AddMessageInput');
   {$ENDIF}
   if txt='' then
   begin
@@ -225,7 +228,7 @@ begin
     EnqueueNewMessage(Trim(msg_txt)+cSpace60, null_opts, inCaption, inDefault, the_cb);
   end;//else
   {$IFDEF DEBUG_CODE}
-    WriteLn('Leaving TMessageSystem.AddMessageInput');
+  WriteDebugLn('Leaving TMessageSystem.AddMessageInput');
   {$ENDIF}
 end;//proc
 
@@ -234,7 +237,7 @@ var temp: PQueueElem;
     i: Integer;
 begin
   {$IFDEF DEBUG_CODE}
-    WriteLn('Entered TMessageSystem.EnqueueNewMessage');
+  WriteDebugLn('Entered TMessageSystem.EnqueueNewMessage');
   {$ENDIF}
   New(temp);
   temp^.txt:= msg_txt;
@@ -255,7 +258,7 @@ begin
     msg_queue.last:= temp;
   end;//else
   {$IFDEF DEBUG_CODE}
-    WriteLn('Leaving TMessageSystem.EnqueueNewMessage');
+  WriteDebugLn('Leaving TMessageSystem.EnqueueNewMessage');
   {$ENDIF}
 end;//proc
 
