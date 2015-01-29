@@ -1296,6 +1296,7 @@ begin
              end;//if player's nation
            end;//if, fortify
       'S': ;//sentry
+	       //TODO
       'C': begin
              //Centering the map on a unit does not change the unit's state, so
              //  we don't need to check whether it belongs to the player.
@@ -3460,7 +3461,7 @@ begin
           glDisable(GL_ALPHA_TEST);
           glDisable(GL_TEXTURE_2D);
         end;//if ColonyTex present
-        glColor3ubv(@CMenuTextColour[0]);
+        glColor3ubv(@cMenuTextColour[0]);
         WriteText(IntToStr(col_arr[i].GetInhabitants), 1.25, y_Fields-1.75-i);
         WriteText(col_arr[i].GetName, 2.25, y_Fields-1.75-i);
         u_arr:= dat.GetAllUnitsInColony(col_arr[i]);
@@ -3590,7 +3591,7 @@ var i, j, count: Integer;
     offset: GLfloat;
 begin
   i:= (cWindowWidth-length(dat.GetLang.GetReportString(rlsForeignAffairs))*8) div 2;
-  glColor3ubv(@CMenuTextColour[0]);
+  glColor3ubv(@cMenuTextColour[0]);
   WriteText(dat.GetLang.GetReportString(rlsForeignAffairs), i*PixelWidth, y_Fields);
 
   for i:= cMinEuropean to cMaxEuropean do
@@ -3663,7 +3664,7 @@ var ut: TUnitType;
     w_arr: TWorkArray;
 begin
   i:= (cWindowWidth-length(dat.GetLang.GetReportString(rlsJobReport))*8) div 2;
-  glColor3ubv(@CMenuTextColour[0]);
+  glColor3ubv(@cMenuTextColour[0]);
   WriteText(dat.GetLang.GetReportString(rlsJobReport), i*PixelWidth, y_Fields);
   w_arr:= dat.GetWorkArray(dat.PlayerNation);
   i:= 0;
@@ -3773,7 +3774,7 @@ begin
   glDisable(GL_ALPHA_TEST);
   glDisable(GL_TEXTURE_2D);
   //continental congress
-  glColor3ubv(@CMenuTextColour[0]);
+  glColor3ubv(@cMenuTextColour[0]);
   WriteText(dat.GetLang.GetReportString(rlsContinentalCongress)
             +': +'+IntToStr(score.Congress), 0.5, y_Fields-4.0);
   //show list of congress members
@@ -4730,10 +4731,10 @@ function TGui.IsMouseInToNewWorld(const m_x: LongInt=-1; m_y: LongInt=-1): Boole
 begin
   if ((m_x=-1) or (m_y=-1)) then
   begin
-    Result:= (mouse.x>=(3+cShipsInExpectedSoon)*FieldWidth) and (mouse.x<=(4+cShipsInExpectedSoon+cShipsinToNewWorld)*FieldWidth)
+    Result:= (mouse.x>=(3+cShipsInExpectedSoon)*FieldWidth) and (mouse.x<=(4+cShipsInExpectedSoon+cShipsInToNewWorld)*FieldWidth)
              and (mouse.y>=16+FieldWidth) and (mouse.y<=16+3*FieldWidth);
   end//if
-  else Result:= (m_x>=(3+cShipsInExpectedSoon)*FieldWidth) and (m_x<=(4+cShipsInExpectedSoon+cShipsinToNewWorld)*FieldWidth)
+  else Result:= (m_x>=(3+cShipsInExpectedSoon)*FieldWidth) and (m_x<=(4+cShipsInExpectedSoon+cShipsInToNewWorld)*FieldWidth)
              and (m_y>=16+FieldWidth) and (m_y<=16+3*FieldWidth);
 end;//func
 
