@@ -24,6 +24,7 @@
 
 #include "PascalTypes.hpp"
 #include <array>
+#include <fstream>
 #include <string>
 
 const LongInt cMinNations = 1;
