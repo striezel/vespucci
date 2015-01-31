@@ -27,7 +27,7 @@ uses
   Settlement, Nation, Units, Classes;
 
 const
-  { Constant array that holds the lociations of indian tribes that are present
+  { Constant array that holds the locations of Indian tribes that are present
     in America at the start of a new game.
 
     remarks/ to do:
@@ -114,7 +114,7 @@ type
             fs - the file stream the tribe has to be saved to
 
         remarks:
-            The file stream already has to be openend and has to be ready for
+            The file stream already has to be opened and has to be ready for
             writing.
       }
       function SaveToStream(var fs: TFileStream): Boolean; override;
@@ -125,7 +125,7 @@ type
             fs - the file stream the tribe has to be loaded from
 
         remarks:
-            The file stream already has to be openend and has to be ready for
+            The file stream already has to be opened and has to be ready for
             reading.
       }
       function LoadFromStream(var fs: TFileStream): Boolean; override;
