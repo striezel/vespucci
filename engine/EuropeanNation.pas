@@ -508,7 +508,7 @@ begin
   m_Boycotted[High(TGoodType)]:= False;
 end;//proc
 
-function TEuropeanNation.GetGold: Integer;
+function TEuropeanNation.GetGold: LongInt;
 begin
   Result:= m_Gold;
 end;//func
@@ -536,7 +536,7 @@ begin
   if m_Prices[AGood]+cGoodPrices[AGood].diff<cGoodPrices[AGood].max then
   begin
     m_Prices[AGood]:= m_Prices[AGood]+1;
-    //should display message to player
+    //TODO: should display message to player
   end;//if
 end;//proc
 
@@ -545,7 +545,7 @@ begin
   if m_Prices[AGood]>cGoodPrices[AGood].min then
   begin
     m_Prices[AGood]:= m_Prices[AGood]-1;
-    //should display a message to the player
+    //TODO: should display a message to the player
   end;//if
 end;//proc
 
@@ -562,7 +562,7 @@ begin
   if IsBoycotted(AGood) or (m_Gold<num*GetPrice(AGood, False)) then Result:= False
   else begin
     m_Gold:= m_Gold - GetPrice(AGood, False)*num;
-    //should display message about cost to the player -> GUI
+    //TODO: should display message about cost to the player -> GUI
     Result:= True;
   end;//else
 end;//func
@@ -575,7 +575,7 @@ begin
   else begin
     tax_amount:= (GetPrice(AGood, True)*num*GetTaxRate) div 100;
     m_Gold:= m_Gold + GetPrice(AGood, True)*num - tax_amount;
-    //should display message about gain & tax to the player -> GUI
+    //TODO: should display message about gain & tax to the player -> GUI
     Result:= True;
   end;//else
 end;//func
