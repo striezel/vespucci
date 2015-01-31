@@ -107,7 +107,7 @@ type
       procedure SetAttitude(const num_EuroNat: LongInt; const newAttitude: TIndianAttitude);
 
       { returns true, if this nation spawned at the start of the current game.
-        The default value right after contructor call is false. }
+        The default value right after constructor call is false. }
       function GetSpawnStatus: Boolean;
 
       { sets the nation's spawn status
@@ -118,7 +118,7 @@ type
       procedure SetSpawnStatus(const new_stat: Boolean);
 
       { tries to save this nation's data to the given stream and returns true
-        in case of success, or false if an error occured
+        in case of success, or false if an error occurred
 
         parameters:
             fs - the file stream the nation shall be saved in
