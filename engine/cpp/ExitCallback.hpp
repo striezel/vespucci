@@ -1,7 +1,7 @@
 /* **************************************************************************
 
     This file is part of Vespucci.
-    Copyright (C) 2011, 2012  Dirk Stolle
+    Copyright (C) 2008, 2011, 2012  Dirk Stolle
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -19,21 +19,17 @@
   ***************************************************************************
 */
 
-#ifndef BASICCALLBACK_HPP
-#define BASICCALLBACK_HPP
+#ifndef EXITCALLBACK_HPP
+#define EXITCALLBACK_HPP
 
-#include <string>
+#include "BasicCallback.hpp"
 
 /* integer constant that identifies the type of a callback record */
-const int CBT_ANY = 0;
+const int CBT_EXIT = 1;
 
-/* base class for other callbacks */
-class TBasicCallback
+class TExitCallback final: public TBasicCallback
 {
   public:
-    int option;
-    std::string inputText;
-
     /* function to handle the callback, i.e. perform all necessary steps after
        the player has made his/her choice. Should return true on success, false
        on failure
@@ -41,14 +37,10 @@ class TBasicCallback
        remarks:
            Derived classes have to implement their own version of that function.
     */
-    virtual bool Handle() = 0;
+    virtual bool Handle() override;
 
-    /* function to return the callback's type
-
-       remarks:
-           Derived classes have to implement their own version of that function.
-    */
-    virtual int GetType() = 0;
+    /* function to return the callback's type */
+    virtual int GetType() override;
 }; //class
 
-#endif // BASICCALLBACK_HPP
+#endif // EXITCALLBACK_HPP
