@@ -1,4 +1,5 @@
-/* ***************************************************************************
+/* **************************************************************************
+
     This file is part of Vespucci.
     Copyright (C) 2010, 2015  Dirk Stolle
 
@@ -14,17 +15,15 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
   ***************************************************************************
 */
 
-#ifndef PASCALTYPES_HPP
-#define PASCALTYPES_HPP
+#ifndef PASCALFUNCTIONS_FILES_HPP
+#define PASCALFUNCTIONS_FILES_HPP
 
-#include <cstdint>
+#include <string>
 
-typedef int LongInt;
-typedef uint8_t  Byte;
-typedef uint16_t Word;
-typedef uint32_t LongWord;
+bool FileExists(const std::string& FileName);
 
-#endif // PASCALTYPES_HPP
+#endif // PASCALFUNCTIONS_FILES_HPP

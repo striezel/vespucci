@@ -1,0 +1,458 @@
+/* **************************************************************************
+
+    This file is part of Vespucci.
+    Copyright (C) 2008, 2009, 2010  Dirk Stolle
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+  ***************************************************************************
+*/
+
+#include "BitmapReader.hpp"
+#include <cstdlib> //for abs()
+#include <fstream>
+#include "PascalFunctions_Files.hpp"
+
+/*function ReadBitmap(const FileName: string; var bfh: TBitmapFileHeader;
+                     var bih: TBitmapInfoHeader; var Data: Pointer;
+                     var err: string): Boolean;
+var fs: TFileStream;
+    i: Integer;
+begin
+  Result:= False;
+  Data:= nil;
+  err:= 'No error yet.';
+  if (not FileExists(FileName)) then begin
+    err:= 'File not found.';
+    Exit;
+  end;
+  try
+    fs:= TFileStream.Create(FileName, fmOpenRead or fmShareDenyNone);
+  except
+    err:= 'Could not open file.';
+    fs.Free;
+    Exit;
+  end;//tryxcept
+  if fs.Read(bfh, 14)<>14 then
+  begin
+    err:= 'File is to short to read BitmapFileHeader.';
+    fs.Free;
+    Exit;
+  end;//if
+  if fs.Read(bih, 40)<>40 then
+  begin
+    err:= 'File is to short to read BitmapInfoHeader.';
+    fs.Free;
+    Exit;
+  end;//if
+
+  //check header info
+  if bfh.bfType <> 19778 then //i.e. <> "BM"
+  begin
+    err:= 'Wrong bfType ('+IntToStr(bfh.bfType)+'). Should be 19778 ("BM").';
+    fs.Free;
+    Exit;
+  end;//if
+
+  if bih.biSize<>40 then
+  begin
+    err:= 'Wrong size of BitmapInfoHeader ('+IntToStr(bih.biSize)+'), should be 40.';
+    fs.Free;
+    Exit;
+  end;
+
+  //check width for power of two
+  i:=1;
+  while i<1024*1024 do //image is hardly larger than 1.000.000 pixel in width
+  begin
+    if bih.biWidth = i then break;
+    i:= i *2; //multiply with 2
+  end;//while
+  if i>=1024*1024 then
+  begin
+    err:= 'Width is no power of two. (Width: '+IntToStr(bih.biWidth)+')';
+    fs.Free;
+    Exit;
+  end;
+  //check height for power of two
+  i:=1;
+  while i<1024*1024 do //image is hardly larger than 1.000.000 pixel in width
+  begin
+    if abs(bih.biHeight) = i then break;
+    i:= i *2; //multiply with 2
+  end;//while
+  if i>=1024*1024 then
+  begin
+    err:= 'Height is no power of two. (Height: '+IntToStr(abs(bih.biHeight))+')';
+    fs.Free;
+    Exit;
+  end;
+
+  if bih.biPlanes <> 1 then
+  begin
+    err:= 'Invalid number of planes.';
+    fs.Free;
+    Exit;
+  end;//if
+
+  if bih.biBitCount <> 24 then //we only want 24bit images
+  begin
+    err:= 'Bits per pixel is different from 24!';
+    fs.Free;
+    Exit;
+  end;//if
+
+  if bih.biCompression <> 0 then //only uncompressed bitmaps wanted
+  begin
+    err:= 'Bitmap uses unsupported, compressed format!';
+    fs.Free;
+    Exit;
+  end;//if
+
+  //bih.biSizeImage shows size of data in bytes
+  if (bih.biSizeImage<>(bih.biWidth*abs(bih.biHeight)*3)) then
+  //there aren't three bytes for every px
+  begin
+    err:= 'Data has invalid size.';
+    fs.Free;
+    Exit;
+  end;//if
+
+  //now go for the data
+  //order for 24bpp is blue, green, red
+
+  //allocate memory
+  GetMem(Data, bih.biSizeImage);
+  //check for Offset and seek it, if neccessary
+  if (bfh.bfOffBits<>fs.Position) then fs.Seek(bfh.bfOffBits, soBeginning);
+  //now we can start the reading
+  if (fs.Read(Data^, bih.biSizeImage)<> bih.biSizeImage) then
+  begin
+    err:= 'Could not read all data from file!';
+    fs.Free;
+    FreeMem(Data, bih.biSizeImage);
+    Data:= nil;
+    Exit;
+  end;//if
+  //we are lucky...so far
+  fs.Free;
+  Result:= True;
+  err:= 'No error.';
+end;//func*/
+
+bool ReadBitmapToArr32RGB(const std::string& FileName, TArraySq32RGB& Data,
+                          std::string& err)
+{
+  err = "No error yet.";
+  if (!FileExists(FileName))
+  {
+    err = "File not found.";
+    return false;
+  }
+  std::ifstream fs(FileName, std::ios::binary | std::ios::in);
+  if (!fs.good())
+  {
+    err = "Could not open file.";
+    fs.close();
+    return false;
+  }
+
+  TBitmapFileHeader bfh;
+  fs.read(reinterpret_cast<char*>(&bfh), 14);
+  if (!fs.good() || fs.gcount()!=14)
+  {
+    err = "File is to short to read BitmapFileHeader.";
+    fs.close();
+    return false;
+  } //if
+
+  TBitmapInfoHeader bih;
+  fs.read(reinterpret_cast<char*>(&bih), 40);
+  if (!fs.good() || fs.gcount() != 40)
+  {
+    err = "File is to short to read BitmapInfoHeader.";
+    fs.close();
+    return false;
+  }//if
+
+  //check header info
+  if (bfh.bfType != 19778) //i.e. <> "BM"
+  {
+    err = "Wrong bfType ("+IntToStr(bfh.bfType)+"). Should be 19778.";
+    fs.close();
+    return false;
+  }//if
+
+  if (bih.biSize != 40)
+  {
+    err = "Wrong size of BitmapInfoHeader ("+IntToStr(bih.biSize)+"), should be 40.";
+    fs.close();
+    return false;
+  }
+
+  //check width
+  if (bih.biWidth != 32)
+  {
+    err = "Width is not 32px. (Width: "+IntToStr(bih.biWidth)+")";
+    fs.close();
+    return false;
+  }
+  //check height
+  if (std::abs(bih.biHeight) != 32)
+  {
+    err = "Height is not 32px. (Height: "+IntToStr(std::abs(bih.biHeight))+")";
+    fs.close();
+    return false;
+  }
+
+  if (bih.biPlanes != 1)
+  {
+    err = "Invalid number of planes.";
+    fs.close();
+    return false;
+  }//if
+
+  if (bih.biBitCount != 24) //we only want 24bit images
+  {
+    err = "Bits per pixel is different from 24!";
+    fs.close();
+    return false;
+  }//if
+
+  if (bih.biCompression != 0) //only uncompressed bitmaps wanted
+  {
+    err = "Bitmap uses unsupported, compressed format!";
+    fs.close();
+    return false;
+  }//if
+
+  //bih.biSizeImage shows size of data in bytes
+  if (bih.biSizeImage != (32*32*3)) then
+  //there aren't three bytes for every px
+  {
+    err = "Data has invalid size.";
+    fs.close();
+    return false;
+  }//if
+
+  //now go for the data
+  //order for 24bpp is blue, green, red
+
+  //check for Offset and seek it, if neccessary
+  if (bfh.bfOffBits != fs.tellg())
+    fs.seekg(bfh.bfOffBits, std::ios_base::beg);
+  //now we can start the reading
+  fs.read(reinterpret_cast<char*>(&Data), bih.biSizeImage);
+  if (!fs.good() || fs.gcount() != 32*32*3)
+  {
+    err = "Could not read all data from file!";
+    fs.close();
+    return false;
+  }//if
+  //we are lucky...so far
+  fs.close();
+  err = "No error.";
+  return true;
+} //func
+
+bool ReadBitmapToArr128x64RGB(const std::string& FileName, TArray128x64RGB& Data,
+                              std::string& err)
+{
+  err = "No error yet.";
+  if (!FileExists(FileName))
+  {
+    err = "File not found.";
+    return false;
+  }
+  std::ifstream fs(FileName, std::ios::binary | std::ios::in);
+  if (!fs.good())
+  {
+    err = "Could not open file.";
+    fs.close();
+    return false;
+  }
+  TBitmapFileHeader bfh;
+  fs.read(reinterpret_cast<char*>(&bfh), 14);
+  if (!fs.good() || fs.gcount() != 14)
+  {
+    err = "File is to short to read BitmapFileHeader.";
+    fs.close();
+    return false;
+  }//if
+  TBitmapInfoHeader bih;
+  fs.read(reinterpret_cast<char*>(&bih), 40);
+  if (!fs.good() || fs.gcount() != 40)
+  {
+    err = "File is to short to read BitmapInfoHeader.";
+    fs.close();
+    return false;
+  }//if
+
+  //check header info
+  if (bfh.bfType != 19778) //i.e. <> "BM"
+  {
+    err = "Wrong bfType ("+IntToStr(bfh.bfType)+"). Should be 19778.";
+    fs.close();
+    return false;
+  }//if
+
+  if (bih.biSize != 40)
+  {
+    err = "Wrong size of BitmapInfoHeader ("+IntToStr(bih.biSize)+"), should be 40.";
+    fs.close();
+    return false;
+  }
+
+  //check width
+  if (bih.biWidth != 128)
+  {
+    err = "Width is not 128px. (Width: "+IntToStr(bih.biWidth)+")";
+    fs.close();
+    return false;
+  }
+  //check height
+  if (std::abs(bih.biHeight) != 64)
+  {
+    err = "Height is not 64px. (Height: "+IntToStr(std::abs(bih.biHeight))+")";
+    fs.close();
+    return false;
+  }
+
+  if (bih.biPlanes != 1)
+  {
+    err = "Invalid number of planes.";
+    fs.close();
+    return false;
+  }//if
+
+  if (bih.biBitCount != 24) //we only want 24bit images
+  {
+    err = "Bits per pixel is different from 24!";
+    fs.close();
+    return false;
+  }//if
+
+  if (bih.biCompression != 0) //only uncompressed bitmaps wanted
+  {
+    err = "Bitmap uses unsupported, compressed format!";
+    fs.close();
+    return false;
+  }//if
+
+  //bih.biSizeImage shows size of data in bytes
+  if (bih.biSizeImage != (128*64*3))
+  //there aren't three bytes for every px
+  {
+    err = "Data has invalid size.";
+    fs.close();
+    return false;
+  }//if
+
+  //now go for the data
+  //order for 24bpp is blue, green, red
+
+  //check for Offset and seek it, if neccessary
+  if (bfh.bfOffBits != fs.tellg())
+    fs.seekg(bfh.bfOffBits, std::ios_base::beg);
+  //now we can start the reading
+  fs.read(reinterpret_cast<char*>(&Data), 128*64*3);
+  if (!fs.good() || fs.gcount()<> 128*64*3)
+  {
+    err = "Could not read all data from file!";
+    fs.close();
+    return false;
+  }//if
+  //we are lucky...so far
+  fs.close();
+  err = "No error.";
+  return true;
+} //func
+
+void SwapRGB_To_BGR(TArraySq32RGB& pic)
+{
+  Byte temp;
+  int i;
+  for (i = 0; i < 32*32; ++i)
+  {
+    temp = pic[i].r;
+    pic[i].r = pic[i].b;
+    pic[i].b = temp;
+  } //for
+} //proc
+
+void SwapRGB_To_BGR(TArray128x64RGB& pic)
+{
+  Byte temp;
+  int i;
+  for (i = 0; i < 128*64; ++i)
+  {
+    temp = pic[i].r;
+    pic[i].r = pic[i].b;
+    pic[i].b = temp;
+  }//for
+}//proc
+
+void SwapRGB_To_RBG(TArraySq32RGB& pic)
+{
+  Byte temp;
+  int i;
+  for (i = 0; i < 32*32; ++i)
+  {
+    temp = pic[i].b;
+    pic[i].b = pic[i].g;
+    pic[i].g = temp;
+  }//for
+} //proc
+
+void SwapRGB_To_GRB(TArraySq32RGB& pic)
+{
+  Byte temp;
+  int i;
+  for (i = 0; i < 32*32; ++i)
+  {
+    temp = pic[i].r;
+    pic[i].r = pic[i].g;
+    pic[i].g = temp;
+  }//for
+} //proc
+
+void GetAlphaByColor(const TArraySq32RGB& src, TArraySq32RGBA& dest)
+{
+  int i;
+  for (i = 0; i < 32*32; ++i)
+  {
+    dest[i].r = src[i].r;
+    dest[i].g = src[i].g;
+    dest[i].b = src[i].b;
+    if ((src[i].r==255) and (src[i].g==0) and (src[i].b==255))
+      dest[i].a = 0;
+    else
+      dest[i].a = 255;
+  }//for
+} //proc
+
+void GetAlphaByColor(const TArray128x64RGB& src, TArray128x64RGBA& dest)
+{
+  int i;
+  for (i = 0; i < 128*64; ++i)
+  {
+    dest[i].r = src[i].r;
+    dest[i].g = src[i].g;
+    dest[i].b = src[i].b;
+    if ((src[i].r==255) and (src[i].g==0) and (src[i].b==255))
+      dest[i].a = 0;
+    else
+      dest[i].a = 255;
+  }//for
+} //proc
