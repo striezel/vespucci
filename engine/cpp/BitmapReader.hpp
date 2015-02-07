@@ -92,7 +92,7 @@ struct TBitmapInfoHeader
                   failed
 */
 bool ReadBitmapToArr32RGB(const std::string& FileName, TArraySq32RGB& Data,
-                          std::string& err: string);
+                          std::string& err);
 
 /* tries to read a 128x64 px RGB bitmap from a file and returns true on success
 

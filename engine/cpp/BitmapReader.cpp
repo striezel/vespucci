@@ -22,6 +22,7 @@
 #include "BitmapReader.hpp"
 #include <cstdlib> //for abs()
 #include <fstream>
+#include "Helper.hpp"
 #include "PascalFunctions_Files.hpp"
 
 /*function ReadBitmap(const FileName: string; var bfh: TBitmapFileHeader;
@@ -238,7 +239,7 @@ bool ReadBitmapToArr32RGB(const std::string& FileName, TArraySq32RGB& Data,
   }//if
 
   //bih.biSizeImage shows size of data in bytes
-  if (bih.biSizeImage != (32*32*3)) then
+  if (bih.biSizeImage != (32*32*3))
   //there aren't three bytes for every px
   {
     err = "Data has invalid size.";
@@ -367,7 +368,7 @@ bool ReadBitmapToArr128x64RGB(const std::string& FileName, TArray128x64RGB& Data
     fs.seekg(bfh.bfOffBits, std::ios_base::beg);
   //now we can start the reading
   fs.read(reinterpret_cast<char*>(&Data), 128*64*3);
-  if (!fs.good() || fs.gcount()<> 128*64*3)
+  if (!fs.good() || fs.gcount() != 128*64*3)
   {
     err = "Could not read all data from file!";
     fs.close();
