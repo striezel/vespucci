@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="vespucci" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="Debug">
+				<Option output="bin/Debug/vespucci" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Debug/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-g" />
+				</Compiler>
+			</Target>
+			<Target title="Release">
+				<Option output="bin/Release/vespucci" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Release/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-O2" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-std=c++11" />
+			<Add option="-Wall" />
+			<Add option="-fexceptions" />
+		</Compiler>
+		<Unit filename="BasicCallback.hpp" />
+		<Unit filename="BitmapReader.cpp" />
+		<Unit filename="BitmapReader.hpp" />
+		<Unit filename="DebugWriter.cpp" />
+		<Unit filename="DebugWriter.hpp" />
+		<Unit filename="EuropeanNation.cpp" />
+		<Unit filename="EuropeanNation.hpp" />
+		<Unit filename="ExitCallback.cpp" />
+		<Unit filename="ExitCallback.hpp" />
+		<Unit filename="FoundingFathers.cpp" />
+		<Unit filename="FoundingFathers.hpp" />
+		<Unit filename="Goods.hpp" />
+		<Unit filename="Helper.cpp" />
+		<Unit filename="Helper.hpp" />
+		<Unit filename="IndianNation.cpp" />
+		<Unit filename="IndianNation.hpp" />
+		<Unit filename="Nation.cpp" />
+		<Unit filename="Nation.hpp" />
+		<Unit filename="PascalFunctions_Files.cpp" />
+		<Unit filename="PascalFunctions_Files.hpp" />
+		<Unit filename="PascalFunctions_FoundingFathers.hpp" />
+		<Unit filename="PascalFunctions_Goods.hpp" />
+		<Unit filename="PascalTypes.hpp" />
+		<Unit filename="Randomizer.cpp" />
+		<Unit filename="Randomizer.hpp" />
+		<Unit filename="Settlement.cpp" />
+		<Unit filename="Settlement.hpp" />
+		<Unit filename="Templates.hpp" />
+		<Unit filename="Terrain.cpp" />
+		<Unit filename="Terrain.hpp" />
+		<Unit filename="Tribe.hpp" />
+		<Unit filename="vespucci.cpp" />
+		<Extensions>
+			<code_completion />
+			<envvars />
+			<debugger />
+			<lib_finder disable_auto="1" />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>
