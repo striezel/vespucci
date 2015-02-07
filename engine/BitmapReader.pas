@@ -65,14 +65,14 @@ type
   { part of file header used in Bitmap files}
   TBitmapInfoHeader = packed record
     biSize: LongWord;
-    biWidth: Longint;
-    biHeight: Longint;
+    biWidth: LongInt;
+    biHeight: LongInt;
     biPlanes: Word;
     biBitCount: Word;
     biCompression: LongWord;
     biSizeImage: LongWord;
-    biXPixelsPerMeter: Longint;
-    biYPixelsPerMeter: Longint;
+    biXPixelsPerMeter: LongInt;
+    biYPixelsPerMeter: LongInt;
     biClrUsed: LongWord;
     biClrImportant: LongWord;
   end;//rec

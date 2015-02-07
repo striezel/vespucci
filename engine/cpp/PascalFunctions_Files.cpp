@@ -1,4 +1,5 @@
-/* ***************************************************************************
+/* **************************************************************************
+
     This file is part of Vespucci.
     Copyright (C) 2010, 2015  Thoronador
 
@@ -14,17 +15,14 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
   ***************************************************************************
 */
 
-#ifndef PASCALTYPES_HPP
-#define PASCALTYPES_HPP
+#include "PascalFunctions_Files.hpp"
+#include <unistd.h>
 
-#include <cstdint>
-
-typedef int LongInt;
-typedef uint8_t  Byte;
-typedef uint16_t Word;
-typedef uint32_t LongWord;
-
-#endif // PASCALTYPES_HPP
+bool FileExists(const std::string& FileName)
+{
+  return (access(FileName.c_str(), F_OK)==0);
+}
