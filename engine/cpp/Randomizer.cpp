@@ -21,11 +21,10 @@
 
 #include "Randomizer.hpp"
 #include <ctime>
-#include <cstdlib>
 
 Randomizer::Randomizer()
+: mt_rng(std::mt19937(time(NULL)))
 {
-  srand(time(NULL));
 }
 
 Randomizer::~Randomizer()
@@ -42,19 +41,31 @@ Randomizer& Randomizer::get()
 Byte Randomizer::random(const Byte a, const Byte b)
 {
   if (a==b) return a;
-  const float res = rand()/static_cast<float>(RAND_MAX);
-  if (a<b)
-    return a + static_cast<Byte>((b-a+1) * res);
-  //else ---> b<a
-  return b + static_cast<Byte>((a-b+1) * res);
+  if (a>b)
+    return random(b, a);
+  std::uniform_int_distribution<Byte> intDistrib(a, b);
+  return intDistrib(mt_rng);
 }
 
 LongInt Randomizer::random(const LongInt a, const LongInt b)
 {
   if (a==b) return a;
-  const float res = rand()/static_cast<float>(RAND_MAX);
-  if (a<b)
-    return a + static_cast<int>((b-a+1) * res);
-  //else ---> b<a
-  return b + static_cast<int>((a-b+1) * res);
+  if (a>b)
+    return random(b, a);
+  std::uniform_int_distribution<LongInt> intDistrib(a, b);
+  return intDistrib(mt_rng);
+}
+
+double Randomizer::random()
+{
+  std::uniform_real_distribution<double> floatingPointDistrib(0.0, 1.0);
+  return floatingPointDistrib(mt_rng);
+}
+
+int Randomizer::random(const unsigned int n)
+{
+  if (n<=1)
+    return 0;
+  std::uniform_int_distribution<unsigned int> intDistrib(0, n-1);
+  return intDistrib(mt_rng);
 }
