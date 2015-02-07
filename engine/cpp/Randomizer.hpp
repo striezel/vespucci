@@ -23,6 +23,7 @@
 #define RANDOMIZER_HPP
 
 #include "PascalTypes.hpp"
+#include <random>
 
 class Randomizer
 {
@@ -38,7 +39,15 @@ class Randomizer
 
     /* generates a random number between a and b (including a and b) */
     LongInt random(const LongInt a, const LongInt b);
+
+    /* generates a floating point random number in [0;1) */
+    double random();
+
+    /* generates a random integer number in [0;n), n>0 */
+    int random(const unsigned int n);
   private:
+    std::mt19937 mt_rng;
+
     //constructor
     Randomizer();
     //empty copy constructor
