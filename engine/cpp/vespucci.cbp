@@ -38,6 +38,7 @@
 		<Unit filename="BitmapReader.hpp" />
 		<Unit filename="DebugWriter.cpp" />
 		<Unit filename="DebugWriter.hpp" />
+		<Unit filename="ErrorTexture.hpp" />
 		<Unit filename="EuropeanNation.cpp" />
 		<Unit filename="EuropeanNation.hpp" />
 		<Unit filename="ExitCallback.cpp" />
