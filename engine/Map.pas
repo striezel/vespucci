@@ -728,7 +728,7 @@ begin
         fs.Free;
         Result:= False;
         Exit;
-      end;//id
+      end;//if
       if tiles[i,j]<>nil then tiles[i,j].Free;
       tiles[i,j]:= TTerrain.Create(TTerrainType(buffer[0]),
                      (buffer[1] and TERRAIN_RIVER_BIT<>0),
