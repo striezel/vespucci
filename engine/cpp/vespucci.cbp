@@ -49,12 +49,15 @@
 		<Unit filename="Helper.hpp" />
 		<Unit filename="IndianNation.cpp" />
 		<Unit filename="IndianNation.hpp" />
+		<Unit filename="Map.cpp" />
+		<Unit filename="Map.hpp" />
 		<Unit filename="Nation.cpp" />
 		<Unit filename="Nation.hpp" />
 		<Unit filename="PascalFunctions_Files.cpp" />
 		<Unit filename="PascalFunctions_Files.hpp" />
 		<Unit filename="PascalFunctions_FoundingFathers.hpp" />
 		<Unit filename="PascalFunctions_Goods.hpp" />
+		<Unit filename="PascalFunctions_TerrainType.hpp" />
 		<Unit filename="PascalTypes.hpp" />
 		<Unit filename="Randomizer.cpp" />
 		<Unit filename="Randomizer.hpp" />

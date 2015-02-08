@@ -101,10 +101,10 @@ class TMap
     bool filled; //internal value to determine whether map is not only NULL
     /* holds information about which fields of the map have already been
        discovered by the four European nations. */
-    std::array<std::array<std::array<bool, cMaxEuropean>, cMapY>, cMapX> discovered; //array [0..cMap_X-1, 0..cMap_Y-1] of array [cMinEuropean..cMaxEuropean] of Boolean;
+    std::array<std::array<std::array<bool, cMaxEuropean>, cMap_Y>, cMap_X> discovered; //array [0..cMap_X-1, 0..cMap_Y-1] of array [cMinEuropean..cMaxEuropean] of Boolean;
     /* "River Cache": holds information about rivers in adjacent fields of all
        fields on the map */
-    std::array<std::array<Byte, cMapY>, cMapX> river;
+    std::array<std::array<Byte, cMap_Y>, cMap_X> river;
 
     /* generates the river cache, i.e. fills the above array with proper values */
     void GenerateRiverCache();
@@ -125,7 +125,7 @@ class TMap
            because this array will usually be used during every frame (or most
            frames) while a game is running.
     */
-    std::array<std::array<std::unique_ptr<TTerrain>, cMapY>, cMapX> tiles; //array [0..cMap_X-1, 0..cMap_Y-1] of TTerrain;
+    std::array<std::array<std::unique_ptr<TTerrain>, cMap_Y>, cMap_X> tiles; //array [0..cMap_X-1, 0..cMap_Y-1] of TTerrain;
 
     /* constructor */
     TMap();
