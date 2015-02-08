@@ -180,7 +180,7 @@ type
   function Heuristic(const from_x, from_y, to_x, to_y: Byte): Integer;
 
   { This function does the actual pathfinding and returns true, if a path was
-    found
+    found.
 
     parameters:
         from_x, from_y     - coordinates of the starting point
@@ -236,7 +236,7 @@ begin
     for j:= 0  to cMap_Y-1 do
       Presence[i,j]:= False;
   SetLength(a,0);
-  a_last:=-1
+  a_last:=-1;
 end;//construc
 
 destructor THeap.Destroy;
@@ -366,7 +366,7 @@ begin
     Result.y:= cNotANode;
     Result.Parent.x:= cNotANode;
     Result.Parent.y:= cNotANode;
-  end;//if
+  end;//else
 end;//func
 
 
