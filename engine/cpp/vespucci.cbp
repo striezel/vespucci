@@ -60,6 +60,8 @@
 		<Unit filename="PascalFunctions_Goods.hpp" />
 		<Unit filename="PascalFunctions_TerrainType.hpp" />
 		<Unit filename="PascalTypes.hpp" />
+		<Unit filename="PathFinder.cpp" />
+		<Unit filename="PathFinder.hpp" />
 		<Unit filename="Randomizer.cpp" />
 		<Unit filename="Randomizer.hpp" />
 		<Unit filename="Settlement.cpp" />
