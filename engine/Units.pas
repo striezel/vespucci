@@ -273,7 +273,7 @@ type
       }
       function SendToNewWorld: Boolean;
 
-      { tries to send a unit which alredy sails to the new world back to Europe
+      { tries to send a unit which already sails to the new world back to Europe
         and will return true on success
 
         remarks:
@@ -282,7 +282,7 @@ type
       }
       function CallBackToEurope: Boolean;
 
-      { tries to send a unit which alredy sails to Europe back to the new world
+      { tries to send a unit which already sails to Europe back to the new world
         and will return true on success
 
         remarks:
@@ -291,8 +291,8 @@ type
       }
       function CallBackToNewWorld: Boolean;
 
-      // ---- functions for loading/ unloading freigth or passengers and
-      //      checking freigth status ----
+      // ---- functions for loading/ unloading freight or passengers and
+      //      checking freight status ----
       { returns the total number of slots the unit has
 
         remarks:
@@ -692,10 +692,10 @@ type
       }
       function Execute: Boolean; override;
 
-      { returns the x-ccordinate of the destination field }
+      { returns the x-coordinate of the destination field }
       function DestinationX: Byte;
 
-      { returns the y-ccordinate of the destination field }
+      { returns the y-coordinate of the destination field }
       function DestinationY: Byte;
 
       { returns the type of the task (something like a RTTI) }
