@@ -68,9 +68,9 @@ enum TDirection {dirSW, dirS, dirSE, dirE, dirNE, dirN, dirNW, dirW, dirNone};
 const
 /* constant array that holds the prices for ships in Europe */
   cShipPrices: array [utArtillery..utFrigate] of Integer
-                =(500{artillery*/, 16000000{Convoy, can't be bought*/,
-                  1000{caravel*/, 2000{trading ship*/, 3000{galleon*/,
-                  2000{privateer*/, 5000{frigate*/);
+                =(500/*artillery*/, 16000000/*Convoy, can't be bought*/,
+                  1000/*caravel*/, 2000/*trading ship*/, 3000/*galleon*/,
+                  2000/*privateer*/, 5000/*frigate*/);
 
 /* constant array that holds the prices for recruitung units in Europe. A value
     of -1 indicates that this type of unit cannot be recruited.
@@ -149,7 +149,7 @@ class TUnit
            AMap      - the current map
            dat       - data structure
     */
-    bool Move(const TDirection direction, const TMap& AMap, const void * dat);
+    bool Move(const TDirection direction, const std::shared_ptr<TMap> AMap, const void * dat);
 
     /* tries to "teleport" a unit to the given coordinates and returns true on
        success
@@ -245,7 +245,7 @@ class TUnit
     /* returns the current AI task that is assigned to this unit, or nil if
        there is no task at the moment
     */
-    std::shared_ptr<TTask> function GetTask() const;
+    std::shared_ptr<TTask> GetTask() const;
 
     /* assigns a new AI task to the unit
 
@@ -478,7 +478,12 @@ class TUnit
       //stores passengers (on ships)
       std::array<std::shared_ptr<TUnit>, 6> passengers;
       //stores cargo (on ships an convoys)
-      std::array<struct { Byte amount; TGoodType which;}, 6> cargo_load;
+      struct cls
+      {
+          Byte amount;
+          TGoodType which;
+      };
+      std::array<cls, 6> cargo_load;
       std::shared_ptr<TTask> AI_Task;
 };//class TUnit
 
@@ -580,7 +585,7 @@ class TPloughTask: public TTask
     virtual bool Execute() override;
 
     /* returns the type of the task (something like a RTTI) */
-    virtual TTaskType GetType() override;
+    virtual TTaskType GetType() const override;
 };//class
 
 /* ********
@@ -617,7 +622,7 @@ class TRoadTask: public TTask
     virtual bool Execute() override;
 
     /* returns the type of the task (something like a RTTI) */
-    virtual TTaskType GetType() override;
+    virtual TTaskType GetType() const override;
 };//class
 
 /* ********
@@ -654,7 +659,7 @@ class TClearTask: public TTask
     virtual bool Execute() override;
 
     /* returns the type of the task (something like a RTTI) */
-    virtual TTaskType GetType() override;
+    virtual TTaskType GetType() const override;
 };//class
 
 // ---- task for pathfinding ----
@@ -683,10 +688,10 @@ class TGoToTask: public TTask
            SpecialX    - x-coordinate of the "special" field
            SpecialY    - y-coordinate of the "special" field
     */
-    TGoToTask(const std::shared_ptr<TUnit> target_unit, Byte ToX, Byte ToY, const std::shared_ptr<TMap> AMap; const Byte SpecialX = 250, const Byte SpecialY = 250);
+    TGoToTask(const std::shared_ptr<TUnit> target_unit, Byte ToX, Byte ToY, const std::shared_ptr<TMap> AMap, const Byte SpecialX = 250, const Byte SpecialY = 250);
 
     /* destructor */
-    ~TGoToTask();
+    virtual ~TGoToTask();
 
     /* returns true, if the unit has arrived at its destination or if there is
        no path to the desired destination */
@@ -705,7 +710,7 @@ class TGoToTask: public TTask
     Byte DestinationY() const;
 
     /* returns the type of the task (something like a RTTI) */
-    virtual TTaskType GetType() override;
+    virtual TTaskType GetType() const override;
 };//class
 
 
@@ -718,33 +723,34 @@ class TGoToTask: public TTask
     ****          Derived from TGoToTask.
     *******
   */
-  TGoToEuropeTask = class(TGoToTask)
-    public
+class TGoToEuropeTask: public TGoToTask
+{
+  public:
     /* constructor
 
-        parameters:
-            target_unit - the unit that shall travel to Europe
-            ToX,ToY     - destination position, i.e. position of a high sea map square
-            AMap        - the current map (must not be nil)
-      */
-      constructor Create(const target_unit: TUnit; ToX, ToY: Byte; const AMap: TMap);
+       parameters:
+           target_unit - the unit that shall travel to Europe
+           ToX,ToY     - destination position, i.e. position of a high sea map square
+           AMap        - the current map (must not be nil)
+     */
+     TGoToEuropeTask(const std::shared_ptr<TUnit> target_unit, Byte ToX, Byte ToY, const std::shared_ptr<TMap> AMap);
 
     /* destructor */
-      destructor Destroy; override;
+    ~TGoToEuropeTask();
 
     /* returns true, if the unit has arrived at its destination or if there is
-        no path to the desired destination */
-      function Done: Boolean; override;
+       no path to the desired destination */
+    bool Done() override;
 
     /* executes the next step of the task and returns true, if something was
-        done. Usually, a return value of false indicates that the task is
-        already done (see Done()).
-      */
-      function Execute: Boolean; override;
+       done. Usually, a return value of false indicates that the task is
+       already done (see Done()).
+    */
+    virtual bool Execute() override;
 
     /* returns the type of the task (something like a RTTI) */
-      function GetType: TTaskType; override;
-  end;//class
+    virtual TTaskType GetType() const override;
+};//class
 
 /* ********
    **** TFindLandForColonyTask class
@@ -786,7 +792,7 @@ class TFindLandForColonyTask: public TGoToTask
     virtual bool Execute() override;
 
     /* returns the type of the task (something like a RTTI) */
-    virtual TTaskType GetType() override;
+    virtual TTaskType GetType() const override;
 };//class TFindLandTask
 
 
