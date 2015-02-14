@@ -73,6 +73,8 @@
 		<Unit filename="Terrain.cpp" />
 		<Unit filename="Terrain.hpp" />
 		<Unit filename="Tribe.hpp" />
+		<Unit filename="Units.cpp" />
+		<Unit filename="Units.hpp" />
 		<Unit filename="vespucci.cpp" />
 		<Extensions>
 			<code_completion />
