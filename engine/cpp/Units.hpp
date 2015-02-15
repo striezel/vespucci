@@ -513,7 +513,7 @@ class TTask
        remarks:
            Derived classes have to implement their own version of that function.
     */
-    virtual bool Done() = 0;
+    virtual bool Done() const = 0;
 
     /* executes the next step of the task and returns true, if something was
        done. Usually, a return value of false indicates that the task is
@@ -576,7 +576,7 @@ class TPloughTask: public TTask
     TPloughTask(const std::shared_ptr<TUnit> target_unit, Byte X, Byte Y, const std::shared_ptr<TMap> AMap);
 
     /* returns true, if the ploughing is done */
-    virtual bool Done() override;
+    virtual bool Done() const override;
 
     /* executes the next step of the task and returns true, if something was
        done. Usually, a return value of false indicates that the task is
@@ -613,7 +613,7 @@ class TRoadTask: public TTask
     TRoadTask(const std::shared_ptr<TUnit> target_unit, Byte X, Byte Y, const std::shared_ptr<TMap> AMap);
 
     /* returns true, if the road is constructed */
-    virtual bool Done() override;
+    virtual bool Done() const override;
 
     /* executes the next step of the task and returns true, if something was
        done. Usually, a return value of false indicates that the task is
@@ -650,7 +650,7 @@ class TClearTask: public TTask
     TClearTask(const std::shared_ptr<TUnit> target_unit, Byte X, Byte Y, const std::shared_ptr<TMap> AMap);
 
     /* returns true, if the forest is cleared */
-    virtual bool Done() override;
+    virtual bool Done() const override;
 
     /* executes the next step of the task and returns true, if something was
        done. Usually, a return value of false indicates that the task is
@@ -695,7 +695,7 @@ class TGoToTask: public TTask
 
     /* returns true, if the unit has arrived at its destination or if there is
        no path to the desired destination */
-    virtual bool Done() override;
+    virtual bool Done() const override;
 
     /* executes the next step of the task and returns true, if something was
        done. Usually, a return value of false indicates that the task is
@@ -736,11 +736,11 @@ class TGoToEuropeTask: public TGoToTask
      TGoToEuropeTask(const std::shared_ptr<TUnit> target_unit, Byte ToX, Byte ToY, const std::shared_ptr<TMap> AMap);
 
     /* destructor */
-    ~TGoToEuropeTask();
+    virtual ~TGoToEuropeTask();
 
     /* returns true, if the unit has arrived at its destination or if there is
        no path to the desired destination */
-    bool Done() override;
+    bool Done() const override;
 
     /* executes the next step of the task and returns true, if something was
        done. Usually, a return value of false indicates that the task is
@@ -783,7 +783,7 @@ class TFindLandForColonyTask: public TGoToTask
     /* returns true, if the unit has finished its task, i.e. it has found a
        land square and dropped a colonist to build a colony
     */
-    virtual bool Done() override;
+    virtual bool Done() const override;
 
     /* executes the next step of the task and returns true, if something was
        done. Usually, a return value of false indicates that the task is
