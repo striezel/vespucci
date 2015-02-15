@@ -20,6 +20,7 @@
 */
 
 #include "Units.hpp"
+#include <iostream>
 //#include "Colony.hpp"
 //#include "Data.hpp"
 #include "DebugWriter.hpp"
@@ -137,10 +138,10 @@ void TUnit::NewRound()
       switch (m_location)
       {
         case ulGoToNewWorld:
-             m_Location = ulAmerica;
+             m_location = ulAmerica;
              break;
         case ulGoToEurope:
-             m_Location = ulEurope;
+             m_location = ulEurope;
              DropAllPassengers();
              break; //case GoToEurope
       }//swi
@@ -229,10 +230,10 @@ bool TUnit::Move(const TDirection direction, const std::shared_ptr<TMap> AMap, c
         {
           if ((not AMap->tiles[PosX][PosY]->IsWater()) and (dat!=nullptr))
           {
-            TColony tempCol = TData(dat).GetColonyInXY(PosX, PosY);
+            TColony tempCol = static_cast<TData>(dat).GetColonyInXY(PosX, PosY);
             if (tempCol!=nullptr)
             {
-              TUnitArr u_arr = TData(dat).GetAllUnitsInColony(tempCol);
+              TUnitArr u_arr = static_cast<TData>(dat).GetAllUnitsInColony(tempCol);
               int i = 0;
               while ((FreeCapacity()>0) and (i<u_arr.size()))
               {
@@ -417,7 +418,7 @@ std::shared_ptr<TTask> TUnit::GetTask() const
 void TUnit::SetTask(const std::shared_ptr<TTask> new_task, const bool ImmediateExecute)
 {
   if (AI_Task!=nullptr)
-    AI_Task.Destroy;
+    AI_Task = nullptr; //AI_Task.Destroy;
   AI_Task = new_task;
   if ((AI_Task!=nullptr) and ImmediateExecute)
     AI_Task->Execute();
@@ -516,29 +517,33 @@ Byte TUnit::FreeCapacity() const
   }//else
 }//func
 
-function TUnit.EmbarkedPassengers: Byte;
-var i: Integer;
-begin
-  Result:= 0;
-  for i:= 0 to 5 do
-    if passengers[i]<>nil then Result:= Result+1;
-end;//func
+Byte TUnit::EmbarkedPassengers() const
+{
+  Byte Result = 0;
+  int i;
+  for (i = 0; i<= 5; ++i)
+    if (passengers[i]!=nullptr)
+      Result = Result+1;
+  return Result;
+}//func
 
-function TUnit.GetFirstEmbarkedPassenger: TUnit;
-var i: Integer;
-begin
-  Result:= nil;
-  for i:= 5 downto 0 do
-  begin
-    if passengers[i]<>nil then Result:= passengers[i];
-  end;//for
-end;//func
+std::shared_ptr<TUnit> TUnit::GetFirstEmbarkedPassenger() const
+{
+  std::shared_ptr<TUnit> Result = nullptr;
+  int i;
+  for (i = 5; i >= 0; --i)
+  {
+    if (passengers[i]!=nullptr)
+      Result = passengers[i];
+  }//for
+  return Result;
+}//func
 
-function TUnit.GetPassengerBySlot(const slot: Byte): TUnit;
-begin
-  if slot>5 then Result:= nil
-  else Result:= passengers[slot];
-end;//func
+std::shared_ptr<TUnit> TUnit::GetPassengerBySlot(const Byte slot) const
+{
+  if (slot>5) return nullptr;
+  else return passengers[slot];
+}//func
 
 /*tries to load num units of good 'AGood'; maximum is 100
  TO-DO: function still uses a new slot for every good, even if there already is
@@ -546,647 +551,649 @@ end;//func
         then again less then 80 food will occupy two slots, even though a slot
         is able to store up to 100 units of a good.
 */
-function TUnit.LoadGood(const AGood: TGoodType; const num: Byte): Boolean;
-var slot: Byte;
-begin
-  if ((num>100) or (FreeCapacity=0)) then Result:= False
-  else begin
-    slot:=0;
-    while ((cargo_load[slot].amount<>0) and (slot<5)) do
-      slot:= slot+1;
-    cargo_load[slot].amount:= num;
-    cargo_load[slot].which:= AGood;
-    Result:= True;
-  end;//else
-end;//func
+bool TUnit::LoadGood(const TGoodType AGood, const Byte num)
+{
+  if ((num>100) or (FreeCapacity()==0)) return false;
+  else
+  {
+    Byte slot = 0;
+    while ((cargo_load[slot].amount!=0) and (slot<5))
+      slot = slot+1;
+    cargo_load[slot].amount = num;
+    cargo_load[slot].which = AGood;
+    return true;
+  }//else
+}//func
 
 //tries to unload 'num' units of good 'AGood' and returns number of unloaded units
-function TUnit.UnloadGood(const AGood: TGoodType; const num: Byte): Byte;
-var cap: Byte;
-    slot: Integer;//needs to be signed type, because it can get negative (-1)
-begin
-  Result:=0;
-  if FreightCapacity>0 then
-  begin
-    slot:=5;
-    while (slot>=0) and (Result<num) do
-    begin
-      if cargo_load[slot].which=AGood then
-      begin
-        if cargo_load[slot].amount<num-Result then cap:= cargo_load[slot].amount
-        else cap:= num-Result;
-        Result:= Result+cap;
-        cargo_load[slot].amount:= cargo_load[slot].amount - cap;
-      end;//if
-      slot:= slot-1;
-    end;//while
-  end;//if
-end;//func
+Byte TUnit::UnloadGood(const TGoodType AGood, const Byte num)
+{
+  Byte Result =0;
+  if (FreightCapacity()>0)
+  {
+    int slot = 5; //needs to be signed type, because it can get negative (-1)
+    Byte cap;
+    while ((slot>=0) and (Result<num))
+    {
+      if (cargo_load[slot].which==AGood)
+      {
+        if (cargo_load[slot].amount<num-Result)
+          cap = cargo_load[slot].amount;
+        else
+          cap = num-Result;
+        Result = Result+cap;
+        cargo_load[slot].amount = cargo_load[slot].amount - cap;
+      }//if
+      slot = slot - 1;
+    }//while
+  }//if
+  return Result;
+}//func
 
 //tries to load unit 'AUnit' and returns True on success
-function TUnit.LoadUnit(AUnit: TUnit): Boolean;
-var slot: Byte;
-begin
-  if (FreeCapacity=0) or (AUnit=nil) or (UnitType=utConvoy) then Result:= False
-  else if (AUnit.FreightCapacity>0) then Result:= False //no ships or convoys
-  else begin
-    slot:= 0;
-    while (passengers[slot]<>nil) and (slot<5) do
-      slot:= slot+1;
-    passengers[slot]:= AUnit;
-    AUnit.SetLocation(ulEmbarked);
-    AUnit.SetState(usWaitingForShip);
-    Result:= True;
-  end;//else
-end;//func
+bool TUnit::LoadUnit(std::shared_ptr<TUnit> AUnit)
+{
+  if ((FreeCapacity()==0) or (AUnit==nullptr) or (UnitType==utConvoy)) return false;
+  else if (AUnit.FreightCapacity()>0) return false; //no ships or convoys
+  else
+  {
+    Byte slot = 0;
+    while ((passengers[slot]!=nullptr) and (slot<5))
+      slot = slot+1;
+    passengers[slot] = AUnit;
+    AUnit->SetLocation(ulEmbarked);
+    AUnit->SetState(usWaitingForShip);
+    return true;
+  }//else
+}//func
 
-{tries to unload a unit and place it at the given coordinates
+/*tries to unload a unit and place it at the given coordinates
  -Return value: true on success, false otherwise
  -TODO: unloads first unit of given type, so if there are two ore more units of
-  ===== the same type loaded, then it migth unload the wrong one}
-function TUnit.UnloadUnit(const AType: TUnitType; const x,y: Byte; AMap: TMap): Boolean;
-var i: Integer;
-begin
-  Result:= False;
-  if FreightCapacity<=0 then exit;
-  if ((sqr(x-GetPosX)>1) or (sqr(y-GetPosY)>1)) then Exit;
-  for i:= 5 downto 0 do
-  begin
-    if passengers[i]<>nil then
-      if passengers[i].GetType=AType then
-        if passengers[i].WarpToXY(x,y,AMap) then
-        begin
-          passengers[i].SetLocation(self.GetLocation);
-          passengers[i].SetState(usNormal);
-          passengers[i]:= nil;
-          Result:= True;
-          break;
-        end;//if
-  end;//for
-end;//func
+  ===== the same type loaded, then it migth unload the wrong one*/
+bool TUnit::UnloadUnit(const TUnitType AType, const Byte x, const Byte y, TMap& AMap)
+{
+  if (FreightCapacity()<=0) return false;
+  if ((sqr(x-GetPosX)>1) or (sqr(y-GetPosY)>1)) return false;
+  int i;
+  for (i = 5; i >= 0; --i)
+  {
+    if (passengers[i]!=nullptr)
+      if (passengers[i]->GetType()==AType)
+        if (passengers[i]->WarpToXY(x,y,AMap))
+        {
+          passengers[i]->SetLocation(this->GetLocation());
+          passengers[i]->SetState(usNormal);
+          passengers[i] = nullptr;
+          return true;
+        }//if
+  }//for
+  return false;
+}//func
 
-procedure TUnit.DropAllPassengers;
-var slot: Byte;
-begin
-  for slot:= 0 to 5 do
-  begin
-    if passengers[slot]<>nil then
-    begin
-      if m_Location = ulEurope then
-        passengers[slot].SetLocation(ulEurope)
-      else begin
-        passengers[slot].SetLocation(ulAmerica);
-        passengers[slot].WarpToXY(PosX, PosY, nil);
-      end;//else
-      passengers[slot].SetState(usNormal);
-      passengers[slot]:= nil;
-    end;//if
-  end;//for
-end;//proc
+void TUnit::DropAllPassengers()
+{
+  Byte slot;
+  for (slot = 0; slot<=5; ++slot)
+  {
+    if (passengers[slot]!=nullptr)
+    {
+      if (m_location == ulEurope)
+        passengers[slot]->SetLocation(ulEurope);
+      else
+      {
+        passengers[slot]->SetLocation(ulAmerica);
+        passengers[slot]->WarpToXY(PosX, PosY, nullptr);
+      }//else
+      passengers[slot]->SetState(usNormal);
+      passengers[slot] = nullptr;
+    }//if
+  }//for
+}//proc
 
-function TUnit.GetToolAmount: Byte;
-begin
-  Result:= (items and UNIT_TOOL_MASK)*20;
-end;//func
+Byte TUnit::GetToolAmount() const
+{
+  return (items bitand UNIT_TOOL_MASK)*20;
+}//func
 
-procedure TUnit.GiveTools(const amount: Byte);
-var temp: Byte;
-begin
-  temp:= amount div 20;
-  if temp>5 then temp:=5;
-  items:= temp or (items and (UNIT_HORSE_BIT or UNIT_MUSKET_BIT));
-end;//proc
+void TUnit::GiveTools(const Byte amount)
+{
+  Byte temp = amount / 20;
+  if (temp>5) temp = 5;
+  items = temp bitor (items bitand (UNIT_HORSE_BIT bitor UNIT_MUSKET_BIT));
+}//proc
 
-function TUnit.HasHorses: Boolean;
-begin
-  Result:= (items and UNIT_HORSE_BIT)>0;
-end;//func
+bool TUnit::HasHorses() const
+{
+  return ((items bitand UNIT_HORSE_BIT)>0);
+}//func
 
-procedure TUnit.GiveHorses(const has: Boolean = True);
-begin
-  if has then
-  begin
-    items:= (items or UNIT_HORSE_BIT);
-    if UnitType=utRegular then UnitType:= utDragoon;
-    if UnitType=utBrave then UnitType:= utBraveOnHorse;
-  end//if
-  else begin
-    items:= (items and (not UNIT_HORSE_BIT));
-    if UnitType=utDragoon then UnitType:= utRegular;
-    if UnitType=utBraveOnHorse then UnitType:= utBrave;
-  end;//else
-end;//proc
+void TUnit::GiveHorses(const bool has)
+{
+  if (has)
+  {
+    items = (items bitor UNIT_HORSE_BIT);
+    if (UnitType==utRegular) UnitType = utDragoon;
+    if (UnitType==utBrave) UnitType = utBraveOnHorse;
+  }//if
+  else
+  {
+    items = (items bitand (!UNIT_HORSE_BIT));
+    if (UnitType==utDragoon) UnitType = utRegular;
+    if (UnitType==utBraveOnHorse) UnitType = utBrave;
+  }//else
+}//proc
 
-function Tunit.HasMuskets: Boolean;
-begin
-  Result:= (items and UNIT_MUSKET_BIT)>0;
-end;//func
+bool TUnit::HasMuskets() const
+{
+  return ((items bitand UNIT_MUSKET_BIT)>0);
+}//func
 
-procedure TUnit.GiveMuskets(const has: Boolean = True);
-begin
-  if has then items:= (items or UNIT_MUSKET_BIT)
-  else items:= (items and (not UNIT_MUSKET_BIT));
-end;//proc
+void TUnit::GiveMuskets(const bool has)
+{
+  if (has) items = (items bitor UNIT_MUSKET_BIT);
+  else items = (items bitand (!UNIT_MUSKET_BIT));
+}//proc
 
-procedure TUnit.ChangeAllItems(const new_items: Byte);
-begin
-  items:= new_items;
-end;//proc
+void TUnit::ChangeAllItems(const Byte new_items)
+{
+  items = new_items;
+}//proc
 
-{ saving function, returns true on success.
-  Loading function is part of TData (to keep data integrity).}
-function TUnit.SaveToStream(var fs: TFileStream): Boolean;
-var i: Integer;
-    pass_count: Byte;
-begin
-  if fs=nil then
-  begin
-    Result:= False;
-    Exit;
-  end;//if
-  Result:= fs.Write(MovesLeft, sizeof(MovesLeft))=sizeof(MovesLeft);
-  Result:= Result and (fs.Write(PosX, sizeof(PosX))=sizeof(PosX));
-  Result:= Result and (fs.Write(PosY, sizeof(PosY))=sizeof(PosY));
-  Result:= Result and (fs.Write(UnitType, sizeof(TUnitType))=sizeof(TUnitType));
-  Result:= Result and (fs.Write(m_location, sizeof(TUnitLocation))=sizeof(TUnitLocation));
-  Result:= Result and (fs.Write(m_State, sizeof(TUnitState))=sizeof(TUnitState));
-  Result:= Result and (fs.Write(m_RoundsInOpenSea, sizeof(Byte))=sizeof(Byte));
-  Result:= Result and (fs.Write(m_Nation, sizeof(LongInt))=sizeof(LongInt));
-  Result:= Result and (fs.Write(items, sizeof(items))=sizeof(items));
+/* saving function, returns true on success.
+  Loading function is part of TData (to keep data integrity).*/
+bool TUnit::SaveToStream(std::ofstream& fs) const
+{
+  if (!fs.is_open())
+  {
+    return false;
+  }//if
+  fs.write(reinterpret_cast<const char*>(&MovesLeft), sizeof(MovesLeft));
+  fs.write(reinterpret_cast<const char*>(&PosX), sizeof(PosX));
+  fs.write(reinterpret_cast<const char*>(&PosY), sizeof(PosY));
+  fs.write(reinterpret_cast<const char*>(&UnitType), sizeof(TUnitType));
+  fs.write(reinterpret_cast<const char*>(&m_location), sizeof(TUnitLocation));
+  fs.write(reinterpret_cast<const char*>(&m_State), sizeof(TUnitState));
+  fs.write(reinterpret_cast<const char*>(&m_RoundsInOpenSea), sizeof(Byte));
+  fs.write(reinterpret_cast<const char*>(&m_Nation), sizeof(LongInt));
+  fs.write(reinterpret_cast<const char*>(&items), sizeof(items));
   //save cargo
-  for i:= 0 to 5 do
-  begin
-    Result:= Result and (fs.Write(cargo_load[i].amount, sizeof(Byte))=sizeof(Byte));
-    Result:= Result and (fs.Write(cargo_load[i].which, sizeof(TGoodType))=sizeof(TGoodType));
-  end;//func
+  int i;
+  for (i = 0; i <= 5; ++i)
+  {
+    fs.write(reinterpret_cast<const char*>(&cargo_load[i].amount), sizeof(Byte));
+    fs.write(reinterpret_cast<const char*>(&cargo_load[i].which), sizeof(TGoodType));
+  }//for
   //save passengers
-  pass_count:= EmbarkedPassengers;
-  Result:= Result and (fs.Write(pass_count, sizeof(Byte))=sizeof(Byte));
-  for i:= 0 to 5 do
-    if passengers[i]<>nil then
-      Result:= Result and passengers[i].SaveToStream(fs);
+  Byte pass_count = EmbarkedPassengers();
+  fs.write(reinterpret_cast<const char*>(&pass_count), sizeof(Byte));
+  for (i = 0; i<= 5; ++i)
+    if (passengers[i]!=nullptr)
+      if (!passengers[i]->SaveToStream(fs))
+        return false;
   //********* save tasks needs to be done yet! *********
-end;//func
+  return fs.good();
+}//func
 
-function TUnit.GetCargoAmountBySlot(const slot: Byte): Byte;
-begin
-  if slot<=5 then Result:= cargo_load[slot].amount
-  else Result:= 0;
-end;//func
+Byte TUnit::GetCargoAmountBySlot(const Byte slot) const
+{
+  if (slot<=5) return cargo_load[slot].amount;
+  else return 0;
+}//func
 
-function TUnit.GetCargoGoodBySlot(const slot: Byte): TGoodType;
-begin
-  if slot<=5 then Result:= cargo_load[slot].which
-  else Result:= gtCross;
-end;//func
+TGoodType TUnit::GetCargoGoodBySlot(const Byte slot) const
+{
+  if (slot<=5) return cargo_load[slot].which;
+  else return gtCross;
+}//func
 
 
 //only used during loading routine
-procedure TUnit.SetCargo(const slot: Byte; const new_amount: Byte; const AGood: TGoodType);
-begin
-  if ((FreightCapacity=0) or (slot>5) or (new_amount>100)) then Exit
-  else begin
-    cargo_load[slot].amount:= new_amount;
-    cargo_load[slot].which:= AGood;
-  end;//else
-end;//func
+void TUnit::SetCargo(const Byte slot, const Byte new_amount, const TGoodType AGood)
+{
+  if ((FreightCapacity()==0) or (slot>5) or (new_amount>100)) return;
+  else
+  {
+    cargo_load[slot].amount = new_amount;
+    cargo_load[slot].which = AGood;
+  }//else
+}//func
 
 //**** AI-related functions ****
 
-constructor TTask.Create(const target_unit: TUnit);
-begin
-  inherited Create;
-  target:= target_unit;
-end;//construc
+TTask::TTask(const std::shared_ptr<TUnit> target_unit)
+{
+  target = target_unit;
+}//construc
 
-destructor TTask.Destroy;
-begin
-  if target<>nil then target.SetState(usNormal);
-  inherited Destroy;
-end;//destruc
+TTask::~TTask()
+{
+  if (target!=nullptr) target->SetState(usNormal);
+}//destruc
 
-function TTask.GetType: TTaskType;
-begin
-  Result:= ttGeneric;
-end;//func
+TTaskType TTask::GetType() const
+{
+  return ttGeneric;
+}//func
 
 //**** TPloughTask methods ****
 
-constructor TPloughTask.Create(const target_unit: TUnit; X, Y: Byte; const AMap: TMap);
-begin
-  inherited Create(target_unit);
-  m_X:= X;
-  m_Y:= Y;
-  m_Map:= AMap;
-  RoundsLeft:= 4;
-  if target<>nil then
-  begin
-    target_unit.SetState(usPloughing);
-    if target.GetType = utPioneer then RoundsLeft:= 2;
-  end;
-  if AMap.tiles[m_X, m_Y].IsPloughed then RoundsLeft:= 0;
-end;//func
+TPloughTask::TPloughTask(const std::shared_ptr<TUnit> target_unit, Byte X, Byte Y, const std::shared_ptr<TMap> AMap)
+: TTask(target_unit)
+{
+  m_X = X;
+  m_Y = Y;
+  m_Map = AMap;
+  RoundsLeft = 4;
+  if (target!=nullptr)
+  {
+    target_unit->SetState(usPloughing);
+    if (target->GetType() == utPioneer) RoundsLeft = 2;
+  }
+  if (AMap->tiles[m_X][m_Y]->IsPloughed()) RoundsLeft = 0;
+}//constructor
 
-function TPloughTask.Done: Boolean;
-begin
-  Result:= (RoundsLeft<=0);
-end;//func
+bool TPloughTask::Done() const
+{
+  return (RoundsLeft<=0);
+}//func
 
-function TPloughTask.Execute: Boolean;
-begin
-  if RoundsLeft>0 then
-  begin
-    RoundsLeft:= RoundsLeft-1;
-    target.MovesLeft:= 0;
-    if RoundsLeft=0 then
-    begin
-      target.GiveTools(target.GetToolAmount-20);
-      m_Map.tiles[m_X, m_Y].Plough;
-    end;
-    Result:= True;
-  end//if
-  else Result:= False;
-end;//func
+bool TPloughTask::Execute()
+{
+  if (RoundsLeft>0)
+  {
+    RoundsLeft = RoundsLeft-1;
+    target->MovesLeft = 0;
+    if (RoundsLeft==0)
+    {
+      target->GiveTools(target->GetToolAmount()-20);
+      m_Map->tiles[m_X][m_Y]->Plough();
+    }
+    return true;
+  }//if
+  else return false;
+}//func
 
-function TPloughTask.GetType: TTaskType;
-begin
-  Result:= ttPlough;
-end;//func
+TTaskType TPloughTask::GetType() const
+{
+  return ttPlough;
+}//func
 
 // **** TRoadTask methods ****
-constructor TRoadTask.Create(const target_unit: TUnit; X, Y: Byte; const AMap: TMap);
-begin
-  inherited Create(target_unit);
-  m_X:= X;
-  m_Y:= Y;
-  m_Map:= AMap;
-  RoundsLeft:= 2;
-  if target<>nil then
-  begin
-    target.SetState(usCreateRoad);
-    if target.GetType = utPioneer then RoundsLeft:= 1;
-  end;
-  if AMap.tiles[m_X, m_Y].HasRoad then RoundsLeft:= 0;
-end;//func
+TRoadTask::TRoadTask(const std::shared_ptr<TUnit> target_unit, Byte X, Byte Y, const std::shared_ptr<TMap> AMap)
+: TTask(target_unit)
+{
+  m_X = X;
+  m_Y = Y;
+  m_Map = AMap;
+  RoundsLeft = 2;
+  if (target!=nullptr)
+  {
+    target->SetState(usCreateRoad);
+    if (target->GetType() == utPioneer) RoundsLeft = 1;
+  }
+  if (AMap->tiles[m_X][m_Y]->HasRoad()) RoundsLeft = 0;
+}//func
 
-function TRoadTask.Done: Boolean;
-begin
-  Result:= (RoundsLeft<=0);
-end;//func
+bool TRoadTask::Done() const
+{
+  return (RoundsLeft<=0);
+}//func
 
-function TRoadTask.Execute: Boolean;
-begin
-  if RoundsLeft>0 then
-  begin
-    RoundsLeft:= RoundsLeft-1;
-    target.MovesLeft:= 0;
-    if RoundsLeft=0 then
-    begin
-      target.GiveTools(target.GetToolAmount-20);
-      m_Map.tiles[m_X, m_Y].CreateRoad;
-    end;
-    Result:= True;
-  end//if
-  else Result:= False;
-end;//func
+bool TRoadTask::Execute()
+{
+  if (RoundsLeft>0)
+  {
+    RoundsLeft = RoundsLeft-1;
+    target->MovesLeft = 0;
+    if (RoundsLeft==0)
+    {
+      target->GiveTools(target->GetToolAmount()-20);
+      m_Map->tiles[m_X][m_Y]->CreateRoad();
+    }
+    return true;
+  }//if
+  else return false;
+}//func
 
-function TRoadTask.GetType: TTaskType;
-begin
-  Result:= ttRoad;
-end;//func
+TTaskType TRoadTask::GetType() const
+{
+  return ttRoad;
+}//func
 
 // **** TClearTask methods ****
-constructor TClearTask.Create(const target_unit: TUnit; X, Y: Byte; const AMap: TMap);
-begin
-  inherited Create(target_unit);
-  m_X:= X;
-  m_Y:= Y;
-  m_Map:= AMap;
-  RoundsLeft:= 6;
-  if target<>nil then
-  begin
-    target.SetState(usPloughing);
-    if target.GetType = utPioneer then RoundsLeft:= 3;
-  end;
-  if not (AMap.tiles[m_X, m_Y].HasForest) then RoundsLeft:= 0;
-end;//func
+TClearTask::TClearTask(const std::shared_ptr<TUnit> target_unit, Byte X, Byte Y, const std::shared_ptr<TMap> AMap)
+: TTask(target_unit)
+{
+  m_X = X;
+  m_Y = Y;
+  m_Map = AMap;
+  RoundsLeft = 6;
+  if (target!=nullptr)
+  {
+    target->SetState(usPloughing);
+    if (target->GetType() == utPioneer) RoundsLeft = 3;
+  }
+  if (!(AMap->tiles[m_X][m_Y]->HasForest()) RoundsLeft = 0;
+}//func
 
-function TClearTask.Done: Boolean;
-begin
-  Result:= (RoundsLeft<=0);
-end;//func
+bool TClearTask::Done() const
+{
+  return (RoundsLeft<=0);
+}//func
 
-function TClearTask.Execute: Boolean;
-begin
-  if RoundsLeft>0 then
-  begin
-    RoundsLeft:= RoundsLeft-1;
-    target.MovesLeft:= 0;
-    if RoundsLeft=0 then
-    begin
-      target.GiveTools(target.GetToolAmount-20);
-      m_Map.tiles[m_X, m_Y].ClearForest;
-    end;
-    Result:= True;
-  end//if
-  else Result:= False;
-end;//func
+bool TClearTask::Execute()
+{
+  if (RoundsLeft>0)
+  {
+    RoundsLeft = RoundsLeft-1;
+    target->MovesLeft = 0;
+    if (RoundsLeft==0)
+    {
+      target->GiveTools(target->GetToolAmount()-20);
+      m_Map->tiles[m_X][m_Y]->ClearForest();
+    }
+    return true;
+  }//if
+  else return false;
+}//func
 
-function TClearTask.GetType: TTaskType;
-begin
-  Result:= ttClear;
-end;//func
+TTaskType TClearTask::GetType() const
+{
+  return ttClear;
+}//func
 
 // go to task (pathfinding)
-constructor TGoToTask.Create(const target_unit: TUnit; ToX, ToY: Byte; const AMap: TMap; const SpecialX: Byte=250; const SpecialY: Byte=250);
-begin
-  inherited Create(target_unit);
-  m_X:= ToX;
-  m_Y:= ToY;
-  spec_X:= SpecialX;
-  spec_Y:= SpecialY;
-  m_Map:= AMap;
-  SetLength(m_Path, 0);
-  if FindPath(target_unit.GetPosX, target_unit.GetPosY, ToX, ToY, target_unit.IsShip, AMap, m_Path, SpecialX, SpecialY) then
-  begin
-    target_unit.SetState(usGoTo);
-  end
-  else SetLength(m_Path, 0);
-end;//construc
+TGoToTask::TGoToTask(const std::shared_ptr<TUnit> target_unit, Byte ToX, Byte ToY, const std::shared_ptr<TMap> AMap, const Byte SpecialX, const Byte SpecialY)
+: TTask(target_unit),
+  m_Path(TCoordArr())
+{
+  m_X = ToX;
+  m_Y = ToY;
+  spec_X = SpecialX;
+  spec_Y = SpecialY;
+  m_Map = AMap;
+  m_Path.clear();
+  if (FindPath(target_unit->GetPosX(), target_unit->GetPosY(), ToX, ToY, target_unit->IsShip(), AMap, m_Path, SpecialX, SpecialY))
+  {
+    target_unit->SetState(usGoTo);
+  }
+  else m_Path.clear();
+}//construc
 
-function TGoToTask.Done: Boolean;
-begin
-  Result:= ((target.GetPosX=m_X) and (target.GetPosY=m_Y)) or (length(m_Path)<1);
-end;//func
+bool TGoToTask::Done() const
+{
+  return (((target->GetPosX()==m_X) and (target->GetPosY()==m_Y)) or (m_Path.size()<1));
+}//func
 
-function TGoToTask.Execute: Boolean;
-var direc: TDirection;
-    x,y: Byte;
-begin
-  {$IFDEF DEBUG_CODE}
-  WriteLn('GoTo.Execute called. Path len: ', length(m_Path));
-  {$ENDIF}
-  Result:= True;
-  while (target.MovesLeft>0) and (length(m_Path)>0) do
-  begin
-    x:= m_Path[High(m_Path)].x;
-    y:= m_Path[High(m_Path)].y;
-    direc:= GetApplyingDirection(target.GetPosX, target.GetPosY, x,y);
+bool TGoToTask::Execute()
+{
+  #ifdef DEBUG_CODE
+  std::cout << "GoTo.Execute called. Path len: " << m_Path.size() << "\n";
+  #endif
+  while ((target->MovesLeft>0) and (!m_Path.empty()))
+  {
+    Byte x = m_Path[m_Path.size()-1].x;
+    Byte y = m_Path[m_Path.size()-1].y;
+    TDirection direc = GetApplyingDirection(target->GetPosX(), target->GetPosY(), x,y);
 
     //debug only
-    {$IFDEF DEBUG_CODE}
-    WriteDebugLn('-GoTo.Execute:');
-    WriteLn('-- from: ',target.GetPosX,',',target.GetPosY,'  to: ',x,',',y);
+    #ifdef DEBUG_CODE
+    WriteDebugLn("-GoTo.Execute:");
+    std::cout << "-- from: " << target->GetPosX() << "," << target->GetPosY() << "  to: " << (int) x << "," << (int) y << "\n";
     WriteLn('-- apply dir.: ', Ord(direc));
-    {$ENDIF}
+    #endif
     //end debug
 
-    target.Move(direc, m_Map, nil);
-    if (target.GetPosX<>x) or (target.GetPosY<>y) then
-    begin
+    target.Move(direc, m_Map, nullptr);
+    if ((target->GetPosX()!=x) or (target->GetPosY()!=y))
+    {
       //check for special location
-      if ((x=spec_X) and (y=spec_Y)) then
-      begin
-        target.WarpToXY(spec_X, spec_Y, m_Map);
-        target.MovesLeft:= target.MovesLeft-1;
-        if target.MovesLeft<0 then target.MovesLeft:=0;
-      end
-      else begin
+      if ((x==spec_X) and (y==spec_Y))
+      {
+        target->WarpToXY(spec_X, spec_Y, m_Map);
+        target->MovesLeft = target->MovesLeft-1;
+        if (target->MovesLeft<0) target->MovesLeft = 0;
+      }
+      else
+      {
         //something went wrong here, abort the whole task
-        SetLength(m_Path, 0);
-        Result:= False;
+        m_Path.clear();
         //debug only
-        WriteLn('-- direction application failed!');
+        std::cout << "-- direction application failed!\n";
         //end debug
-        Exit;
-      end;//else
-    end//if
-    else SetLength(m_Path, length(m_Path)-1); //remove last waypoint
-  end;//while
-end;//func
+        return false;
+      }//else
+    }//if
+    else m_Path.pop_back(); //remove last waypoint
+  }//while
+  return true;
+}//func
 
-function TGoToTask.DestinationX: Byte;
-begin
-  Result:= m_X;
-end;//func
+Byte TGoToTask::DestinationX() const
+{
+  return m_X;
+}//func
 
-function TGoToTask.DestinationY: Byte;
-begin
-  Result:= m_Y;
-end;//func
+Byte TGoToTask::DestinationY() const
+{
+  return m_Y;
+}//func
 
-destructor TGoToTask.Destroy;
-begin
-  SetLength(m_Path, 0);
-  target.SetState(usNormal);
-  inherited Destroy;
-end;//destruc
+TGoToTask::~TGoToTask()
+{
+  m_Path.clear();
+  target->SetState(usNormal);
+  //inherited Destroy;
+}//destruc
 
-function TGoToTask.GetType: TTaskType;
-begin
-  Result:= ttGoTo;
-end;//func
+TTaskType TGoToTask::GetType() const
+{
+  return ttGoTo;
+}//func
 
 // **** TGoToEuropeTask methods ****
 
-constructor TGoToEuropeTask.Create(const target_unit: TUnit; ToX, ToY: Byte; const AMap: TMap);
-begin
-  inherited Create(target_unit, ToX, ToY, AMap);
-end;//construc
+TGoToEuropeTask::TGoToEuropeTask(const std::shared_ptr<TUnit> target_unit, Byte ToX, Byte ToY, const std::shared_ptr<TMap> AMap)
+: TGoToTask(target_unit, ToX, ToY, AMap)
+{
+}//construc
 
-destructor TGoToEuropeTask.Destroy;
-begin
-  inherited Destroy;
-end;//destruc
+TGoToEuropeTask::~TGoToEuropeTask()
+{
+  //inherited Destroy;
+}//destruc
 
-function TGoToEuropeTask.Done: Boolean;
-begin
-  Result:= (inherited Done) and (target.GetLocation=ulEurope);
-end;//func
+bool TGoToEuropeTask::Done() const
+{
+  return ((TGoToTask::Done()) and (target->GetLocation()==ulEurope));
+}//func
 
-function TGoToEuropeTask.Execute: Boolean;
-begin
-  if (not inherited Done) then
-  begin
-    inherited Execute;
-    Result:= true;
-  end
-  else begin
-    if target.GetLocation=ulAmerica then
-    begin
-      if (m_Map.tiles[target.GetPosX, target.GetPosY].GetType=ttOpenSea) then
-        target.SendToEurope;
-      Result:= true;
-    end//if
-    else Result:= target.GetLocation=ulGoToEurope;
-  end;//else
-end;//func
+bool TGoToEuropeTask::Execute()
+{
+  if (!TGoToTask::Done())
+  {
+    TGoToTask::Execute();
+    return true;
+  }
+  else
+  {
+    if (target->GetLocation()==ulAmerica)
+    {
+      if (m_Map->tiles[target->GetPosX()][target->GetPosY()]->GetType()==ttOpenSea)
+        target->SendToEurope();
+      return true;
+    }//if
+    else return (target->GetLocation()==ulGoToEurope);
+  }//else
+}//func
 
-function TGoToEuropeTask.GetType: TTaskType;
-begin
-  Result:= ttGoToEurope;
-end;//func
+TTaskType TGoToEuropeTask::GetType() const
+{
+  return ttGoToEurope;
+}//func
 
 // **** TFindLandForColonyTask methods ****
 
-constructor TFindLandForColonyTask.Create(const target_unit: TUnit; const AMap: TMap; const dat: Pointer);
-var grid: TColonySiteEvaluationGrid;
-    i, step: Integer;
-    found: Boolean;
-    target_coords_x, target_coords_y: Integer;
-    path: TCoordArr;
-begin
-  target:= target_unit;
-  m_Map:= AMap;
-  m_Data:= dat;
+TFindLandForColonyTask::TFindLandForColonyTask(const std::shared_ptr<TUnit> target_unit, const std::shared_ptr<TMap> AMap, const void * dat)
+{
+  int target_coords_x, target_coords_y;
+  TCoordArr path;
+
+  target = target_unit;
+  m_Map = AMap;
+  m_Data = dat;
   //get grid
-  grid:= TData(m_Data).GetColonySiteEvaluation(true);
+  TColonySiteEvaluationGrid grid = static_cast<TData>(m_Data).GetColonySiteEvaluation(true);
   //find best tile
-  found:= false;
-  step:= 1;
-  while not found and (step<cMap_Y) do begin
+  bool found = false;
+  int step = 1;
+  while ((!found) and (step<cMap_Y))
+  {
     //check top row
-    for i:= target_unit.GetPosX-step to target_unit.GetPosX+step do
-      if m_Map.IsValidMapPosition(i, target_unit.GetPosY-step) then
+    int i;
+    for (i = target_unit->GetPosX()-step; i <= target_unit->GetPosX()+step; ++i)
+      if (m_Map->IsValidMapPosition(i, target_unit->GetPosY()-step))
         //check, if it has a high enough value
-        if grid[i, target_unit.GetPosY-step]>=8 then
+        if (grid[i][target_unit->GetPosY()-step]>=8)
           //check if there would be a path to it
-          if FindPath(target_unit.GetPosX, target_unit.GetPosY, i, target_unit.GetPosY-step,
-                      true, m_Map, path, i, target_unit.GetPosY-step) then
-          begin
+          if (FindPath(target_unit->GetPosX(), target_unit->GetPosY(), i, target_unit->GetPosY()-step,
+                      true, m_Map, path, i, target_unit->GetPosY()-step))
+          {
             //found a path to that square
-            found:= true;
-            target_coords_x:= i;
-            target_coords_y:= target_unit.GetPosY-step;
+            found = true;
+            target_coords_x = i;
+            target_coords_y = target_unit->GetPosY()-step;
             break;
-          end;//if
-    if found then break;
+          }//if
+    if (found)
+      break;
     //check bottom row
-    for i:= target_unit.GetPosX-step to target_unit.GetPosX+step do
-      if m_Map.IsValidMapPosition(i, target_unit.GetPosY+step) then
+    for (i = target_unit->GetPosX()-step; i <= target_unit->GetPosX()+step; ++i)
+      if (m_Map->IsValidMapPosition(i, target_unit->GetPosY()+step))
         //check, if it has a high enough value
-        if grid[i, target_unit.GetPosY+step]>=8 then
+        if (grid[i][target_unit->GetPosY()+step]>=8)
           //check if there would be a path to it
-          if FindPath(target_unit.GetPosX, target_unit.GetPosY, i, target_unit.GetPosY+step,
-                      true, m_Map, path, i, target_unit.GetPosY+step) then
-          begin
+          if (FindPath(target_unit->GetPosX(), target_unit->GetPosY(), i, target_unit->GetPosY()+step,
+                      true, m_Map, path, i, target_unit->GetPosY()+step))
+          {
             //found a path to that square
-            found:= true;
-            target_coords_x:= i;
-            target_coords_y:= target_unit.GetPosY+step;
+            found = true;
+            target_coords_x = i;
+            target_coords_y = target_unit->GetPosY()+step;
             break;
-          end;//if
-    if found then break;
+          }//if
+    if (found)
+      break;
     //check left row
-    for i:= target_unit.GetPosY-step+1 to target_unit.GetPosY+step-1 do
-      if m_Map.IsValidMapPosition(target_unit.GetPosX-step, i) then
+    for (i = target_unit->GetPosY()-step+1; i <= target_unit->GetPosY()+step-1; ++i)
+      if (m_Map->IsValidMapPosition(target_unit->GetPosX-step, i))
         //check, if it has a high enough value
-        if grid[target_unit.GetPosX-step, i]>=8 then
+        if (grid[target_unit->GetPosX()-step][i]>=8)
           //check if there would be a path to it
-          if FindPath(target_unit.GetPosX, target_unit.GetPosY, target_unit.GetPosX-step, i,
-                      true, m_Map, path, target_unit.GetPosX-step, i) then
-          begin
+          if (FindPath(target_unit->GetPosX(), target_unit->GetPosY(), target_unit->GetPosX()-step, i,
+                      true, m_Map, path, target_unit->GetPosX()-step, i))
+          {
             //found a path to that square
-            found:= true;
-            target_coords_x:= target_unit.GetPosX-step;
-            target_coords_y:= i;
+            found = true;
+            target_coords_x = target_unit->GetPosX()-step;
+            target_coords_y = i;
             break;
-          end;//if
-    if found then break;
+          }//if
+    if (found)
+      break;
     //check right row
-    for i:= target_unit.GetPosY-step+1 to target_unit.GetPosY+step-1 do
-      if m_Map.IsValidMapPosition(target_unit.GetPosX+step, i) then
+    for (i = target_unit->GetPosY()-step+1; i <= target_unit->GetPosY()+step-1; ++i)
+      if (m_Map->IsValidMapPosition(target_unit->GetPosX()+step, i))
         //check, if it has a high enough value
-        if grid[target_unit.GetPosX+step, i]>=8 then
+        if (grid[target_unit->GetPosX()+step][i]>=8)
           //check if there would be a path to it
-          if FindPath(target_unit.GetPosX, target_unit.GetPosY, target_unit.GetPosX+step, i,
-                      true, m_Map, path, target_unit.GetPosX+step, i) then
-          begin
+          if (FindPath(target_unit->GetPosX(), target_unit->GetPosY(), target_unit->GetPosX()+step, i,
+                      true, m_Map, path, target_unit->GetPosX()+step, i))
+          {
             //found a path to that square
-            found:= true;
-            target_coords_x:= target_unit.GetPosX+step;
-            target_coords_y:= i;
+            found = true;
+            target_coords_x = target_unit->GetPosX()+step;
+            target_coords_y = i;
             break;
-          end;//if
-    step:= step+1;
-  end;//while
+          }//if
+    step = step+1;
+  }//while
 
   // -- set data for goto task
   //found something?
-  if found then
-  begin
-    m_X:= target_coords_x;
-    m_Y:= target_coords_y;
-    m_Path:= path;
-    m_BuildWhenDone:= true;
-  end//if
-  else begin
+  if (found)
+  {
+    m_X = target_coords_x;
+    m_Y = target_coords_y;
+    m_Path = path;
+    m_BuildWhenDone = true;
+  }//if
+  else
+  {
     //nothing found
-    m_X:= target_unit.GetPosX;
-    m_Y:= target_unit.GetPosY;
-    SetLength(m_Path, 0);
-    m_BuildWhenDone:= false;
-  end;//else
-  spec_X:= target_coords_x;
-  spec_Y:= target_coords_y;
-end;//construc
+    m_X = target_unit->GetPosX();
+    m_Y = target_unit->GetPosY();
+    m_Path.clear();
+    m_BuildWhenDone = false;
+  }//else
+  spec_X = target_coords_x;
+  spec_Y = target_coords_y;
+}//construc
 
-destructor TFindLandForColonyTask.Destroy;
-begin
-  m_Map:= nil;
-  inherited Destroy;
-end;
+TFindLandForColonyTask::~TFindLandForColonyTask()
+{
+  m_Map = nullptr;
+  //inherited Destroy;
+}
 
-function TFindLandForColonyTask.Done: Boolean;
-begin
-  if ((not target.IsShip) or (target.EmbarkedPassengers=0)) then Result:= true
-  else begin
-      Result:= (inherited Done) or not m_BuildWhenDone; //We are done, if the
-      //GoToTask is done or no colony will be build anyway.
-  end;//else
-end;//func
+bool TFindLandForColonyTask::Done() const
+{
+  if ((!target->IsShip()) or (target->EmbarkedPassengers()==0)) return true;
+  else
+  {
+    return ((TGoToTask::Done()) or !m_BuildWhenDone);
+    /*We are done, if the GoToTask is done or no colony will be build anyway. */
+  }//else
+}//func
 
-function TFindLandForColonyTask.Execute: Boolean;
-var tries: LongInt;
-    founder: TUnit;
-begin
-  if (target.EmbarkedPassengers=0) then
-  begin
-    Result:= false;
-    exit;
-  end;//if
+bool TFindLandForColonyTask::Execute()
+{
+  if (target->EmbarkedPassengers()==0)
+  {
+    return false;
+  }//if
   //execute the GoToTask
-  Result:= inherited Execute;
+  bool Result = TGoToTask::Execute();
   //Are we at the destination?
-  if (target.GetPosX=m_X) and (target.GetPosY=m_Y) then
-  begin
-    founder:= target.GetFirstEmbarkedPassenger;
-    if (target.UnloadUnit(founder.GetType, m_X, m_Y, m_Map)) then
-    begin
+  if ((target->GetPosX()==m_X) and (target->GetPosY()==m_Y))
+  {
+    std::shared_ptr<TUnit> founder = target->GetFirstEmbarkedPassenger();
+    if (target->UnloadUnit(founder->GetType(), m_X, m_Y, m_Map))
+    {
       //build new colony and set the founder into the upper, left field
-      (TData(m_Data).NewColony(m_X, m_Y, founder.GetNation,
-        TData(m_Data).GetLang.GetColonyNames(founder.GetNation,
-        length(TData(m_Data).GetColonyList(founder.GetNation))))).SetUnitInField(-1, -1, founder);
+      (static_cast<TData>(m_Data).NewColony(m_X, m_Y, founder->GetNation(),
+        static_cast<TData>(m_Data).GetLang.GetColonyNames(founder->GetNation(),
+        length(static_cast<TData>(m_Data).GetColonyList(founder->GetNation())))))->SetUnitInField(-1, -1, founder);
       //create road in colony square
-      m_Map.tiles[m_X,m_Y].CreateRoad;
+      m_Map->tiles[m_X][m_Y]->CreateRoad();
       //try to unload other units, too
-      tries:= 0;
-      while (target.GetFirstEmbarkedPassenger<>nil) and (tries<6) do
-      begin
-        target.UnloadUnit(target.GetFirstEmbarkedPassenger.GetType, m_X, m_Y, m_Map);
-        tries:= tries +1;
-      end;//while
-      Result:= true;
-      exit;
-    end;//if
-  end;//if at destination location
-  Result:= true;
-end;//func
+      LongInt tries = 0;
+      while ((target->GetFirstEmbarkedPassenger()!=nullptr) and (tries<6))
+      {
+        target->UnloadUnit(target->GetFirstEmbarkedPassenger()->GetType(), m_X, m_Y, m_Map);
+        tries = tries +1;
+      }//while
+      return true;
+    }//if
+  }//if at destination location
+  return true;
+}//func
 
-function TFindLandForColonyTask.GetType: TTaskType;
-begin
-  Result:= ttFindLand;
-end;//func
+TTaskType TFindLandForColonyTask::GetType() const
+{
+  return ttFindLand;
+}//func
 
 
 //general
@@ -1222,5 +1229,3 @@ bool HasExpertStatus(const TGoodType AGood, const TUnitType ut)
 {
   return ((GetUnitForGood(AGood)==ut) and (ut!=utCriminal));
 }//func
-
-end.

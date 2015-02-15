@@ -1366,7 +1366,7 @@ begin
   end;//else
 end;//proc
 
-function Tunit.HasMuskets: Boolean;
+function TUnit.HasMuskets: Boolean;
 begin
   Result:= (items and UNIT_MUSKET_BIT)>0;
 end;//func
@@ -1407,7 +1407,7 @@ begin
   begin
     Result:= Result and (fs.Write(cargo_load[i].amount, sizeof(Byte))=sizeof(Byte));
     Result:= Result and (fs.Write(cargo_load[i].which, sizeof(TGoodType))=sizeof(TGoodType));
-  end;//func
+  end;//for
   //save passengers
   pass_count:= EmbarkedPassengers;
   Result:= Result and (fs.Write(pass_count, sizeof(Byte))=sizeof(Byte));
@@ -1474,7 +1474,7 @@ begin
     if target.GetType = utPioneer then RoundsLeft:= 2;
   end;
   if AMap.tiles[m_X, m_Y].IsPloughed then RoundsLeft:= 0;
-end;//func
+end;//constructor
 
 function TPloughTask.Done: Boolean;
 begin
