@@ -26,12 +26,9 @@
 #include <iostream>
 #include "Randomizer.hpp"
 #include "PascalFunctions_Files.hpp"
+#include "PascalFunctions_Math.hpp"
 #include "PascalFunctions_TerrainType.hpp"
 
-int sqr(const int x)
-{
-  return x*x;
-}
 
 float h2(const Byte mx, const Byte my, const Byte r, const float h, const Byte x, const Byte y)
 {
