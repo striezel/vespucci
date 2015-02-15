@@ -24,6 +24,7 @@
 
 #include <array>
 #include <fstream>
+#include <map>
 #include <memory>
 #include <vector>
 #include "PascalTypes.hpp"
@@ -65,40 +66,47 @@ enum TUnitState {usNormal,/*-*/ usFortified,/*F*/ usWaitingForShip/*S*/, usGoTo/
 /* enumeration type for directions */
 enum TDirection {dirSW, dirS, dirSE, dirE, dirNE, dirN, dirNW, dirW, dirNone};
 
-const
-/* constant array that holds the prices for ships in Europe */
-  cShipPrices: array [utArtillery..utFrigate] of Integer
-                =(500/*artillery*/, 16000000/*Convoy, can't be bought*/,
-                  1000/*caravel*/, 2000/*trading ship*/, 3000/*galleon*/,
-                  2000/*privateer*/, 5000/*frigate*/);
+/* constant map that holds the prices for ships in Europe
+*/
+const std::map<TUnitType, int> cShipPrices
+                               = {
+                               {utArtillery, 500},
+                               {utConvoy, 16000000/*Convoy, can't be bought*/},
+                               {utCaravel, 1000},
+                               {utTradingShip, 2000},
+                               {utGalleon, 3000},
+                               {utPrivateer, 2000},
+                               {utFrigate, 5000}
+                               };
 
 /* constant array that holds the prices for recruitung units in Europe. A value
     of -1 indicates that this type of unit cannot be recruited.
   */
-  cUnitPrices: array [utFarmer..utRegular] of LongInt =(
-                 1100, //utFarmer
-                 1000, //utFisher
-                 -1, //utFurHunter
-                 900, //utSilverMiner
-                 700, //utWoodcutter
-                 600, //utOreMiner
-                 -1, //utSugarplanter
-                 -1, //utCottonplanter
-                 -1, //utTobaccoplanter
-                 1500, //utPreacher
-                 1900, //utStatesman
-                 1000, //utCarpenter
-                 1100, //utDistiller
-                 1300, //utWeaver
-                 1200, //utTobacconist
-                 950, //utFurTrader
-                 1050, //utSmith
-                 850, //utWeaponSmith
-                 -1, //utScout
-                 1200, //utPioneer
-                 1400, //utMissionary
-                 2000 //utRegular
-               );
+const std::map<TUnitType, LongInt> cUnitPrices
+                ={
+                  {utFarmer, 1100}, //utFarmer
+                  {utFisher, 1000}, //utFisher
+                  {utFurHunter, -1}, //utFurHunter
+                  {utSilverMiner, 900}, //utSilverMiner
+                  {utWoodcutter, 700}, //utWoodcutter
+                  {utOreMiner, 600}, //utOreMiner
+                  {utSugarplanter, -1}, //utSugarplanter
+                  {utCottonplanter, -1}, //utCottonplanter
+                  {utTobaccoplanter, -1}, //utTobaccoplanter
+                  {utPreacher, 1500}, //utPreacher
+                  {utStatesman, 1900}, //utStatesman
+                  {utCarpenter, 1000}, //utCarpenter
+                  {utDistiller, 1100}, //utDistiller
+                  {utWeaver, 1300}, //utWeaver
+                  {utTobacconist, 1200}, //utTobacconist
+                  {utFurTrader, 950}, //utFurTrader
+                  {utSmith, 1050}, //utSmith
+                  {utWeaponSmith, 850}, //utWeaponSmith
+                  {utScout, -1}, //utScout
+                  {utPioneer, 1200}, //utPioneer
+                  {utMissionary, 1400}, //utMissionary
+                  {utRegular, 2000} //utRegular
+                 };
 
 /* forward declaration of TTask (see below TUnit for full declaration) */
 class TTask;

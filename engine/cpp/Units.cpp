@@ -24,6 +24,7 @@
 //#include "Colony.hpp"
 //#include "Data.hpp"
 #include "DebugWriter.hpp"
+#include "PascalFunctions_Math.hpp"
 
 //helper procedure
 void ApplyDir(Byte& x, Byte& y, const TDirection dir)
@@ -156,7 +157,7 @@ void TUnit::NewRound()
 
     if (AI_Task->Done())
     {
-      AI_Task->Destroy();
+      //AI_Task->Destroy();
       AI_Task = nullptr;
     }
   }
@@ -210,7 +211,7 @@ bool TUnit::Move(const TDirection direction, const std::shared_ptr<TMap> AMap, c
       if (AMap != nullptr)
         if (AMap->tiles[newX][newY] != nullptr)
         {
-          allow = (IsShip() === AMap->tiles[newX][newY]->IsWater());
+          allow = (IsShip() == AMap->tiles[newX][newY]->IsWater());
         }//if
     }//else
 
@@ -614,7 +615,7 @@ bool TUnit::LoadUnit(std::shared_ptr<TUnit> AUnit)
 bool TUnit::UnloadUnit(const TUnitType AType, const Byte x, const Byte y, TMap& AMap)
 {
   if (FreightCapacity()<=0) return false;
-  if ((sqr(x-GetPosX)>1) or (sqr(y-GetPosY)>1)) return false;
+  if ((sqr(x-GetPosX())>1) or (sqr(y-GetPosY())>1)) return false;
   int i;
   for (i = 5; i >= 0; --i)
   {
