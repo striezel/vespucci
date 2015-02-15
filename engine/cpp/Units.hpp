@@ -378,7 +378,7 @@ class TUnit
            should be the ship's position itself. Otherwise, the function will
            return false and not unload the unit.
     */
-    bool UnloadUnit(const TUnitType AType, const Byte x, const Byte y, TMap& AMap);
+    bool UnloadUnit(const TUnitType AType, const Byte x, const Byte y, std::shared_ptr<TMap> AMap);
 
     /* drops all passengers, i.e. unloads all possible units
 
