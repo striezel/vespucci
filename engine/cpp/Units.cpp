@@ -595,7 +595,7 @@ Byte TUnit::UnloadGood(const TGoodType AGood, const Byte num)
 bool TUnit::LoadUnit(std::shared_ptr<TUnit> AUnit)
 {
   if ((FreeCapacity()==0) or (AUnit==nullptr) or (UnitType==utConvoy)) return false;
-  else if (AUnit.FreightCapacity()>0) return false; //no ships or convoys
+  else if (AUnit->FreightCapacity()>0) return false; //no ships or convoys
   else
   {
     Byte slot = 0;
@@ -612,7 +612,7 @@ bool TUnit::LoadUnit(std::shared_ptr<TUnit> AUnit)
  -Return value: true on success, false otherwise
  -TODO: unloads first unit of given type, so if there are two ore more units of
   ===== the same type loaded, then it migth unload the wrong one*/
-bool TUnit::UnloadUnit(const TUnitType AType, const Byte x, const Byte y, TMap& AMap)
+bool TUnit::UnloadUnit(const TUnitType AType, const Byte x, const Byte y, std::shared_ptr<TMap> AMap)
 {
   if (FreightCapacity()<=0) return false;
   if ((sqr(x-GetPosX())>1) or (sqr(y-GetPosY())>1)) return false;

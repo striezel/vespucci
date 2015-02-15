@@ -60,6 +60,9 @@
 		<Unit filename="PascalFunctions_Files.hpp" />
 		<Unit filename="PascalFunctions_FoundingFathers.hpp" />
 		<Unit filename="PascalFunctions_Goods.hpp" />
+		<Unit filename="PascalFunctions_Math.cpp" />
+		<Unit filename="PascalFunctions_Math.hpp" />
+		<Unit filename="PascalFunctions_TUnitType.hpp" />
 		<Unit filename="PascalFunctions_TerrainType.hpp" />
 		<Unit filename="PascalTypes.hpp" />
 		<Unit filename="PathFinder.cpp" />
@@ -72,6 +75,7 @@
 		<Unit filename="Templates.hpp" />
 		<Unit filename="Terrain.cpp" />
 		<Unit filename="Terrain.hpp" />
+		<Unit filename="Tribe.cpp" />
 		<Unit filename="Tribe.hpp" />
 		<Unit filename="Units.cpp" />
 		<Unit filename="Units.hpp" />
