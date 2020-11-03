@@ -3,6 +3,10 @@
 Vespucci is an open-source remake of the old Colonization classic, a game
 similar to Civilization. It is still in an early stage of development.
 
+## Build status
+
+[![GitLab pipeline status](https://gitlab.com/striezel/vespucci/badges/master/pipeline.svg)](https://gitlab.com/striezel/vespucci/-/pipelines)
+
 ## Building from source
 
 ### Prerequisites
