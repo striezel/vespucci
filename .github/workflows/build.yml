@@ -1,0 +1,20 @@
+name: GitHub-CI
+
+on: push
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE.
+      - uses: actions/checkout@v2
+      - name: Change directory
+        run: cd $GITHUB_WORKSPACE && pwd && ls -lah
+      - name: Install Debian packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fp-compiler fp-units-gfx freeglut3
+      - name: Build
+        run: |
+          cd engine
+          fpc -S2 vespucci.dpr
