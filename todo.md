@@ -21,7 +21,7 @@ Trade:
 Colonies:
 ---------
   * notify player, if a new building was constructed in one of the colonies
-  * notify player, of a produced good cannot be stored due to not having enough
+  * notify player, if a produced good cannot be stored due to not having enough
     room in the warehouse
 
 GUI:
