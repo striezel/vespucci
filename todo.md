@@ -1,11 +1,12 @@
 To do:
 ======
 
-(This file lists some random things that still need to be done to improve and/or
- complete the game. You can possibly consider this as a list of missing features
- and/or known bugs, although the later are documented in known_bugs.txt.
- The list itself is highly incomplete(!) and issues are listed in no particular
- order.)
+This file lists some random things that still need to be done to improve and/or
+complete the game. You can possibly consider this as a list of missing features
+and/or known bugs, although the later are documented in
+[known_bugs.md](./known_bugs.md).
+The list itself is highly incomplete(!) and issues are listed in no particular
+order.
 
 Units:
 ------
