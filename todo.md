@@ -15,7 +15,7 @@ Units:
 Trade:
 ------
   * implement possibility to trade with Indians
-  *     "          "      "    "    "   other Europeans in new world
+  * implement possibility to trade with other Europeans in new world
   * implement trading routes
 
 Colonies:

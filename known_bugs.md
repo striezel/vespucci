@@ -8,7 +8,7 @@ well.
 
 General:
 --------
-  * The game is still missing some major features (see todo.txt).
+  * The game is still missing some major features (see [todo.md](./todo.md)).
 
 
 Units:
