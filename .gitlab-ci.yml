@@ -1,0 +1,17 @@
+build_debian10:
+  image: debian:10-slim
+  stage: build
+  before_script:
+    - apt-get update && apt-get -y install fp-compiler fp-units-gfx freeglut3
+  script:
+    - cd ./engine
+    - fpc -S2 vespucci.dpr
+
+build_ubuntu2010:
+  image: ubuntu:20.10
+  stage: build
+  before_script:
+    - apt-get update && apt-get -y install fp-compiler fp-units-gfx freeglut3
+  script:
+    - cd ./engine
+    - fpc -S2 vespucci.dpr
