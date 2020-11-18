@@ -5,7 +5,10 @@ similar to Civilization. It is still in an early stage of development.
 
 ## Build status
 
+* GitLab:
 [![GitLab pipeline status](https://gitlab.com/striezel/vespucci/badges/master/pipeline.svg)](https://gitlab.com/striezel/vespucci/-/pipelines)
+* GitHub:
+[![GitHub CI status](https://github.com/striezel/vespucci/workflows/GitHub-CI/badge.svg)](https://github.com/striezel/vespucci/actions)
 
 ## Building from source
 
