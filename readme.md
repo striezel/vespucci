@@ -9,6 +9,8 @@ similar to Civilization. It is still in an early stage of development.
 [![GitLab pipeline status](https://gitlab.com/striezel/vespucci/badges/master/pipeline.svg)](https://gitlab.com/striezel/vespucci/-/pipelines)
 * GitHub:
 [![GitHub CI status](https://github.com/striezel/vespucci/workflows/GitHub-CI/badge.svg)](https://github.com/striezel/vespucci/actions)
+* Travis CI:
+[![Build Status](https://travis-ci.org/striezel/vespucci.svg?branch=master)](https://travis-ci.org/striezel/vespucci)
 
 ## Building from source
 
