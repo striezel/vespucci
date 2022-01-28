@@ -41,7 +41,7 @@ const
     max       - the maximum price of the good
                 Prices will raise and fall during the game, depending on how
                 much of a good the player buys and sells. These limits make
-                sure tha price stays with a certain range.
+                sure the price stays with a certain range.
   }
   cGoodPrices: array [TGoodType] of record
                  diff: Byte;

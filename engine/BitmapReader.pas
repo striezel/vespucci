@@ -259,7 +259,7 @@ begin
 
   //allocate memory
   GetMem(Data, bih.biSizeImage);
-  //check for Offset and seek it, if neccessary
+  //check for Offset and seek it, if necessary
   if (bfh.bfOffBits<>fs.Position) then fs.Seek(bfh.bfOffBits, soBeginning);
   //now we can start the reading
   if (fs.Read(Data^, bih.biSizeImage)<> bih.biSizeImage) then
@@ -371,7 +371,7 @@ begin
   //now go for the data
   //order for 24bpp is blue, green, red
 
-  //check for Offset and seek it, if neccessary
+  //check for Offset and seek it, if necessary
   if (bfh.bfOffBits<>fs.Position) then fs.Seek(bfh.bfOffBits, soBeginning);
   //now we can start the reading
   if (fs.Read(Data, bih.biSizeImage)<> 32*32*3) then
@@ -481,7 +481,7 @@ begin
   //now go for the data
   //order for 24bpp is blue, green, red
 
-  //check for Offset and seek it, if neccessary
+  //check for Offset and seek it, if necessary
   if (bfh.bfOffBits<>fs.Position) then fs.Seek(bfh.bfOffBits, soBeginning);
   //now we can start the reading
   if (fs.Read(Data, bih.biSizeImage)<> 128*64*3) then

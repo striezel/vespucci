@@ -176,24 +176,24 @@ type
       }
       procedure Generate(const LandMass: Single; const f: THillFunction; const temperature: TTemperatureType; const climate: TClimateType); overload;
 
-      { generates the special ressources for the map
+      { generates the special resources for the map
 
         parameters:
-            LandOnly - boolean that indicates whether special ressources should
+            LandOnly - boolean that indicates whether special resources should
                        only be generated for land squares (true) or also for
                        watery squares (false)
 
         remarks:
             Only call this once for a genarates map. For maps loaded from a
             file, never ever call that function, because loaded maps already
-            have their special ressources set.
+            have their special resources set.
       }
       procedure GenerateSpecials(const LandOnly: Boolean=True);
 
       { tries to save the map to the given file and returns true on success
 
         parameters:
-            FileName - name of the destionation file
+            FileName - name of the destination file
       }
       function SaveToFile(const FileName: string): Boolean;
 
@@ -473,7 +473,7 @@ begin
     //now set the hill's radius
     radius:= 3+Random(7);
     //...and its location
-    { Check for x-position is neccessary, because we don't want half an island
+    { Check for x-position is necessary, because we don't want half an island
       popping in at the eastern or western end of the map.}
     repeat
       h_x:= Random(cMap_X);

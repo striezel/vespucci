@@ -137,7 +137,7 @@ type
 
         remarks:
             ChangeTaxRate is only used during loading; use IncreaseTax on other
-            occassions.
+            occasions.
       }
       procedure ChangeTaxRate(const NewPercentage: Byte);
 
@@ -343,7 +343,7 @@ type
       procedure SetDiplomatic(const other_nation: LongInt; const new_status: TDiplomaticStatus);
 
       { tries to save this nation's data to the given stream and returns true
-        in case of success, or false if an error occured
+        in case of success, or false if an error occurred
 
         parameters:
             fs - the file stream the nation shall be saved in

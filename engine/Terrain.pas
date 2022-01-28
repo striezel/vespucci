@@ -55,7 +55,7 @@ type
       m_River: Boolean;
       m_Road: Boolean;
 
-      {**indicates, whether terrain has a special ressource.
+      {**indicates, whether terrain has a special resource.
         arctic: none
         Sea, OpenSea: Fish
         Plains: Wheat
@@ -96,7 +96,7 @@ type
             River    - boolean to indicate whether or not there shall be a river
             Road     - boolean to indicate whether or not there shall be a road
             Special  - boolean to indicate whether or not there shall be a
-                       special ressource on that field
+                       special resource on that field
             Ploughed - boolean to indicate whether or not this terrain shall be
                        ploughed
       }
@@ -123,7 +123,7 @@ type
       { returns true, if this terrain has a road }
       function HasRoad: Boolean;
 
-      { returns true, if this square has a special ressource }
+      { returns true, if this square has a special resource }
       function HasSpecial: Boolean;
 
       { returns true, if this terrain was ploughed }
@@ -171,7 +171,7 @@ type
       procedure Plough;
 
       //changes that should only take place at initialization
-      { creates a special ressource here }
+      { creates a special resource here }
       procedure CreateSpecial;
   end;//class
 

@@ -190,7 +190,7 @@ type
         AMap               - the map (must not be nil, of you want a solution)
         path               - array that will hold the coordinates of each node
                              that needs to be travelled to get from start to the
-                             destionation node (i.e. the path a unit has to walk)
+                             destination node (i.e. the path a unit has to walk)
         SpecialNodeX       - x-coordinate of a special node that can be
                              travelled even if it does not meet the water/land
                              requirement

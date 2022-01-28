@@ -132,7 +132,7 @@ type
       procedure ChangeName(const new_name: string);
 
       { tries to save this nation's data to the given stream and returns true
-        in case of success, or false if an error occured
+        in case of success, or false if an error occurred
 
         parameters:
             fs - the file stream the nation shall be saved in

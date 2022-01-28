@@ -273,7 +273,7 @@ type
       }
       function SendToNewWorld: Boolean;
 
-      { tries to send a unit which alredy sails to the new world back to Europe
+      { tries to send a unit which already sails to the new world back to Europe
         and will return true on success
 
         remarks:
@@ -282,7 +282,7 @@ type
       }
       function CallBackToEurope: Boolean;
 
-      { tries to send a unit which alredy sails to Europe back to the new world
+      { tries to send a unit which already sails to Europe back to the new world
         and will return true on success
 
         remarks:
@@ -411,7 +411,7 @@ type
       }
       procedure GiveMuskets(const has: Boolean = True);
 
-      { sets the interal item byte
+      { sets the internal item byte
 
         parameters:
             new_items - value indicating the unit's items
@@ -1042,7 +1042,7 @@ end;//func
 
 procedure TUnit.ChangeType(const newType: TUnitType);
 begin
-  //we don't wanna change ships' type or convoy
+  // We don't want to change ships' type or convoy.
   if ((not IsShip) and (UnitType<>utConvoy)) then
     UnitType:= newType;
 end;//proc
@@ -1292,7 +1292,7 @@ end;//func
 {tries to unload a unit and place it at the given coordinates
  -Return value: true on success, false otherwise
  -TODO: unloads first unit of given type, so if there are two ore more units of
-  ===== the same type loaded, then it migth unload the wrong one}
+  ===== the same type loaded, then it might unload the wrong one}
 function TUnit.UnloadUnit(const AType: TUnitType; const x,y: Byte; AMap: TMap): Boolean;
 var i: Integer;
 begin

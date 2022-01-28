@@ -114,7 +114,7 @@ type
             fs - the file stream the tribe has to be saved to
 
         remarks:
-            The file stream already has to be openend and has to be ready for
+            The file stream already has to be opened and has to be ready for
             writing.
       }
       function SaveToStream(var fs: TFileStream): Boolean; override;
@@ -125,7 +125,7 @@ type
             fs - the file stream the tribe has to be loaded from
 
         remarks:
-            The file stream already has to be openend and has to be ready for
+            The file stream already has to be opened and has to be ready for
             reading.
       }
       function LoadFromStream(var fs: TFileStream): Boolean; override;

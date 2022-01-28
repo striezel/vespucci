@@ -90,7 +90,7 @@ type
       { adds a new message with the given text (or better: puts it into the
         message queue)
 
-        paramaters:
+        parameters:
             msg_text - the text of the message
       }
       procedure AddMessageSimple(const msg_txt: AnsiString);
@@ -98,7 +98,7 @@ type
       { adds a new message with the given text and options (or better: puts it
         into the message queue)
 
-        paramaters:
+        parameters:
             msg_text  - the text of the message
             opts      - the options the player can choose from
             the_cbRec - callback record for callback after player has chosen an
@@ -109,7 +109,7 @@ type
       { adds a new message with the given text and an input field (or better:
         puts the message into the message queue)
 
-        paramaters:
+        parameters:
             msg_text  - the text of the message
             inCaption - caption of the input field
             inDefault - default (preset) text for the input field
