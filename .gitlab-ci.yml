@@ -1,5 +1,5 @@
-build_debian10:
-  image: debian:10-slim
+build_debian11:
+  image: debian:11-slim
   stage: build
   before_script:
     - apt-get update && apt-get -y install fp-compiler fp-units-gfx freeglut3
@@ -7,8 +7,8 @@ build_debian10:
     - cd ./engine
     - fpc -S2 vespucci.dpr
 
-build_centos8:
-  image: centos:8
+build_rocky8:
+  image: rockylinux:8
   stage: build
   before_script:
     - yum install -y epel-release && yum install -y fpc freeglut glibc-devel
