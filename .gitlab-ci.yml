@@ -1,5 +1,5 @@
-build_debian11:
-  image: debian:11-slim
+debian:
+  image: debian:12-slim
   stage: build
   before_script:
     - apt-get update && apt-get -y install fp-compiler fp-units-gfx freeglut3
@@ -7,7 +7,7 @@ build_debian11:
     - cd ./engine
     - fpc -S2 vespucci.dpr
 
-build_rocky8:
+rocky:
   image: rockylinux:8
   stage: build
   before_script:
