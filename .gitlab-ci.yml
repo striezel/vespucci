@@ -2,7 +2,7 @@ debian:
   image: debian:12-slim
   stage: build
   before_script:
-    - apt-get update && apt-get -y install fp-compiler fp-units-gfx freeglut3
+    - apt-get update && apt-get -y install fp-compiler fp-units-gfx libglut3.12
   script:
     - cd ./engine
     - fpc -S2 vespucci.dpr
