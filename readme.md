@@ -22,7 +22,13 @@ system to get the latest source code directly from the Git repository.
 
 All of that can usually be installed be typing
 
-    apt-get install fp-compiler fp-units-gfx freeglut3 git 
+    # Debian 11 and earlier versions
+    apt-get install fp-compiler fp-units-gfx freeglut3 git
+
+or
+
+    # Debian 12
+    apt-get install fp-compiler fp-units-gfx libglut3.12 git
 
 or
 
