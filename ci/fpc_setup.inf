@@ -1,0 +1,4 @@
+[Setup]
+Lang=default
+SetupType=full
+Components=base,binutils,docs,ide,utils,make,demo,gdb,units,examples

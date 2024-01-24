@@ -1,0 +1,68 @@
+name: Windows Build
+
+on: push
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os:
+          - windows-2019
+    runs-on: ${{ matrix.os }}
+    steps:
+      # Checks-out the repository under $GITHUB_WORKSPACE.
+      - uses: actions/checkout@v4
+      - name: Change directory
+        run: cd $GITHUB_WORKSPACE
+      - name: Download FreePascal Compiler
+        shell: bash
+        run: |
+          curl -L --output fpc-3.2.2.win32.and.win64.exe https://sourceforge.net/projects/freepascal/files/Win32/3.2.2/fpc-3.2.2.win32.and.win64.exe
+          CHECKSUM=$(sha256sum fpc-3.2.2.win32.and.win64.exe)
+          echo Checksum calculation: $CHECKSUM
+          CHECKSUM_BITS=$(echo $CHECKSUM | cut -f 1 -d' ')
+          if [[ "$CHECKSUM_BITS" != "8c255390544b051388b577eb61c6191a04883264afe0e3369b3600a56daf7bde" ]]
+          then
+            echo "Checksum of downloaded installer is wrong."
+            exit 1
+          fi
+      - name: Install FreePascal Compiler
+        shell: cmd
+        run: fpc-3.2.2.win32.and.win64.exe /verysilent /norestart /LoadInf="ci\fpc_setup.inf"
+      - name: Build
+        shell: bash
+        run: |
+          cd $GITHUB_WORKSPACE
+          cd engine
+          "/c/FPC/3.2.2/bin/i386-win32/fpc.exe" -S2 vespucci.dpr
+      - name: Download pre-compiled GLUT DLLs for Windows
+        shell: bash
+        run: |
+          curl -L --output glutdlls37beta.zip https://www.opengl.org/resources/libraries/glut/glutdlls37beta.zip
+          CHECKSUM=$(sha256sum glutdlls37beta.zip)
+          echo Checksum calculation: $CHECKSUM
+          CHECKSUM_BITS=$(echo $CHECKSUM | cut -f 1 -d' ')
+          if [[ "$CHECKSUM_BITS" != "26a78bae5626bae28c278335b22d524353427e7c374face2d147085b3ade85d3" ]]
+          then
+            echo "Checksum of downloaded GLUT binaries is wrong."
+            exit 1
+          fi
+          unzip glutdlls37beta.zip
+      - name: Collect build artifacts
+        shell: bash
+        run: |
+          cd $GITHUB_WORKSPACE
+          mkdir artifacts
+          cp engine/vespucci.exe artifacts/
+          cp -R engine/data artifacts/data
+          cp LICENSE artifacts/
+          cp readme.md artifacts/
+          cp known_bugs.md artifacts/
+          cp glut32.dll artifacts/
+          cp glut.dll artifacts/
+      - name: Archive build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: vespucci-build-artifacts
+          path: |
+            artifacts/*
