@@ -15,7 +15,7 @@ similar to Civilization. It is still in an early stage of development.
 ### Prerequisites
 
 To build Vespucci from source you need an Object Pascal / Delphi compiler like
-[FreePascal](https://www.freepascal.org/), and the GLUT or freeglut library.
+[Free Pascal](https://www.freepascal.org/), and the GLUT or freeglut library.
 
 It also helps to have Git, a distributed version control system, on your build
 system to get the latest source code directly from the Git repository.
