@@ -2,3 +2,6 @@
 *.o
 *.ppu
 
+# executable files
+*.exe
+engine/vespucci
