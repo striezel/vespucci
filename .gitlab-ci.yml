@@ -8,7 +8,7 @@ debian:
     - fpc -S2 vespucci.dpr
 
 rocky:
-  image: rockylinux:8
+  image: rockylinux:9
   stage: build
   before_script:
     - yum install -y epel-release && yum install -y fpc freeglut glibc-devel

@@ -41,7 +41,7 @@ or
 
 or
 
-    yum install epel-release # needed for fpc (Free Pascal compiler) on Rocky Linux 8
+    yum install epel-release # needed for fpc (Free Pascal compiler) on Rocky Linux 9
                              # ... and maybe on other Red Hat-based distros, too
     yum install fpc freeglut git glibc-devel
 
