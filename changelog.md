@@ -15,6 +15,9 @@ improvements may be omitted.)_
   Terrain textures for wetland and marsh are added.
 
 * __[improvement]__
+  The building texture for the weaver's house is added.
+
+* __[improvement]__
   In the colony view, the colony icon is shown in the center square to indicate
   more clearly that those squares are the fields around the colony.
 

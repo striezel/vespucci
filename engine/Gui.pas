@@ -212,7 +212,7 @@ const
       ('school.bmp', 'college.bmp', 'university.bmp'), //btSchool, 3
       ('', '', ''), //btArmory, 3
       ('townhall.bmp', '', ''), //btTownhall, 1
-      ('', '', ''), //btWeaver, 3
+      ('weaver.bmp', '', ''), //btWeaver, 3
       ('tobacconist.bmp', '', ''), //btTobacconist, 3
       ('', '', ''), //btDistiller, 3
       ('', '', ''), //btFurTrader, 3
