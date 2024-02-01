@@ -40,7 +40,7 @@ begin
   TheGUI.KeyFunc(Key, {x,y,} False);
 end;
 
-procedure SpecialWrapper(Key: Longint; x, y: LongInt); cdecl;
+procedure SpecialWrapper(Key: LongInt; x, y: LongInt); cdecl;
 begin
   if ShowKey then WriteLn('Special key: ', Key);
   TheGUI.KeyFunc(Key, {x, y,} True);

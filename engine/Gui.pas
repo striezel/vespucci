@@ -829,14 +829,14 @@ type
   end;//class TGui
 
   { returns the vertical mouse position translated to OpenGL coordinates }
-  function MouseYToGLCoord(const my: Longint): Single;
+  function MouseYToGLCoord(const my: LongInt): Single;
 
 implementation
 
 uses
   DebugWriter;
 
-function MouseYToGLCoord(const my: Longint): Single;
+function MouseYToGLCoord(const my: LongInt): Single;
 begin
 
   // vertical mouse position translated to OpenGL coordinates
