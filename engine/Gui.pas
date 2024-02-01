@@ -1,7 +1,7 @@
 { ***************************************************************************
 
     This file is part of Vespucci.
-    Copyright (C) 2008, 2009, 2010, 2011, 2012, 2015  Dirk Stolle
+    Copyright (C) 2008, 2009, 2010, 2011, 2012, 2015, 2024  Dirk Stolle
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
