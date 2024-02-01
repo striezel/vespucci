@@ -73,6 +73,10 @@ To start the compiled program, type `./vespucci` into the terminal.
 Note that the game currently only has a German GUI, so you might want to wait
 for the English translation, or - even better - help with that.
 
+## History of changes
+
+A changelog is provided as [separate file](./changelog.md).
+
 ## Copyright and Licensing
 
 Copyright 2008-2020  Dirk Stolle

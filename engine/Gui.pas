@@ -335,6 +335,9 @@ type
       { draws the good bar (in both colonies and European view) }
       procedure DrawGoodsBar;
 
+      { draws the hover text on the good bar (in both colonies and European view) }
+      procedure DrawGoodsBarHoverText;
+
       { draws the title bar for colonies }
       procedure DrawColonyTitleBar;
 
@@ -2657,6 +2660,7 @@ begin
 
   end;//else, i.e. not ColonyBuildingPage
 
+  DrawGoodsBarHoverText;
 
   {$IFDEF DEBUG_CODE}
   WriteDebugLn('Leaving TGui.DrawColonyView');
@@ -2816,6 +2820,7 @@ begin
     glVertex2f(x_Fields+ BarWidth*PixelWidth, y_Fields);
   glEnd;
   DrawGoodsBar;
+  DrawGoodsBarHoverText;
   DrawEuropeTitleBar;
 
   if europe<>nil then
@@ -4214,10 +4219,24 @@ begin
       WriteHelvetica12(price_str, (2+ ((36-str_width) div 2) +i*38)*PixelWidth, 4*PixelWidth -0.5);
     end;//for
   end;//else if
-  if GetGoodAtMouse<>gtCross then
+  {$IFDEF DEBUG_CODE}
+  WriteDebugLn('Leaving TGui.DrawGoodsBar');
+  {$ENDIF}
+end;//proc
+
+procedure TGui.DrawGoodsBarHoverText;
+var current_good: TGoodType;
+    hover_text: String;
+    i, str_width: Integer;
+begin
+  {$IFDEF DEBUG_CODE}
+  WriteDebugLn('Entered TGui.DrawGoodsBarHoverText');
+  {$ENDIF}
+  current_good := GetGoodAtMouse;
+  if current_good<>gtCross then
   begin
-    price_str:= dat.GetLang.GetGoodName(GetGoodAtMouse);
-    str_width:= 8*length(price_str);
+    hover_text:= dat.GetLang.GetGoodName(current_good);
+    str_width:= 8*length(hover_text);
     //use "i" as temporary var to store the pixel count where the text begins
     if (str_width+mouse.x<cWindowWidth) then i:= mouse.x
     else i:= cWindowWidth-str_width;
@@ -4229,12 +4248,12 @@ begin
       glVertex2f((i-2)*PixelWidth, 66*PixelWidth -0.5);
     glEnd;
     glColor3ub(255, 255, 255);
-    WriteText(price_str, i*PixelWidth, (cGoodBarHeight+1)*PixelWidth -0.5)
+    WriteText(hover_text, i*PixelWidth, (cGoodBarHeight+1)*PixelWidth -0.5)
   end;//func
   {$IFDEF DEBUG_CODE}
-  WriteDebugLn('Leaving TGui.DrawGoodsBar');
+  WriteDebugLn('Leaving TGui.DrawGoodsBarHoverText');
   {$ENDIF}
-end;//proc
+end;
 
 procedure TGui.DrawColonyTitleBar;
 var s: string;

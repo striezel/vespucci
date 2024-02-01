@@ -57,6 +57,7 @@ jobs:
           cp -R engine/data artifacts/data
           cp LICENSE artifacts/
           cp readme.md artifacts/
+          cp changelog.md artifacts/
           cp known_bugs.md artifacts/
           cp glut32.dll artifacts/
           cp glut.dll artifacts/
