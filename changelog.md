@@ -11,6 +11,9 @@ improvements may be omitted.)_
   in the colony view is no longer obstructed by the box that displays the name
   of the building which is currently under construction.
 
+* __[improvement]__
+  Terrain textures for wetland and marsh are added.
+
 ## Version 0.01.r217 (2015-01-26)
 
 Currently, no changelog for this version or any previous versions is available.
