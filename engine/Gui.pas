@@ -2409,7 +2409,7 @@ begin
     glVertex2f(cWindowWidth*PixelWidth-5.0, y_Fields-5.0);
     glVertex2f(cWindowWidth*PixelWidth, y_Fields-5.0);
   glEnd;
-  //draw fields
+  // draw fields around colony
   local_Map:= dat.GetMap;
   for i:= -1 to 1 do
     for j:= -1 to 1 do
@@ -2461,6 +2461,26 @@ begin
         glDisable(GL_TEXTURE_2D);
       end;//if
     end;//for
+  // draw colony icon on center field
+  if m_ColonyTexNames[0] <> 0 then
+  begin
+    glEnable(GL_TEXTURE_2D);
+    glEnable(GL_ALPHA_TEST);
+    glBindTexture(GL_TEXTURE_2D, m_ColonyTexNames[0]);
+    glBegin(GL_QUADS);
+      glColor3f(1.0, 1.0, 1.0);
+      glTexCoord2f(0.0, 0.0);
+      glVertex2f(x_Fields + 2.0, y_Fields - 3.0); //lower left corner
+      glTexCoord2f(1.0, 0.0);
+      glVertex2f(x_Fields + 3.0, y_Fields - 3.0);
+      glTexCoord2f(1.0, 1.0);
+      glVertex2f(x_Fields + 3.0, y_Fields - 2.0);
+      glTexCoord2f(0.0, 1.0);
+      glVertex2f(x_Fields + 2.0, y_Fields - 2.0);
+    glEnd;
+    glDisable(GL_ALPHA_TEST);
+    glDisable(GL_TEXTURE_2D);
+  end;
   //show text for field
   GetColonyFieldAtMouse(i,j);
   if ((i<>-2) and (cur_colony.GetUnitInField(i,j)<>nil)) then

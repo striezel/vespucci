@@ -14,6 +14,10 @@ improvements may be omitted.)_
 * __[improvement]__
   Terrain textures for wetland and marsh are added.
 
+* __[improvement]__
+  In the colony view, the colony icon is shown in the center square to indicate
+  more clearly that those squares are the fields around the colony.
+
 ## Version 0.01.r217 (2015-01-26)
 
 Currently, no changelog for this version or any previous versions is available.
