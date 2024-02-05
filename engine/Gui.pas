@@ -433,6 +433,9 @@ type
       { draws the job report }
       procedure DrawJobReport;
 
+      { draws the economy report }
+      procedure DrawEconomyReport;
+
       { draws the report about Indian nations }
       procedure DrawIndianReport;
 
@@ -2057,7 +2060,6 @@ var i, j: Integer;
     tempColony: TColony;
     tempTribe: TTribe;
     tempMap: TMap;
-    tex: GLuint;
 begin
   {$IFDEF DEBUG_CODE}
   WriteDebugLn('Entered TGui.Draw');
@@ -3134,87 +3136,13 @@ end;//proc
 
 procedure TGui.DrawReport;
 var i, j, freight_offset: Integer;
-    col_arr: TColonyArr;
     u_arr: TUnitArr;
 begin
   //only economy, fleet, colony (partially), foreign affairs and score (part.) implemented yet
   case Report of
     rtCongress: DrawCongressReport;
     rtJob: DrawJobReport;
-    rtEconomy: begin
-                 col_arr:= dat.GetColonyList(dat.PlayerNation);
-
-                 //draw good icons
-                 glEnable(GL_TEXTURE_2D);
-                 glEnable(GL_ALPHA_TEST);
-                 glColor3f(1.0, 1.0, 1.0);
-                 for i:= Ord(gtFood) to Ord(gtMusket) do
-                 begin
-                   if m_GoodTexNames[TGoodType(i)]<>0 then glBindTexture(GL_TEXTURE_2D, m_GoodTexNames[TGoodType(i)])
-                   else glBindTexture(GL_TEXTURE_2D, m_ErrorTexName);
-                   glBegin(GL_QUADS);
-                     glTexCoord2f(0.0, 0.0);
-                     glVertex2f(4+i-Ord(gtFood), y_Fields-2);
-                     glTexCoord2f(1.0, 0.0);
-                     glVertex2f(4+i-Ord(gtFood)+1, y_Fields-2);
-                     glTexCoord2f(1.0, 1.0);
-                     glVertex2f(4+i-Ord(gtFood)+1, y_Fields-1);
-                     glTexCoord2f(0.0, 1.0);
-                     glVertex2f(4+i-Ord(gtFood), y_Fields-1);
-                   glEnd;
-                 end;//for
-                 glDisable(GL_ALPHA_TEST);
-                 glDisable(GL_TEXTURE_2D);
-
-                 //seperating lines
-                 glColor3f(0.0, 0.0, 0.0);
-                 glLineWidth(2.0);
-                 glBegin(GL_LINES);
-                   for i:= y_Fields-2 downto 1 do
-                   begin
-                     glVertex2f(0.0, i);
-                     glVertex2f(cWindowWidth*PixelWidth, i);
-                     glVertex2f(0.0, i-0.5);
-                     glVertex2f(cWindowWidth*PixelWidth, i-0.5);
-                   end;//for
-                   for i:= Ord(gtFood) to Ord(gtMusket) do
-                   begin
-                     glVertex2f(4+i-Ord(gtFood), y_Fields-2);
-                     glVertex2f(4+i-Ord(gtFood), 0.0);
-                   end;//for
-                 glEnd;
-
-                 //print storage amounts
-                 if length(col_arr)>0 then
-                 begin
-                   glColor3ubv(@cMenuTextColour[0]);
-                   for i:= 0 to High(col_arr) do
-                   begin
-                     WriteText(col_arr[i].GetName, PixelWidth, y_Fields-2.5+4*PixelWidth-i*0.5);
-                     for j:= Ord(gtFood) to Ord(gtMusket) do
-                     begin
-                       //calculate offset based on length of string
-                       freight_offset:= IntegerLength(col_arr[i].GetStore(TGoodType(j)))*4;
-                       WriteText(IntToStr(col_arr[i].GetStore(TGoodType(j))),
-                                 4+2*PixelWidth+0.5+j-Ord(gtFood)-freight_offset*PixelWidth,
-                                 y_Fields-2.5+4*PixelWidth-i*0.5);
-                     end;//for
-                   end;//for
-                 end//if
-                 else begin
-                   glColor3f(0.0, 0.0, 0.0);
-                   i:= TextWidthTimesRoman24('You have no colonies yet.');
-                   j:= (cWindowWidth-i) div 2;
-                   glBegin(GL_QUADS);
-                     glVertex2f(j*PixelWidth-1.0, y_Fields-4.75);
-                     glVertex2f((i+j)*PixelWidth+1.0, y_Fields-4.75);
-                     glVertex2f((i+j)*PixelWidth+1.0, y_Fields-3.75);
-                     glVertex2f(j*PixelWidth-1.0, y_Fields-3.75);
-                   glEnd;
-                   glColor3ub(255, 0, 0);
-                   WriteTimesRoman24('You have no colonies yet.', j*PixelWidth, y_Fields-4.5);
-                 end;//else
-               end;//case rtEconomy
+    rtEconomy: DrawEconomyReport;
     rtFleet: begin
                u_arr:= dat.GetAllShips(dat.PlayerNation);
 
@@ -3663,6 +3591,84 @@ begin
     ut:= Succ(ut);
   end;//while
 end;//proc
+
+procedure TGui.DrawEconomyReport;
+var col_arr: TColonyArr;
+    i, j, freight_offset: Integer;
+begin
+  col_arr:= dat.GetColonyList(dat.PlayerNation);
+
+  //draw good icons
+  glEnable(GL_TEXTURE_2D);
+  glEnable(GL_ALPHA_TEST);
+  glColor3f(1.0, 1.0, 1.0);
+  for i:= Ord(gtFood) to Ord(gtMusket) do
+  begin
+    if m_GoodTexNames[TGoodType(i)]<>0 then glBindTexture(GL_TEXTURE_2D, m_GoodTexNames[TGoodType(i)])
+    else glBindTexture(GL_TEXTURE_2D, m_ErrorTexName);
+    glBegin(GL_QUADS);
+      glTexCoord2f(0.0, 0.0);
+      glVertex2f(4+i-Ord(gtFood), y_Fields-2);
+      glTexCoord2f(1.0, 0.0);
+      glVertex2f(4+i-Ord(gtFood)+1, y_Fields-2);
+      glTexCoord2f(1.0, 1.0);
+      glVertex2f(4+i-Ord(gtFood)+1, y_Fields-1);
+      glTexCoord2f(0.0, 1.0);
+      glVertex2f(4+i-Ord(gtFood), y_Fields-1);
+    glEnd;
+  end;//for
+  glDisable(GL_ALPHA_TEST);
+  glDisable(GL_TEXTURE_2D);
+
+  //seperating lines
+  glColor3f(0.0, 0.0, 0.0);
+  glLineWidth(2.0);
+  glBegin(GL_LINES);
+  for i:= y_Fields-2 downto 1 do
+  begin
+    glVertex2f(0.0, i);
+    glVertex2f(cWindowWidth*PixelWidth, i);
+    glVertex2f(0.0, i-0.5);
+    glVertex2f(cWindowWidth*PixelWidth, i-0.5);
+  end;//for
+  for i:= Ord(gtFood) to Ord(gtMusket) do
+  begin
+    glVertex2f(4+i-Ord(gtFood), y_Fields-2);
+    glVertex2f(4+i-Ord(gtFood), 0.0);
+  end;//for
+  glEnd;
+
+  //print storage amounts
+  if length(col_arr)>0 then
+  begin
+    glColor3ubv(@cMenuTextColour[0]);
+    for i:= 0 to High(col_arr) do
+    begin
+      WriteText(col_arr[i].GetName, PixelWidth, y_Fields-2.5+4*PixelWidth-i*0.5);
+      for j:= Ord(gtFood) to Ord(gtMusket) do
+      begin
+        //calculate offset based on length of string
+        freight_offset:= IntegerLength(col_arr[i].GetStore(TGoodType(j)))*4;
+        WriteText(IntToStr(col_arr[i].GetStore(TGoodType(j))),
+                  4+2*PixelWidth+0.5+j-Ord(gtFood)-freight_offset*PixelWidth,
+                  y_Fields-2.5+4*PixelWidth-i*0.5);
+      end;//for
+    end;//for
+  end//if
+  else begin
+    glColor3f(0.0, 0.0, 0.0);
+    i:= TextWidthTimesRoman24('You have no colonies yet.');
+    j:= (cWindowWidth-i) div 2;
+    glBegin(GL_QUADS);
+      glVertex2f(j*PixelWidth-1.0, y_Fields-4.75);
+      glVertex2f((i+j)*PixelWidth+1.0, y_Fields-4.75);
+      glVertex2f((i+j)*PixelWidth+1.0, y_Fields-3.75);
+      glVertex2f(j*PixelWidth-1.0, y_Fields-3.75);
+    glEnd;
+    glColor3ub(255, 0, 0);
+    WriteTimesRoman24('You have no colonies yet.', j*PixelWidth, y_Fields-4.5);
+  end;//else
+end;
 
 procedure TGui.DrawIndianReport;
 var i, j: Integer;
