@@ -1248,7 +1248,9 @@ begin
     end
     else begin
       temp_cb:= TExitCallback.Create;
-      msg.AddMessageOptions('Vespucci beenden?', ToShortStrArr('Nein', 'Ja'), temp_cb);
+      msg.AddMessageOptions(dat.GetLang.GetOthers(osQuitGame),
+          ToShortStrArr(dat.GetLang.GetOthers(osNo), dat.GetLang.GetOthers(osYes)),
+          temp_cb);
     end;//else
   end;//if KEY_ESCAPE
 
