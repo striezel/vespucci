@@ -214,7 +214,7 @@ const
       ('townhall.bmp', '', ''), //btTownhall, 1
       ('weaver.bmp', '', ''), //btWeaver, 3
       ('tobacconist.bmp', '', ''), //btTobacconist, 3
-      ('', '', ''), //btDistiller, 3
+      ('distiller.bmp', '', ''), //btDistiller, 3
       ('', '', ''), //btFurTrader, 3
       ('carpenter.bmp', 'sawmill.bmp', ''), //btCarpenter, 2
       ('church.bmp', 'cathedral.bmp', ''), //btChurch, 2
