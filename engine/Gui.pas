@@ -724,14 +724,13 @@ type
 
         parameters:
             Key     - the key that was pressed
-            x,y     - position (mouse)
-            special - true to indicate that a special key was pressed
+            Special - true to indicate that a special key was pressed
 
         remarks:
-            The first three parameters are equal to those from the corresponding
-            key callback of GLUT.
+            The first parameter is equal to those from the corresponding key
+            callback of GLUT.
       }
-      procedure KeyFunc(Key: Byte; {x, y: LongInt;} Special: Boolean = False);
+      procedure KeyFunc(Key: Byte; Special: Boolean = False);
 
       { procedure to inject mouse click events to the GUI
 
