@@ -2435,7 +2435,7 @@ begin
     glDisable(GL_ALPHA_TEST);
     glDisable(GL_TEXTURE_2D);
   end;
-  //show text for field
+  // production show text for field
   GetColonyFieldAtMouse(i,j);
   if ((i<>-2) and (cur_colony.GetUnitInField(i,j)<>nil)) then
   begin
@@ -2447,6 +2447,28 @@ begin
     glColor3ubv(@cMenuTextColour[0]);
     WriteText(tempStr, x_Fields+2.5-(str_width*PixelWidth*0.5), y_Fields - 0.75);
   end;//if
+  // show name of terrain for field
+  if (i <> -2) then
+  begin
+    // first line: terrain name
+    tempStr := dat.GetLang.GetTerrainName(local_Map.tiles[i+cur_colony.GetPosX,j+cur_colony.GetPosY].GetType);
+    str_width:= length(tempStr) * 8;
+    glColor3ubv(@cMenuTextColour[0]);
+    WriteText(tempStr, x_Fields + 2.5 - (str_width * PixelWidth * 0.5), y_Fields - 4.5 + 3 * PixelWidth);
+    // second line: river + road status
+    tempStr := '';
+    if local_Map.tiles[i+cur_colony.GetPosX,j+cur_colony.GetPosY].HasRiver then
+    begin
+      tempStr := dat.GetLang.GetOthers(osRiver);
+    end;
+    if local_Map.tiles[i+cur_colony.GetPosX,j+cur_colony.GetPosY].HasRoad then
+    begin
+      if tempStr = '' then tempStr := dat.GetLang.GetOthers(osRoad)
+      else tempStr := tempStr + ' + ' + dat.GetLang.GetOthers(osRoad);
+    end;
+    str_width:= length(tempStr) * 8;
+    WriteText(tempStr, x_Fields + 2.5 - (str_width * PixelWidth * 0.5), y_Fields - 5.0 + 4 * PixelWidth);
+  end;
 
   DrawColonyTitleBar;
   DrawGoodsBar;

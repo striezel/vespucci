@@ -1,7 +1,7 @@
 { ***************************************************************************
 
     This file is part of Vespucci.
-    Copyright (C) 2008, 2009, 2010, 2011  Dirk Stolle
+    Copyright (C) 2008, 2009, 2010, 2011, 2024  Dirk Stolle
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -37,7 +37,7 @@ type
   TOtherString = (osLocation, osDestination, osFreight, osShip, osHighSea,
                   osNewWorld, osMoves, osEmpty, osNothing, osNoChanges, osTax,
                   osGold, osCost, osSaving, osEarnings, osName, osProgress,
-                  osQuitGame, osYes, osNo, osUndefined);
+                  osQuitGame, osYes, osNo, osRiver, osRoad, osUndefined);
   TEuroPortString = (epsManageHeading, epsNotOnShip, epsGoOnShip, epsArm, epsDisarm, epsGiveHorses, epsNoHorses, epsGiveTools, epsNoTools, epsTrainHeading, epsBuyHeading);
   TReportType = (rtNone, rtCongress, rtJob, rtEconomy, rtColony, rtFleet, rtForeign, rtIndian, rtScore);
   TColonyString = (csRenameQuestion, csRenameLabel, csAbandonYes, csAbandonNo, csAbandonQuestion);
@@ -641,6 +641,8 @@ begin
   Others[osQuitGame]:= 'Vespucci beenden?';
   Others[osYes]:= 'Ja';
   Others[osNo]:= 'Nein';
+  Others[osRiver]:= 'Fluss';
+  Others[osRoad]:= 'Straﬂe';
   Others[osUndefined]:= 'Nicht definiert';
   //save/ load messages
   SaveLoad[slsLoadChoose]:= 'W‰hlen Sie den zu ladenden Spielstand.';
