@@ -436,6 +436,9 @@ type
       { draws the economy report }
       procedure DrawEconomyReport;
 
+      { draws the fleet report }
+      procedure DrawFleetReport;
+
       { draws the report about Indian nations }
       procedure DrawIndianReport;
 
@@ -3135,125 +3138,19 @@ begin
 end;//proc
 
 procedure TGui.DrawReport;
-var i, j, freight_offset: Integer;
-    u_arr: TUnitArr;
 begin
   //only economy, fleet, colony (partially), foreign affairs and score (part.) implemented yet
   case Report of
     rtCongress: DrawCongressReport;
     rtJob: DrawJobReport;
     rtEconomy: DrawEconomyReport;
-    rtFleet: begin
-               u_arr:= dat.GetAllShips(dat.PlayerNation);
-
-               //headings
-               glColor3ubv(@cMenuTextColour[0]);
-               WriteText(dat.GetLang.GetOthers(osShip), 0.5, y_Fields-0.75);
-               WriteText(dat.GetLang.GetOthers(osFreight), 5.5, y_Fields-0.75);
-               WriteText(dat.GetLang.GetOthers(osLocation), 11.5, y_Fields-0.75);
-               WriteText(dat.GetLang.GetOthers(osDestination), 15.5, y_Fields-0.75);
-               //line grid
-               glColor3f(0.0, 0.0, 0.0);
-               glLineWidth(2.0);
-               glBegin(GL_LINES);
-                 for i:= y_Fields-1 downto 1 do
-                 begin
-                   glVertex2f(0.0, i);
-                   glVertex2f(cWindowWidth*PixelWidth, i);
-                 end;//for
-                 glVertex2f(5.0, y_Fields-1);
-                 glVertex2f(5.0, 1);
-                 glVertex2f(11.0, y_Fields-1);
-                 glVertex2f(11.0, 1);
-                 glVertex2f(15.0, y_Fields-1);
-                 glVertex2f(15.0, 1);
-               glEnd;
-
-               //display ships
-               if length(u_arr)>0 then
-               begin
-                 for i:= 0 to Min(High(u_arr),cFleetReportUnitsPerPage-1) do
-                 begin
-                   //unit and name
-                   glEnable(GL_ALPHA_TEST);
-                   glEnable(GL_TEXTURE_2D);
-                   DrawUnitIcon(u_arr[i], 0.0, y_Fields-2-i, True, True);
-                   glDisable(GL_TEXTURE_2D);
-                   glDisable(GL_ALPHA_TEST);
-                   glColor3ubv(@cMenuTextColour[0]);
-                   WriteText(dat.GetLang.GetUnitName(u_arr[i].GetType), 1.125, y_Fields-2-i+3*PixelWidth);
-
-                   freight_offset:= 5;
-                   //draw goods in ship
-                   for j:= 0 to u_arr[i].FreightCapacity-1 do
-                   begin
-                     if u_arr[i].GetCargoAmountBySlot(j)>0 then
-                     begin
-                       glEnable(GL_ALPHA_TEST);
-                       glEnable(GL_TEXTURE_2D);
-                       if m_GoodTexNames[u_arr[i].GetCargoGoodBySlot(j)]<>0 then
-                         glBindTexture(GL_TEXTURE_2D, m_GoodTexNames[u_arr[i].GetCargoGoodBySlot(j)])
-                       else glBindTexture(GL_TEXTURE_2D, m_ErrorTexName);
-                       glBegin(GL_QUADS);
-                         glColor3f(1.0, 1.0, 1.0);
-                         glTexCoord2f(0.0, 0.0);
-                         glVertex2f(freight_offset, y_Fields-2-i);
-                         glTexCoord2f(1.0, 0.0);
-                         glVertex2f(freight_offset+1.0, y_Fields-2-i);
-                         glTexCoord2f(1.0, 1.0);
-                         glVertex2f(freight_offset+1.0, y_Fields-1-i);
-                         glTexCoord2f(0.0, 1.0);
-                         glVertex2f(freight_offset, y_Fields-1-i);
-                       glEnd;
-                       glDisable(GL_TEXTURE_2D);
-                       glDisable(GL_ALPHA_TEST);
-                       freight_offset:= freight_offset+1;
-                     end;//if
-                   end;//for j
-                   //draw units in ship
-                   for j:= 0 to u_arr[i].FreightCapacity-1 do
-                   begin
-                     if u_arr[i].GetPassengerBySlot(j)<>nil then
-                     begin
-                       glEnable(GL_ALPHA_TEST);
-                       glEnable(GL_TEXTURE_2D);
-                       DrawUnitIcon(u_arr[i].GetPassengerBySlot(j), freight_offset, y_Fields-2-i, True, True);
-                       glDisable(GL_TEXTURE_2D);
-                       glDisable(GL_ALPHA_TEST);
-                       freight_offset:= freight_offset+1;
-                     end;//if
-                   end;//for j
-
-                   //write location
-                   glColor3ubv(@cMenuTextColour[0]);
-                   case u_arr[i].GetLocation of
-                     ulEurope: WriteText(dat.GetLang.GetPortName(u_arr[i].GetNation), 11.125, y_Fields-2-i+3*PixelWidth);
-                     ulGoToEurope, ulGoToNewWorld: WriteText(dat.GetLang.GetOthers(osHighSea), 11.125, y_Fields-2-i+3*PixelWidth);
-                   else WriteText('('+IntToStr(u_arr[i].GetPosX)+','+IntToStr(u_arr[i].GetPosY)+')', 11.125, y_Fields-2-i+3*PixelWidth);
-                   end;//case location
-
-                   //write destination
-                   case u_arr[i].GetLocation of
-                     ulEurope: ; //write nothing
-                     ulGoToEurope: WriteText(dat.GetLang.GetPortName(u_arr[i].GetNation), 15.125, y_Fields-2-i+3*PixelWidth);
-                     ulGoToNewWorld: WriteText(dat.GetLang.GetOthers(osNewWorld)+' ('+IntToStr(u_arr[i].GetPosX)+','
-                                        +IntToStr(u_arr[i].GetPosY)+')', 15.125, y_Fields-2-i+3*PixelWidth);
-                     ulAmerica: if u_arr[i].GetTask<>nil then
-                                  if (u_arr[i].GetTask is TGoToTask) then
-                                    WriteText('('+IntToStr((u_arr[i].GetTask as TGoToTask).DestinationX)+','
-                                                +IntToStr((u_arr[i].GetTask as TGoToTask).DestinationY)+')',
-                                                11.125, y_Fields-2-i+3*PixelWidth);
-                   end;//case location for destination
-
-                 end;//for i
-               end;//if
-             end;//rtFleet
+    rtFleet: DrawFleetReport;
     rtColony: DrawColonyReport;
     rtForeign: DrawForeignAffairsReport;
     rtIndian: DrawIndianReport;
     rtScore: DrawScoreReport;
-  end;//case
-end;//proc
+  end;
+end;
 
 procedure TGui.DrawCongressReport;
 var i, max_bells: Integer;
@@ -3668,6 +3565,114 @@ begin
     glColor3ub(255, 0, 0);
     WriteTimesRoman24('You have no colonies yet.', j*PixelWidth, y_Fields-4.5);
   end;//else
+end;
+
+procedure TGui.DrawFleetReport;
+var u_arr: TUnitArr;
+    i, j, freight_offset: Integer;
+begin
+  u_arr:= dat.GetAllShips(dat.PlayerNation);
+
+  //headings
+  glColor3ubv(@cMenuTextColour[0]);
+  WriteText(dat.GetLang.GetOthers(osShip), 0.5, y_Fields-0.75);
+  WriteText(dat.GetLang.GetOthers(osFreight), 5.5, y_Fields-0.75);
+  WriteText(dat.GetLang.GetOthers(osLocation), 11.5, y_Fields-0.75);
+  WriteText(dat.GetLang.GetOthers(osDestination), 15.5, y_Fields-0.75);
+  //line grid
+  glColor3f(0.0, 0.0, 0.0);
+  glLineWidth(2.0);
+  glBegin(GL_LINES);
+    for i:= y_Fields-1 downto 1 do
+    begin
+      glVertex2f(0.0, i);
+      glVertex2f(cWindowWidth*PixelWidth, i);
+    end;//for
+    glVertex2f(5.0, y_Fields-1);
+    glVertex2f(5.0, 1);
+    glVertex2f(11.0, y_Fields-1);
+    glVertex2f(11.0, 1);
+    glVertex2f(15.0, y_Fields-1);
+    glVertex2f(15.0, 1);
+  glEnd;
+
+  //display ships
+  if length(u_arr)>0 then
+  begin
+    for i:= 0 to Min(High(u_arr),cFleetReportUnitsPerPage-1) do
+    begin
+      //unit and name
+      glEnable(GL_ALPHA_TEST);
+      glEnable(GL_TEXTURE_2D);
+      DrawUnitIcon(u_arr[i], 0.0, y_Fields-2-i, True, True);
+      glDisable(GL_TEXTURE_2D);
+      glDisable(GL_ALPHA_TEST);
+      glColor3ubv(@cMenuTextColour[0]);
+      WriteText(dat.GetLang.GetUnitName(u_arr[i].GetType), 1.125, y_Fields-2-i+3*PixelWidth);
+
+      freight_offset:= 5;
+      //draw goods in ship
+      for j:= 0 to u_arr[i].FreightCapacity-1 do
+      begin
+        if u_arr[i].GetCargoAmountBySlot(j)>0 then
+        begin
+          glEnable(GL_ALPHA_TEST);
+          glEnable(GL_TEXTURE_2D);
+          if m_GoodTexNames[u_arr[i].GetCargoGoodBySlot(j)]<>0 then
+            glBindTexture(GL_TEXTURE_2D, m_GoodTexNames[u_arr[i].GetCargoGoodBySlot(j)])
+          else glBindTexture(GL_TEXTURE_2D, m_ErrorTexName);
+          glBegin(GL_QUADS);
+            glColor3f(1.0, 1.0, 1.0);
+            glTexCoord2f(0.0, 0.0);
+            glVertex2f(freight_offset, y_Fields-2-i);
+            glTexCoord2f(1.0, 0.0);
+            glVertex2f(freight_offset+1.0, y_Fields-2-i);
+            glTexCoord2f(1.0, 1.0);
+            glVertex2f(freight_offset+1.0, y_Fields-1-i);
+            glTexCoord2f(0.0, 1.0);
+            glVertex2f(freight_offset, y_Fields-1-i);
+          glEnd;
+          glDisable(GL_TEXTURE_2D);
+          glDisable(GL_ALPHA_TEST);
+          freight_offset:= freight_offset+1;
+        end;//if
+      end;//for j
+      //draw units in ship
+      for j:= 0 to u_arr[i].FreightCapacity-1 do
+      begin
+        if u_arr[i].GetPassengerBySlot(j)<>nil then
+        begin
+          glEnable(GL_ALPHA_TEST);
+          glEnable(GL_TEXTURE_2D);
+          DrawUnitIcon(u_arr[i].GetPassengerBySlot(j), freight_offset, y_Fields-2-i, True, True);
+          glDisable(GL_TEXTURE_2D);
+          glDisable(GL_ALPHA_TEST);
+          freight_offset:= freight_offset+1;
+        end;//if
+      end;//for j
+
+      //write location
+      glColor3ubv(@cMenuTextColour[0]);
+      case u_arr[i].GetLocation of
+        ulEurope: WriteText(dat.GetLang.GetPortName(u_arr[i].GetNation), 11.125, y_Fields-2-i+3*PixelWidth);
+        ulGoToEurope, ulGoToNewWorld: WriteText(dat.GetLang.GetOthers(osHighSea), 11.125, y_Fields-2-i+3*PixelWidth);
+      else WriteText('('+IntToStr(u_arr[i].GetPosX)+','+IntToStr(u_arr[i].GetPosY)+')', 11.125, y_Fields-2-i+3*PixelWidth);
+      end;//case location
+
+      //write destination
+      case u_arr[i].GetLocation of
+       ulEurope: ; //write nothing
+       ulGoToEurope: WriteText(dat.GetLang.GetPortName(u_arr[i].GetNation), 15.125, y_Fields-2-i+3*PixelWidth);
+       ulGoToNewWorld: WriteText(dat.GetLang.GetOthers(osNewWorld)+' ('+IntToStr(u_arr[i].GetPosX)+','
+                          +IntToStr(u_arr[i].GetPosY)+')', 15.125, y_Fields-2-i+3*PixelWidth);
+       ulAmerica: if u_arr[i].GetTask<>nil then
+                    if (u_arr[i].GetTask is TGoToTask) then
+                      WriteText('('+IntToStr((u_arr[i].GetTask as TGoToTask).DestinationX)+','
+                                   +IntToStr((u_arr[i].GetTask as TGoToTask).DestinationY)+')',
+                                   11.125, y_Fields-2-i+3*PixelWidth);
+     end;//case location for destination
+   end;//for i
+ end;//if
 end;
 
 procedure TGui.DrawIndianReport;
