@@ -466,6 +466,15 @@ type
       }
       procedure DrawStateIcon(const state: TUnitState; const left, bottom: GLfloat);
 
+      { draws the river texture on a map square
+
+        parameters:
+            river_type  - the type of thr river to draw
+            left        - the x-coordinate of the lower left corner of the square
+            bottom      - the y-coordinate of the lower left corner of the square
+      }
+      procedure DrawRiverTexture(const river_type: Byte; const left, bottom: GLfloat);
+
       { returns the coordinates of the map square at the current mouse position
 
         parameters:
@@ -2152,79 +2161,12 @@ begin
           glDisable(GL_TEXTURE_2D);
         end;//else branch
 
-        //check for river and draw, if present
-          //still to do here
+        // check for river and draw, if present
         if (tempMap.GetRiverType(i,j)<>cMapRiverNone) then
         begin
-          //determine texture name
-          case tempMap.GetRiverType(i,j) of
-            cMapRiverNorth, cMapRiverEast, cMapRiverSouth, cMapRiverWest:
-                     tex:= m_RiverTexNames[rtOne];
-            cMapRiverNS, cMapRiverEW: tex:= m_RiverTexNames[rtTwo_Straight];
-            cMapRiverNE, cMapRiverSE, cMapRiverSW, cMapRiverNW:
-                     tex:= m_RiverTexNames[rtTwo_Bend];
-            cMapRiverNotN, cMapRiverNotE, cMapRiverNotS, cMapRiverNotW:
-                     tex:= m_RiverTexNames[rtThree];
-            cMapRiverAll: tex:= m_RiverTexNames[rtFour];
-          else tex:= 0;
-          end;//case
-          if (tex<>0) then
-          begin
-            glEnable(GL_TEXTURE_2D);
-            glEnable(GL_ALPHA_TEST);
-            glBindTexture(GL_TEXTURE_2D, tex);
-            glBegin(GL_QUADS);
-              glColor3f(1.0, 1.0, 1.0);
-              case tempMap.GetRiverType(i,j) of
-                cMapRiverNorth, cMapRiverNS, cMapRiverNE, cMapRiverNotW, cMapRiverAll:
-                  begin //no rotation needed
-                    glTexCoord2f(0.0, 1.0);
-                    glVertex2f(i-OffsetX, -j+y_Fields+OffsetY);//j: f(j)=-j+y_Fields+OffsetY
-                    glTexCoord2f(0.0, 0.0);
-                    glVertex2f(i-OffsetX, -j-1+y_Fields+OffsetY);//j+1
-                    glTexCoord2f(1.0, 0.0);
-                    glVertex2f(i-OffsetX+1, -j-1+y_Fields+OffsetY);//j+1
-                    glTexCoord2f(1.0, 1.0);
-                    glVertex2f(i-OffsetX+1, -j+y_Fields+OffsetY);//j
-                  end;//no rotation
-                cMapRiverWest, cMapRiverEW, cMapRiverNW, cMapRiverNotS:
-                  begin //rotation: 90° (positive direction)
-                    glTexCoord2f(1.0, 1.0);
-                    glVertex2f(i-OffsetX, -j+y_Fields+OffsetY);//j: f(j)=-j+y_Fields+OffsetY
-                    glTexCoord2f(0.0, 1.0);
-                    glVertex2f(i-OffsetX, -j-1+y_Fields+OffsetY);//j+1
-                    glTexCoord2f(0.0, 0.0);
-                    glVertex2f(i-OffsetX+1, -j-1+y_Fields+OffsetY);//j+1
-                    glTexCoord2f(1.0, 0.0);
-                    glVertex2f(i-OffsetX+1, -j+y_Fields+OffsetY);//j
-                  end; //rot.: 90°
-                cMapRiverSouth, cMapRiverSW, cMapRiverNotE:
-                  begin //rotation: 180° (positive direction)
-                    glTexCoord2f(1.0, 0.0);
-                    glVertex2f(i-OffsetX, -j+y_Fields+OffsetY);//j: f(j)=-j+y_Fields+OffsetY
-                    glTexCoord2f(1.0, 1.0);
-                    glVertex2f(i-OffsetX, -j-1+y_Fields+OffsetY);//j+1
-                    glTexCoord2f(0.0, 1.0);
-                    glVertex2f(i-OffsetX+1, -j-1+y_Fields+OffsetY);//j+1
-                    glTexCoord2f(0.0, 0.0);
-                    glVertex2f(i-OffsetX+1, -j+y_Fields+OffsetY);//j
-                  end; //rot.: 180°
-                cMapRiverEast, cMapRiverSE, cMapRiverNotN:
-                  begin //rotation: 270° (positive direction)
-                    glTexCoord2f(0.0, 0.0);
-                    glVertex2f(i-OffsetX, -j+y_Fields+OffsetY);//j: f(j)=-j+y_Fields+OffsetY
-                    glTexCoord2f(1.0, 0.0);
-                    glVertex2f(i-OffsetX, -j-1+y_Fields+OffsetY);//j+1
-                    glTexCoord2f(1.0, 1.0);
-                    glVertex2f(i-OffsetX+1, -j-1+y_Fields+OffsetY);//j+1
-                    glTexCoord2f(0.0, 1.0);
-                    glVertex2f(i-OffsetX+1, -j+y_Fields+OffsetY);//j
-                  end; //rot.: 270°
-              end;//case
-            glEnd;
-            glDisable(GL_ALPHA_TEST);
-            glDisable(GL_TEXTURE_2D);
-          end;//if river texture present
+          // j: f(j)=-j-1+y_Fields+OffsetY
+          DrawRiverTexture(tempMap.GetRiverType(i,j),
+                           i - OffsetX, -j - 1 + y_Fields + OffsetY);
         end;//if river present
 
         //check for unit and draw unit icon, if present
@@ -3938,6 +3880,81 @@ begin
     glEnd;
   end;//if
 end;//proc DrawStateIcon
+
+procedure TGui.DrawRiverTexture(const river_type: Byte; const left, bottom: GLfloat);
+var tex: GLuint;
+begin
+  // determine texture name
+  case river_type of
+    cMapRiverNorth, cMapRiverEast, cMapRiverSouth, cMapRiverWest:
+             tex := m_RiverTexNames[rtOne];
+    cMapRiverNS, cMapRiverEW: tex := m_RiverTexNames[rtTwo_Straight];
+    cMapRiverNE, cMapRiverSE, cMapRiverSW, cMapRiverNW:
+             tex := m_RiverTexNames[rtTwo_Bend];
+    cMapRiverNotN, cMapRiverNotE, cMapRiverNotS, cMapRiverNotW:
+             tex := m_RiverTexNames[rtThree];
+    cMapRiverAll: tex := m_RiverTexNames[rtFour];
+  else tex := 0;
+  end;
+
+  if (tex <> 0) then
+  begin
+    glEnable(GL_TEXTURE_2D);
+    glEnable(GL_ALPHA_TEST);
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glBegin(GL_QUADS);
+      glColor3f(1.0, 1.0, 1.0);
+      case river_type of
+        cMapRiverNorth, cMapRiverNS, cMapRiverNE, cMapRiverNotW, cMapRiverAll:
+          begin // no rotation needed
+            glTexCoord2f(0.0, 1.0);
+            glVertex2f(left, bottom + 1);
+            glTexCoord2f(0.0, 0.0);
+            glVertex2f(left, bottom);
+            glTexCoord2f(1.0, 0.0);
+            glVertex2f(left + 1, bottom);
+            glTexCoord2f(1.0, 1.0);
+            glVertex2f(left + 1, bottom + 1);
+          end;// no rotation
+        cMapRiverWest, cMapRiverEW, cMapRiverNW, cMapRiverNotS:
+          begin // rotation: 90° (positive direction)
+            glTexCoord2f(1.0, 1.0);
+            glVertex2f(left, bottom + 1);
+            glTexCoord2f(0.0, 1.0);
+            glVertex2f(left, bottom);
+            glTexCoord2f(0.0, 0.0);
+            glVertex2f(left + 1, bottom);
+            glTexCoord2f(1.0, 0.0);
+            glVertex2f(left + 1, bottom + 1);
+          end; // rot.: 90°
+        cMapRiverSouth, cMapRiverSW, cMapRiverNotE:
+          begin // rotation: 180° (positive direction)
+            glTexCoord2f(1.0, 0.0);
+            glVertex2f(left, bottom + 1);
+            glTexCoord2f(1.0, 1.0);
+            glVertex2f(left, bottom);
+            glTexCoord2f(0.0, 1.0);
+            glVertex2f(left + 1, bottom);
+            glTexCoord2f(0.0, 0.0);
+            glVertex2f(left + 1, bottom + 1);
+          end; // rot.: 180°
+        cMapRiverEast, cMapRiverSE, cMapRiverNotN:
+          begin // rotation: 270° (positive direction)
+            glTexCoord2f(0.0, 0.0);
+            glVertex2f(left, bottom + 1);
+            glTexCoord2f(1.0, 0.0);
+            glVertex2f(left, bottom);
+            glTexCoord2f(1.0, 1.0);
+            glVertex2f(left + 1, bottom);
+            glTexCoord2f(0.0, 1.0);
+            glVertex2f(left + 1, bottom + 1);
+          end; // rot.: 270°
+      end; // case
+    glEnd;
+    glDisable(GL_ALPHA_TEST);
+    glDisable(GL_TEXTURE_2D);
+  end; // if river texture is present
+end;
 
 procedure TGui.DrawMessage;
 var i, msg_lines, msg_opts: Integer;
