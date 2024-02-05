@@ -2397,6 +2397,12 @@ begin
         glEnd;
         glDisable(GL_TEXTURE_2D);
       end;//else
+      // draw river, if any
+      if local_Map.GetRiverType(i+cur_colony.GetPosX, j+cur_colony.GetPosY) <> cMapRiverNone then
+      begin
+        DrawRiverTexture(local_Map.GetRiverType(i+cur_colony.GetPosX, j+cur_colony.GetPosY),
+                         i + x_Fields + 2.0, y_Fields - 3.0 - j);
+      end;
       //draw units working there
       if cur_colony.GetUnitInField(i,j)<>nil then
       begin

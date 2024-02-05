@@ -20,7 +20,8 @@ improvements may be omitted.)_
 
 * __[improvement]__
   In the colony view, the colony icon is shown in the center square to indicate
-  more clearly that those squares are the fields around the colony.
+  more clearly that those squares are the fields around the colony. Furthermore,
+  rivers (if any) around the colony are now shown in those squares, too.
 
 ## Version 0.01.r217 (2015-01-26)
 
