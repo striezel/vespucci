@@ -1150,7 +1150,7 @@ begin
   glutIdleFunc(nil);
 end;//proc
 
-procedure TGui.KeyFunc(Key: Byte; {x, y: LongInt;} Special: Boolean = False);
+procedure TGui.KeyFunc(Key: Byte; Special: Boolean = False);
 var tempUnit: TUnit;
     temp_cb: TBasicCallback;
     temp_x, temp_y: Byte;
