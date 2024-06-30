@@ -2510,8 +2510,8 @@ begin
 
   // -- captions
   glColor3ubv(@cMenuTextColour[0]);
-  WriteText('Buildings', cWindowWidth*PixelWidth-5.0+4*PixelWidth, y_Fields-6.0+4*PixelWidth);
-  WriteText('Units', cWindowWidth*PixelWidth-5.0+4*PixelWidth, y_Fields-5.5+4*PixelWidth);
+  WriteText(dat.GetLang.GetOthers(osBuildings), cWindowWidth*PixelWidth-5.0+4*PixelWidth, y_Fields-6.0+4*PixelWidth);
+  WriteText(dat.GetLang.GetOthers(osUnits), cWindowWidth*PixelWidth-5.0+4*PixelWidth, y_Fields-5.5+4*PixelWidth);
 
   if ColonyBuildingPage then
   begin

@@ -11,6 +11,9 @@ improvements may be omitted.)_
   in the colony view is no longer obstructed by the box that displays the name
   of the building which is currently under construction.
 
+* __[fix]__
+  Two non-localized button captions in colony view are now localized.
+
 * __[improvement]__
   Terrain textures for wetland and marsh are added.
 
