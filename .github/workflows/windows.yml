@@ -11,7 +11,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       # Checks-out the repository under $GITHUB_WORKSPACE.
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Change directory
         run: cd $GITHUB_WORKSPACE
       - name: Download Free Pascal Compiler
@@ -51,7 +54,7 @@ jobs:
       - name: Collect build artifacts
         shell: bash
         run: |
-          cd $GITHUB_WORKSPACE
+          cd "$GITHUB_WORKSPACE"
           mkdir artifacts
           cp engine/vespucci.exe artifacts/
           cp -R engine/data artifacts/data
@@ -67,3 +70,4 @@ jobs:
           name: vespucci-build-artifacts
           path: |
             artifacts/*
+          if-no-files-found: error

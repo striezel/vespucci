@@ -13,9 +13,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       # Checks-out the repository under $GITHUB_WORKSPACE.
-      - uses: actions/checkout@v4
-      - name: Change directory
-        run: cd $GITHUB_WORKSPACE
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Install Debian packages (Ubuntu 22.04 and earlier)
         run: |
           sudo apt-get update
@@ -28,5 +29,6 @@ jobs:
         if: matrix.os == 'ubuntu-24.04'
       - name: Build
         run: |
+          cd "$GITHUB_WORKSPACE"
           cd engine
           fpc -S2 vespucci.dpr
