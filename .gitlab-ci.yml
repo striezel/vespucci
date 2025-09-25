@@ -1,5 +1,5 @@
 debian:
-  image: debian:12-slim
+  image: debian:13-slim
   stage: build
   before_script:
     - apt-get update && apt-get -y install fp-compiler fp-units-gfx libglut3.12
