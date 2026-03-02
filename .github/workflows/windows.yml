@@ -65,7 +65,7 @@ jobs:
           cp glut32.dll artifacts/
           cp glut.dll artifacts/
       - name: Archive build artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: vespucci-build-artifacts
           path: |
